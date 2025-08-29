@@ -1,21 +1,18 @@
-local GameConfig = {
-    Water = {
-        Material = Enum.Material.Water,
-        ChunkSize = 200,
-        Depth = 30,
-        WaveSpeed = 1,
-        LoadDistance = 2,
-    },
+local GameConfig = {}
 
-    Real_To_Game_Second = 288,      -- 现实1秒 = 游戏288秒
-    TotalDistanceRank = 501,        -- 总距离排行榜只取前500名
-    MaxDistanceRank = 501,          -- 最大距离排行榜只取前500名
-    TotalTimeRank = 501,            -- 总航行时间排行榜只取前500名
-    MaxTimeRank = 501,              -- 最大航行时间排行榜只取前500名
-    LandWharfDis = 20,              -- 岛屿码头距离(用于检测船靠岸弹出登岛提示界面)
-    PlayerToBoatDis = 50,           -- 玩家到船距离(用于检测弹出玩家上船提示界面)
-    OccupyTime = 30,                -- 占领时间
-    OccupyMaxDis = 100,             -- 占领最大距离
+-- 物品类型
+GameConfig.ItemType = {
+    Explore = 1,    -- 探索类
+    Weapon = 2,     -- 进攻类
+    Assistance = 3, -- 辅助类
+    Collect = 4,    -- 搜集类
+    Max = 5,        -- 最大物品类型
 }
+
+GameConfig.BackpackSlotCount = 6    -- 背包槽位数量
+GameConfig.InitItemNums = 30        -- 初始物品数量
+GameConfig.LandName = "恐龙岛"
+GameConfig.TeleportPartNames = {"Meshes/props4_SM_Prop_Barrel_Broken_02"}-- 触发传送的Part名称
+GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
 
 return GameConfig

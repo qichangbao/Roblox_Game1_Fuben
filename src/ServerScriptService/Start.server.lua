@@ -58,8 +58,8 @@ end
 -- local TriggerManager = require(ServerScriptService:WaitForChild("TriggerFolder"):WaitForChild("TriggerManager"))
 -- TriggerManager.new()
 
--- -- 全局禁用自动重生
--- game.Players.CharacterAutoLoads = false
+-- 全局禁用自动重生
+game.Players.CharacterAutoLoads = false
 
 print("服务器JobID：", game.JobId)
 print("服务器GameID：", game.GameId)
@@ -77,4 +77,30 @@ serverStartCheckEvent.OnServerEvent:Connect(function(player)
     print("收到来自玩家 " .. player.Name .. " 的服务器启动状态查询")
     -- 向客户端发送服务器启动状态
     serverStartCheckEvent:FireClient(player, isServerStarted)
+end)
+
+
+local function playerAdded(player)
+	print("PlayerAdded    ", player.Name)
+	
+	player.CharacterAdded:Connect(function(character)
+	end)
+	
+	player:LoadCharacter()
+end
+
+local function playerRemoving(player)
+	print("playerRemoving    ", player.Name)
+end
+
+for _, player in Players:GetPlayers() do
+	task.spawn(playerAdded, player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+	playerAdded(player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	playerRemoving(player)
 end)

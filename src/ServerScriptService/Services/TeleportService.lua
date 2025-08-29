@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
 local TeleportServiceModule = Knit.CreateService {
     Name = "TeleportService",
@@ -16,20 +17,12 @@ local TeleportServiceModule = Knit.CreateService {
 -- 玩家位置检测数据
 local playerPositionData = {}
 
--- 触发传送的Part名称
-local TRIGGER_PART_NAMES = {"Meshes/props4_SM_Prop_Barrel_Broken_02"}
 -- 在Part上方多少单位触发传送
 local TRIGGER_HEIGHT_OFFSET = 5
 
 -- ReserveServer配置
 local TARGET_PLACE_ID = 105534130650004  -- 目标传送场景ID（TestBoat）
 local RESERVE_SERVER_COOLDOWN = 10 -- 预留服务器冷却时间（秒）
-
--- 备用恐龙岛场景ID（当ReserveServer不可用时使用）
-local BACKUP_DINOSAUR_ISLAND_PLACES = {
-    105534130650004,  -- TestBoat（主要目标）
-    -- 在这里添加更多你想要的目标场景ID
-}
 
 -- 创建的场景缓存
 local createdPlaces = {}
@@ -57,10 +50,13 @@ local function isPlayerInTriggerZone(player)
     end
     
     local playerPosition = player.Character.HumanoidRootPart.Position
-    
-    local land = workspace:FindFirstChild("恐龙岛")
+    local land = workspace:FindFirstChild(GameConfig.LandName)
+    if not land then
+        error(string.format("未找到%s", GameConfig.LandName))
+        return false, nil
+    end
     -- 检查每个触发Part
-    for _, partName in ipairs(TRIGGER_PART_NAMES) do
+    for _, partName in ipairs(GameConfig.TeleportPartNames) do
         local triggerPart = land:FindFirstChild(partName)
         if triggerPart and triggerPart:IsA("BasePart") then
             local partPosition = triggerPart.Position
@@ -97,17 +93,12 @@ local function logMessage(level, message, player)
     local logText = string.format("[%s] [%s]%s %s", timestamp, level, playerInfo, message)
     
     if level == "ERROR" then
+        error(logText)
+    elseif level == "WARN" then
         warn(logText)
     else
-        warn(logText)
+        print(logText)
     end
-end
-
--- 获取备用恐龙岛场景ID
--- @return number 随机选择的备用场景PlaceId
-local function getBackupDinosaurIslandPlace()
-    local randomIndex = math.random(1, #BACKUP_DINOSAUR_ISLAND_PLACES)
-    return BACKUP_DINOSAUR_ISLAND_PLACES[randomIndex]
 end
 
 -- 创建预留服务器副本
@@ -157,20 +148,7 @@ local function teleportToReserveServer(player)
     -- 创建预留服务器
     local accessCode = createReserveServer(player)
     if not accessCode then
-        logMessage("ERROR", "无法创建预留服务器，使用备用场景", player)
-        -- 降级到备用场景
-        local backupPlaceId = getBackupDinosaurIslandPlace()
-        logMessage("INFO", string.format("使用备用场景PlaceId: %d", backupPlaceId), player)
-        
-        local teleportData = {
-            playerName = player.Name,
-            userId = player.UserId,
-            timestamp = os.time(),
-            source = "dinosaur_island_trigger",
-            serverType = "backup_place"
-        }
-        
-        TeleportService:TeleportAsync(backupPlaceId, {player}, teleportData)
+        logMessage("WARN", "无法创建预留服务器，使用备用场景", player)
         return
     end
     
@@ -201,17 +179,7 @@ local function teleportToReserveServer(player)
     if teleportSuccess then
         logMessage("INFO", "传送到预留服务器成功", player)
     else
-        logMessage("ERROR", string.format("传送到预留服务器失败: %s，使用备用方案", tostring(teleportError)), player)
-        -- 降级到备用场景
-        local backupPlaceId = getBackupDinosaurIslandPlace()
-        local backupTeleportData = {
-            playerName = player.Name,
-            userId = player.UserId,
-            timestamp = os.time(),
-            source = "dinosaur_island_trigger",
-            serverType = "backup_place"
-        }
-        TeleportService:TeleportAsync(backupPlaceId, {player}, backupTeleportData)
+        logMessage("WARN", string.format("传送到预留服务器失败: %s", tostring(teleportError)), player)
     end
 end
 
