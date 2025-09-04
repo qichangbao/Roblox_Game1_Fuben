@@ -142,8 +142,8 @@ function ItemService:KnitInit()
 end
 
 function ItemService:KnitStart()
-    --self:initItems()
-    self:CreateItem("传送装置", Vector3.new(353, -1.5, -160))
+    self:initItems()
+    -- self:CreateItem("传送装置", Vector3.new(353, -1.5, -160))
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -170))
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -180))
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -190))

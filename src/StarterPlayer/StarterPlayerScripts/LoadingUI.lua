@@ -41,10 +41,10 @@ local function createLoadingScreen()
     loadingLabel.Size = UDim2.new(0, 300, 0, 50)
     loadingLabel.Position = UDim2.new(0.5, -150, 0.5, -25)
     loadingLabel.BackgroundTransparency = 1
-    loadingLabel.Text = "Game loading..."
+    loadingLabel.Text = "Game loading"
     loadingLabel.TextColor3 = Color3.new(1, 1, 1)
     loadingLabel.TextScaled = true
-    loadingLabel.FontFace = GameConfig.Font
+    loadingLabel.FontFace = GameConfig.FontFace
     loadingLabel.Parent = loadingFrame
 end
 
