@@ -14,5 +14,6 @@ GameConfig.InitItemNums = 30        -- 初始物品数量
 GameConfig.LandName = "恐龙岛"
 GameConfig.TeleportPartNames = {"Meshes/props4_SM_Prop_Barrel_Broken_02"}-- 触发传送的Part名称
 GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
+GameConfig.SLOT_NUM = 9
 
 return GameConfig

@@ -7,7 +7,7 @@ math.randomseed(os.time())
 
 -- 初始化Knit框架
 local Knit = require(ReplicatedStorage.Packages:WaitForChild("Knit"):WaitForChild("Knit"))
-Knit.AddServices(game.ServerScriptService.Services)
+Knit.AddServices(ServerScriptService:WaitForChild("Services"))
 
 -- 服务器启动状态标志
 local isServerStarted = false
@@ -87,6 +87,31 @@ local function playerAdded(player)
 	end)
 	
 	player:LoadCharacter()
+    
+	-- 获取传送数据
+	local joinData = player:GetJoinData()
+	if not joinData or not joinData.TeleportData then
+        local data = {1,1,4}
+		print(string.format("玩家 %s 没有传送数据", player.Name))
+		return
+	end
+	
+	local localTeleportData = joinData.TeleportData
+	if not localTeleportData.PlayersToolData then
+		print(string.format("玩家 %s 的传送数据中没有工具数据", player.Name))
+		return
+	end
+	
+	-- 获取该玩家的工具数据
+	local playerToolData = localTeleportData.PlayersToolData[tostring(player.UserId)]
+	if not playerToolData then
+		print(string.format("玩家 %s 在传送数据中没有找到对应的工具数据", player.Name))
+		return
+	end
+	print(playerToolData)
+    for i, v in pairs(playerToolData) do
+        print(i, v)
+    end
 end
 
 local function playerRemoving(player)
