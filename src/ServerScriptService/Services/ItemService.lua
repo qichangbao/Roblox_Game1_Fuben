@@ -29,8 +29,16 @@ function ItemService:CreateItem(itemName, position)
     item.Parent = workspace
     if item:IsA("BasePart") then
         item.Position = position
+        -- 设置Part的锚固为false
+        item.Anchored = false
     elseif item:IsA("Model") then
         item:PivotTo(CFrame.new(position))
+        -- 遍历Model中的所有Part，设置锚固为false
+        for _, descendant in pairs(item:GetDescendants()) do
+            if descendant:IsA("BasePart") then
+                descendant.Anchored = false
+            end
+        end
     end
     item:SetAttribute("CD", itemInfo.CD)
     item:SetAttribute("Duration", itemInfo.Duration)
@@ -85,7 +93,7 @@ function ItemService:HandleItemPickup(player, item)
     end
     
     -- 尝试将物品添加到玩家背包
-    local success, errorMessage = Knit.GetService("BackpackService"):GiveToolToPlayer(player, item)
+    local success, errorMessage = Knit.GetService("InventoryService"):GiveToolToPlayer(player, item)
     if success then
         -- 成功添加到背包，销毁世界中的物品
         item:Destroy()
@@ -124,14 +132,14 @@ function ItemService:initItems()
             if type(coord.Type) == "number" then
                 if items[coord.Type] then
                     local item = items[coord.Type][math.random(1, #items[coord.Type])]
-                    self:CreateItem(item.Item, coord.Position)
+                    self:CreateItem(item.Item, coord.Position + Vector3.new(0, 0.5, 0))
                 end
             elseif type(coord.Type) == "string" then
                 local typeList = string.split(coord.Type, ",")
                 local type = typeList[math.random(1, #typeList)]
                 if items[tonumber(type)] then
                     local item = items[tonumber(type)][math.random(1, #items[tonumber(type)])]
-                    self:CreateItem(item.Item, coord.Position)
+                    self:CreateItem(item.Item, coord.Position + Vector3.new(0, 0.5, 0))
                 end
             end
         end
