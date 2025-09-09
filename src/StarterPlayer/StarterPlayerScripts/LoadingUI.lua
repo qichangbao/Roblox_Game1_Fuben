@@ -24,6 +24,7 @@ local function createLoadingScreen()
     loadingScreenGui.Name = "LoadingScreen"
     loadingScreenGui.ResetOnSpawn = false
     loadingScreenGui.IgnoreGuiInset = true
+    loadingScreenGui.DisplayOrder = 9999999
     loadingScreenGui.Parent = playerGui
     
     -- 创建背景Frame

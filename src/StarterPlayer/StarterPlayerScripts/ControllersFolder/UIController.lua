@@ -12,6 +12,7 @@ local UIController = Knit.CreateController {
     MoveDragUI = Signal.new(),
     HideDragUI = Signal.new(),
 	UpdateToolUI = Signal.new(),
+    InitTaskUI = Signal.new(),
     UpdateTaskUI = Signal.new(),
 }
 

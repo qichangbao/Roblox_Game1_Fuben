@@ -6,6 +6,7 @@ local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 local CollectGoldTask = {}
 
 function CollectGoldTask:Init(player, task)
+    task.Type = 1
     task.Current = 0
     task.Complete = false
 end
@@ -18,16 +19,18 @@ function CollectGoldTask:UpdateTask(player, task)
     if not task.Current then
         task.Current = 0
     end
+    local current = 0
     local toolData = Knit.GetService("InventoryService"):GetToolData(player)
     for _, itemId in ipairs(toolData) do
         local itemInfo = ItemConfig:GetByIndex(itemId)
         if itemInfo and itemInfo.Type == GameConfig.ItemType.Collect then
-            task.Current = task.Current + itemInfo.SellPrice
+            current += itemInfo.SellPrice
         end
     end
 
+    task.Current = current
     task.Complete = self:IsDone(task)
-    Knit.GetService("TaskService").Client.UpdateTask:Fire(player, {Current = task.Current, Target = task.Target, Complete = task.Complete})
+    Knit.GetService("TaskService").Client.UpdateTask:Fire(player, task)
 end
 
 function CollectGoldTask:IsDone(task)

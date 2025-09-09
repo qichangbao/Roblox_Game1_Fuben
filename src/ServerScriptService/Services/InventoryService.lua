@@ -432,6 +432,7 @@ function InventoryService:DiscardTool(player, slot)
     -- 通过ItemService创建物品
     local ItemService = Knit.GetService("ItemService")
     ItemService:CreateItem(itemInfo.Item, dropPosition)
+    Knit.GetService("TaskService"):UpdateTask(player, 1)
 end
 
 -- 丢弃工具

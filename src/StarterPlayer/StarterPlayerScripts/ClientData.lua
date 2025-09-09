@@ -19,7 +19,7 @@ local function init()
                 return Knit.GetService("ServerDataService").GetInitData()
             end,
             {
-                maxRetries = 5,
+                maxRetries = 15,
                 retryDelay = 2,
                 operationName = "登录数据获取",
                 dataValidator = function(data)
@@ -32,7 +32,9 @@ local function init()
 					ClientData.TaskData = data.TaskData or {}
 					Knit.GetController("UIController").ChangeGoldUI:Fire(data.Gold)
 					Knit.GetController("UIController").UpdateToolUI:Fire(data.ToolData)
-					Knit.GetController("UIController").UpdateTaskUI:Fire(data.TaskData)
+					Knit.GetController("UIController").InitTaskUI:Fire(data.TaskData)
+                    
+                    require(script.Parent:WaitForChild("LoadingUI")).Hide()
                 end,
                 onFailure = function(errorMsg)
                     warn("登录数据获取失败:", errorMsg)

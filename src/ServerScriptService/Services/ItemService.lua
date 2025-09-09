@@ -13,6 +13,7 @@ local ItemService = Knit.CreateService {
 }
 
 function ItemService:CreateItem(itemName, position)
+    itemName = "生锈铁钉"
     local itemInfo = ItemConfig:GetByItem(itemName)
     if not itemInfo then
         warn("Item not found: " .. itemName)
