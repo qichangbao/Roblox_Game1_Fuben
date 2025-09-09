@@ -6,17 +6,18 @@ local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Kn
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local PosConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PosConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local PlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PlanConfig"))
 
 local ItemService = Knit.CreateService {
     Name = "ItemService",
     Client = {},
 }
 
-function ItemService:CreateItem(itemName, position)
-    itemName = "生锈铁钉"
-    local itemInfo = ItemConfig:GetByItem(itemName)
+function ItemService:CreateItem(itemId, position, attribute)
+    --itemName = "生锈铁钉"
+    local itemInfo = ItemConfig:GetByIndex(itemId)
     if not itemInfo then
-        warn("Item not found: " .. itemName)
+        warn("Item not found: " .. itemId)
         return
     end
 
@@ -26,7 +27,7 @@ function ItemService:CreateItem(itemName, position)
         return
     end
     local item = part:Clone()
-    item.Name = itemName
+    item.Name = itemInfo.Item
     item.Parent = workspace
     if item:IsA("BasePart") then
         item.Position = position
@@ -43,6 +44,7 @@ function ItemService:CreateItem(itemName, position)
     end
     item:SetAttribute("CD", itemInfo.CD)
     item:SetAttribute("Duration", itemInfo.Duration)
+    GameConfig.SetItemAttribute(item, attribute)
     
     -- 创建 ProximityPrompt 实例
     local proximityPrompt = Instance.new("ProximityPrompt")
@@ -107,40 +109,17 @@ end
 
 function ItemService:initItems()
     task.spawn(function()
-        local items = {}
-        for i = 1, GameConfig.ItemType.Max - 1 do
-            local itemList = ItemConfig:GetAllByType(i)
-            table.insert(items, itemList)
-        end
-        local coordinates = PosConfig:GetAll()
-        -- 打乱coordinates数组并取前50个数据
-        local shuffledCoordinates = {}
-        for i, coord in pairs(coordinates) do
-            table.insert(shuffledCoordinates, coord)
-        end
-        -- 使用Fisher-Yates洗牌算法打乱数组
-        for i = #shuffledCoordinates, 2, -1 do
-            local j = math.random(i)
-            shuffledCoordinates[i], shuffledCoordinates[j] = shuffledCoordinates[j], shuffledCoordinates[i]
-        end
-        -- 取前50个数据
-        local finalCoordinates = {}
-        for i = 1, math.min(GameConfig.InitItemNums, #shuffledCoordinates) do
-            table.insert(finalCoordinates, shuffledCoordinates[i])
-        end
-        coordinates = finalCoordinates
-        for _, coord in pairs(coordinates) do
-            if type(coord.Type) == "number" then
-                if items[coord.Type] then
-                    local item = items[coord.Type][math.random(1, #items[coord.Type])]
-                    self:CreateItem(item.Item, coord.Position + Vector3.new(0, 0.5, 0))
-                end
-            elseif type(coord.Type) == "string" then
-                local typeList = string.split(coord.Type, ",")
-                local type = typeList[math.random(1, #typeList)]
-                if items[tonumber(type)] then
-                    local item = items[tonumber(type)][math.random(1, #items[tonumber(type)])]
-                    self:CreateItem(item.Item, coord.Position + Vector3.new(0, 0.5, 0))
+        local pos = PosConfig:GetAll()
+        for i, posData in pairs(pos) do
+            local planData = PlanConfig:GetByPlanID(posData.PlanID)
+            if not planData then
+                continue
+            end
+
+            for _, itemData in pairs(planData.Items) do
+                local random = math.random(1, 10000)
+                if random <= itemData.Probability then
+                    self:CreateItem(itemData.ItemID, posData.Position, GameConfig.GetItemAttribute())
                 end
             end
         end
@@ -152,16 +131,16 @@ end
 
 function ItemService:KnitStart()
     self:initItems()
-    -- self:CreateItem("传送装置", Vector3.new(353, -1.5, -160))
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -170))
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -180))
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -190))
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -200))
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -210))
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -220))
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230))
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240))
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250))
+    -- self:CreateItem("传送装置", Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute())
+    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute())
+    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute())
+    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -190), GameConfig.GetItemAttribute())
+    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -200), GameConfig.GetItemAttribute())
+    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -210), GameConfig.GetItemAttribute())
+    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -220), GameConfig.GetItemAttribute())
+    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230), GameConfig.GetItemAttribute())
+    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute())
+    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute())
 end
 
 return ItemService

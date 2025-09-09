@@ -52,6 +52,10 @@ local function init()
 			Knit.GetController("UIController").UpdateToolUI:Fire(toolData)
 		end)
 
+		Knit.GetService("InventoryService").ShowCD:Connect(function(slot, CD)
+			Knit.GetController("UIController").ShowToolCD:Fire(slot, CD)
+		end)
+
         Knit.GetService("TaskService").UpdateTask:Connect(function(taskData)
             ClientData.TaskData = taskData or {}
 			Knit.GetController("UIController").UpdateTaskUI:Fire(taskData)
