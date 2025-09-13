@@ -47,13 +47,9 @@ local function init()
 			Knit.GetController("UIController").ChangeGoldUI:Fire(gold)
 		end)
 
-        Knit.GetService("InventoryService").UpdateTool:Connect(function(toolData)
+        Knit.GetService("InventoryService").SendToolData:Connect(function(toolData)
             ClientData.ToolData = toolData or {}
 			Knit.GetController("UIController").UpdateToolUI:Fire(toolData)
-		end)
-
-		Knit.GetService("InventoryService").ShowCD:Connect(function(slot, CD)
-			Knit.GetController("UIController").ShowToolCD:Fire(slot, CD)
 		end)
 
         Knit.GetService("TaskService").UpdateTask:Connect(function(taskData)

@@ -1,79 +1,62 @@
-local ReplicatedStorage = game.ReplicatedStorage
-local ServerStorage = game:GetService("ServerStorage")
-local MonsterConfig = require(script.Parent:WaitForChild("MonsterConfig"))
-local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
-
 local AIManager = {}
 AIManager.__index = AIManager
 
-function AIManager.new(name, position, isWaterMonster, deadCallFunc)
+function AIManager.new(npc, position, monsterInfo, deadCallFunc)
     local self = setmetatable({}, AIManager)
     self.deadCallFunc = deadCallFunc
     
     -- 保存原始NPC克隆体
-    self.NPC = ServerStorage:FindFirstChild(name):Clone()
-    if isWaterMonster then
-        local isHasPart, foundParts = Interface.CheckPosHasPart(position, self.NPC:GetExtentsSize())
-        if isHasPart then
-            print("位置有物体，取消创建")
-            self.NPC:Destroy()
-            return
-        end
-    end
-
-    self.NPC:PivotTo(CFrame.new(position, self.NPC.HumanoidRootPart.CFrame.LookVector))
-    --self.NPC.HumanoidRootPart.CFrame = CFrame.new(position, self.NPC.HumanoidRootPart.CFrame.LookVector)
-    for _, part in ipairs(self.NPC:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CollisionGroup = "MonsterCollisionGroup"
-        end
-    end
-    self.NPC.Parent = workspace
+    self.NPC = npc
     self.target = nil
-    self.Humanoid = self.NPC:FindFirstChildOfClass('Humanoid')
-    if not self.Humanoid then
-        error("NPC模型必须包含Humanoid组件")
-    end
     
-    self:InitializeAttributes(name, position)
+    self:InitializeAttributes(monsterInfo, position)
 
     self.CurrentState = nil
     self.States = {
-        Idle = require(script.Parent:WaitForChild("IdleState")).new(self),
-        Patrol = require(script.Parent:WaitForChild("PatrolState")).new(self),
-        Attack = require(script.Parent:WaitForChild("AttackState")).new(self),
-        Dead = require(script.Parent:WaitForChild("DeadState")).new(self),
-        Chase = require(script.Parent:WaitForChild("ChaseState")).new(self),
+        Idle = require(script.Parent:WaitForChild("IdleState")).new(self, monsterInfo.AnimationIdle),
+        Patrol = require(script.Parent:WaitForChild("PatrolState")).new(self, monsterInfo.AnimationRun),
+        Attack = require(script.Parent:WaitForChild("AttackState")).new(self, monsterInfo.AnimationAttack),
+        Dead = require(script.Parent:WaitForChild("DeadState")).new(self, monsterInfo.AnimationDeath),
+        Chase = require(script.Parent:WaitForChild("ChaseState")).new(self, monsterInfo.AnimationRun),
     }
 
-    -- 监听死亡状态
-    self.Humanoid.Died:Connect(function()
-        print("怪物死亡")
-        self:SetState("Dead")
-        if self.deadCallFunc then
-            self.deadCallFunc()
+    self.currentTrack = nil
+
+    -- -- 监听死亡状态
+    -- self.Humanoid.Died:Connect(function()
+    --     print("怪物死亡")
+    --     self:SetState("Dead")
+    --     if self.deadCallFunc then
+    --         self.deadCallFunc()
+    --     end
+    -- end)
+    self.connection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+        if self.CurrentState then
+            self.CurrentState:Update(dt)
         end
     end)
+
     return self
 end
 
-function AIManager:InitializeAttributes(name, position)
-    local config = MonsterConfig[name]
-    if config then
-        self.NPC:SetAttribute('Type', config.Type)
-        self.NPC:SetAttribute('VisionRange', config.VisionRange)
-        self.NPC:SetAttribute('AttackRange', config.AttackRange)
-        self.NPC:SetAttribute('Damage', config.Damage)
-        self.NPC:SetAttribute('PatrolRadius', config.PatrolRadius)
-        self.NPC:SetAttribute('RespawnTime', config.RespawnTime)
-        self.NPC:SetAttribute("MaxDisForSpawn", config.MaxDisForSpawn)
-        self.NPC:SetAttribute("SpawnPosition", position)
-        self.NPC.Humanoid.MaxHealth = config.Health
-        self.NPC.Humanoid.Health = config.Health
-        self.NPC.Humanoid.WalkSpeed = config.WalkSpeed
-    else
-        warn("未找到怪物配置:", name)
+function AIManager:InitializeAttributes(monsterInfo, position)
+    if not monsterInfo then
+        warn("InitializeAttributes: 参数不完整")
+        return
     end
+
+    self.NPC:SetAttribute('Type', monsterInfo.Type)
+    self.NPC:SetAttribute('VisionRange', monsterInfo.VisionRange)
+    self.NPC:SetAttribute('AttackRange', monsterInfo.AttackRange)
+    self.NPC:SetAttribute('AttackSpeed', monsterInfo.AttackSpeed)
+    self.NPC:SetAttribute('Damage', monsterInfo.Attack)
+    self.NPC:SetAttribute('PatrolRadius', monsterInfo.PatrolRadius)
+    self.NPC:SetAttribute('RespawnTime', monsterInfo.RespawnTime)
+    self.NPC:SetAttribute("MaxDisForSpawn", monsterInfo.MaxDisForSpawn)
+    self.NPC:SetAttribute("SpawnPosition", position)
+    self.NPC:SetAttribute("MaxHealth", monsterInfo.HP)
+    self.NPC:SetAttribute("Health", monsterInfo.HP)
+    self.NPC:SetAttribute("WalkSpeed", monsterInfo.MoveSpeed)
 end
 
 function AIManager:SetState(newState)
@@ -90,13 +73,41 @@ function AIManager:Start()
 end
 
 function AIManager:Destroy()
+    if self.connection then
+        self.connection:Disconnect()
+        self.connection = nil
+    end
     -- 清理AI实例相关资源
+    self:StopAnimation()
     self.NPC:Destroy()
     self.States = nil
     if self.CurrentState then
         self.CurrentState:Exit()
         self.CurrentState = nil
     end
+end
+
+function AIManager:StopAnimation()
+	if self.currentTrack then
+		self.currentTrack:Stop()
+		self.currentTrack = nil
+	end
+end
+
+-- 播放指定名称的动画
+function AIManager:PlayAnimation(animId, isLoop)
+	-- 停止当前动画
+	self:StopAnimation()
+
+	local animation = Instance.new("Animation")
+	animation.AnimationId = "rbxassetid://" .. animId
+	-- 加载并播放新动画
+	local animationController = self.NPC:FindFirstChildOfClass("AnimationController")
+	local animator = animationController:FindFirstChildOfClass("Animator")
+	local track = animator:LoadAnimation(animation)
+	track:Play()
+	track.Looped = isLoop
+	self.currentTrack = track
 end
 
 return AIManager

@@ -29,6 +29,7 @@
 -- end
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 -- 初始化Knit框架
 local Knit = require(ReplicatedStorage:WaitForChild('Packages'):WaitForChild('Knit'):waitForChild('Knit'))
 Knit.AddControllers(script.Parent:WaitForChild('ControllersFolder'))
@@ -204,22 +205,18 @@ end
     初始化玩家位置显示系统
 ]]
 local function initializePositionDisplay()
-	-- 等待PlayerGui加载
-	local Players = game:GetService("Players")
-	local player = Players.LocalPlayer
-	local playerGui = player:WaitForChild("PlayerGui")
-
 	-- 创建位置显示UI
 	local positionLabel = createPositionDisplay()
-
 	-- 开始更新位置
 	updatePositionDisplay(positionLabel)
 
 	print("[位置显示] 玩家位置显示系统已启动")
 end
 
--- 启动位置显示系统
-initializePositionDisplay()
+if RunService:IsStudio() then
+	-- 启动位置显示系统
+	initializePositionDisplay()
+end
 
 local StarterGui = game:GetService("StarterGui")
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)

@@ -1,32 +1,23 @@
-
-local MonsterConfig = require(script.Parent:WaitForChild("MonsterConfig"))
-
 local DeadState = {}
 DeadState.__index = DeadState
 
 -- 死亡状态
-function DeadState.new(AIManager)
+function DeadState.new(AIManager, animation)
     local self = setmetatable({}, DeadState)
     self.AIManager = AIManager
+    self.animation = animation
     return self
 end
 
 function DeadState:Enter()
     print("进入Dead状态")
-    -- 销毁原有NPC
-    self.AIManager.NPC:Destroy()
-
-    -- -- 播放死亡动画
-    -- local animateScript = self.AIManager.NPC:FindFirstChild("Animate")
-    -- if animateScript and animateScript:FindFirstChild("Death") then
-    --     animateScript.Death:Fire()
-    -- end
+    self.AIManager:PlayAnimation(self.animation, false)
     
     -- 禁用碰撞和移动
     self.AIManager.Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
     self.AIManager.Humanoid.WalkSpeed = 0
 
-    task.delay(3, function()
+    task.delay(5, function()
         self.AIManager:Destroy()
         self.AIManager = nil
     end)
@@ -53,6 +44,10 @@ function DeadState:Enter()
     --         end
     --     end
     -- end
+end
+
+function DeadState:Update(dt)
+
 end
 
 function DeadState:Exit()

@@ -10,8 +10,7 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 local InventoryService = Knit.CreateService {
 	Name = "InventoryService",
 	Client = {
-        UpdateTool = Knit.CreateSignal(),
-		ShowCD = Knit.CreateSignal(),
+        SendToolData = Knit.CreateSignal(),
 	},
 
     ToolData = {},      -- 工具栏数据
@@ -43,9 +42,23 @@ function InventoryService:playerRemoved(player)
     self.ToolData[player.UserId] = nil
 end
 
+-- 工具栏数据转换为数据库格式
+-- @param player Player 玩家对象
+-- @return void
+function InventoryService:ToolDataToDB(player)
+	local toolData = {}
+	for i = 1, 3 do
+		table.insert(toolData, {
+			ItemId = self.ToolData[player.UserId][i].ItemId,
+		})
+	end
+	local DBService = Knit.GetService("DBService")
+	DBService:Set(player.UserId, "PlayerToolData", toolData)
+end
+
 -- 更新玩家工具栏数据并创建工具
 -- @param player Player 玩家对象
--- @param data table 工具栏数据，格式为 {["1"] = itemId, ["2"] = itemId, ["3"] = itemId}
+-- @param data table 工具栏数据
 -- @return void
 function InventoryService:UpdateToolData(player, data)
     self.ToolData[player.UserId] = {}
@@ -63,13 +76,7 @@ function InventoryService:UpdateToolData(player, data)
             })
         end
     end
-
-    local dbToolData = {}
-    for i = 1, 3 do
-        dbToolData[i] = self.ToolData[player.UserId][i]
-    end
-    local DBService = Knit.GetService("DBService")
-    DBService:Set(player.UserId, "PlayerToolData", dbToolData)
+	self:ToolDataToDB(player)
     
     -- 检查当前装备的工具是否在新的data中
     local character = player.Character
@@ -80,8 +87,8 @@ function InventoryService:UpdateToolData(player, data)
             local toolInData = false
             
             -- 检查当前工具是否在新的data中
-            for _, itemId in pairs(data) do
-                if itemId == currentItemId then
+            for _, itemData in pairs(data) do
+                if itemData.ItemId == currentItemId then
                     toolInData = true
                     break
                 end
@@ -97,7 +104,7 @@ function InventoryService:UpdateToolData(player, data)
         end
     end
 
-    self.Client.UpdateTool:Fire(player, self.ToolData[player.UserId])
+    self.Client.SendToolData:Fire(player, self.ToolData[player.UserId])
 end
 
 function InventoryService:GetToolData(player)
@@ -132,7 +139,6 @@ function InventoryService:GiveToolToPlayer(player, item)
     end
     self:UpdateToolData(player, toolData)
     Knit.GetService("TaskService"):UpdateTask(player, 1)
-    self.Client.ShowCD:Fire(player, slot, attribute.UseElapsedTime)
     return true, "物品添加成功"
 end
 
@@ -320,11 +326,9 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
 
         local cooldownTime = tool:GetAttribute("CD") or 0
         local useElapsedTime = currentTime + cooldownTime
-		if cooldownTime > 0 then
-			self.Client.ShowCD:Fire(player, slot, useElapsedTime)
-		end
         self.ToolData[player.UserId][slot].Attribute.UseElapsedTime = useElapsedTime
         GameConfig.UpdateItemAttribute(tool, "UseElapsedTime", useElapsedTime)
+		self.Client.SendToolData:Fire(player, self.ToolData[player.UserId])
 
         local script = tool:FindFirstChild("ModuleScript")
         if script then
@@ -337,7 +341,6 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
                 local PlayerAnimationHnadler = require(ReplicatedStorage:WaitForChild("Animation"):WaitForChild("PlayerAnimationHnadler"))
                 PlayerAnimationHnadler.playSwingAnimation(character)
             end
-        else
         end
     end)
     
@@ -389,26 +392,30 @@ function InventoryService:EquipToolByKey(player, slot)
         if currentItemId == itemData.ItemId and attribute.CreateTime == itemData.Attribute.CreateTime then
             isEquippingSameTool = true
         end
-    end
     
-    -- 如果是同一个工具，则取下工具
-    if isEquippingSameTool then
-        if currentTool then
-            -- 确保工具被正确写下
-            if character:FindFirstChild("Humanoid") then
-                character.Humanoid:UnequipTools()
+        -- 如果是同一个工具，则取下工具
+        if isEquippingSameTool then
+            if currentTool then
+                for i, v in pairs(toolData) do
+                    if v.ItemId == currentItemId and v.Attribute.CreateTime == attribute.CreateTime then
+                        v.Attribute.IsEquipped = false
+                        break
+                    end
+                end
+                GameConfig.UpdateItemAttribute(currentTool, "IsEquipped", false)
+                currentTool:Destroy()
             end
-            currentTool:Destroy()
+            return 1, toolData
         end
-        return 1
-    end
-    
-    -- 否则，卸下当前工具并装备新工具
-    if currentTool then
-        -- 确保工具被正确写下
-        if character:FindFirstChild("Humanoid") then
-            character.Humanoid:UnequipTools()
+        
+        -- 否则，卸下当前工具并装备新工具
+        for i, v in pairs(toolData) do
+            if v.ItemId == currentItemId and v.Attribute.CreateTime == attribute.CreateTime then
+                v.Attribute.IsEquipped = false
+                break
+            end
         end
+        GameConfig.UpdateItemAttribute(currentTool, "IsEquipped", false)
         currentTool:Destroy()
     end
     
@@ -420,9 +427,11 @@ function InventoryService:EquipToolByKey(player, slot)
         -- 确保工具被正确装备
         if character:FindFirstChild("Humanoid") then
             character.Humanoid:EquipTool(newTool)
+        	itemData.Attribute.IsEquipped = true
+			GameConfig.UpdateItemAttribute(newTool, "IsEquipped", true)
         end
         
-        return 2
+        return 2, toolData
     end
     
     return 0
@@ -489,58 +498,6 @@ end
 -- @return void
 function InventoryService.Client:DiscardTool(player, slot)
     return self.Server:DiscardTool(player, slot)
-end
-
-function InventoryService:UseTool(player)
-    local character = player.Character
-    if not character then
-        return
-    end
-    
-    -- 获取玩家身上当前装备的工具
-    local equippedTool = character:FindFirstChildOfClass("Tool")
-    if not equippedTool then
-        return
-    end
-    
-    -- 获取工具的ItemId
-    local itemId = equippedTool:GetAttribute("ItemId")
-    if not itemId then
-        return
-    end
-    
-    -- 获取工具配置信息
-    local itemInfo = ItemConfig:GetByIndex(itemId)
-    if not itemInfo then
-        return
-    end
-
-    local attribute = GameConfig.GetItemAttribute(equippedTool)
-    
-    -- 检查工具是否在冷却中
-    local currentTime = tick()
-    if currentTime < attribute.UseElapsedTime then
-        -- 工具还在冷却中，不能使用
-        return
-    end
-    
-    -- 执行工具使用逻辑（这里可以根据不同工具类型实现不同的效果）
-    print("Player", player.Name, "used tool", itemInfo.item)
-    
-    -- 设置工具冷却时间
-    if itemInfo.CD and itemInfo.CD > 0 then
-        attribute.UseElapsedTime = currentTime + itemInfo.CD
-        GameConfig.SetItemAttribute(equippedTool, attribute)
-    end
-end
-
--- 使用工具在指定位置
--- @param player Player 玩家对象
--- @param slot number 工具槽位
--- @param position Vector3 使用位置
--- @return void
-function InventoryService.Client:UseTool(player)
-    return self.Server:UseTool(player)
 end
 
 return InventoryService
