@@ -41,35 +41,83 @@ local function initializePlayerPositionData(player)
     end
 end
 
--- 检查玩家是否在任何触发Part的上方
+-- 使用多射线检测玩家是否站在Model上面
 -- @param player Player 要检查的玩家
--- @return boolean, BasePart 是否在触发范围内以及触发的Part
+-- @param triggerModel Model 要检测的Model
+-- @return boolean, number 是否站在Model上面以及最小高度差
+local function checkPlayerOnModel(player, triggerModel)
+    local humanoidRootPart = player.Character.HumanoidRootPart
+    local playerPosition = humanoidRootPart.Position
+    
+    -- 收集Model中所有的BasePart作为射线检测目标
+    local modelParts = {}
+    for _, descendant in pairs(triggerModel:GetDescendants()) do
+        if descendant:IsA("BasePart") then
+            table.insert(modelParts, descendant)
+        end
+    end
+    
+    if #modelParts == 0 then
+        return false, math.huge
+    end
+    
+    -- 创建射线参数
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Whitelist
+    raycastParams.FilterDescendantsInstances = modelParts
+    
+    -- 多射线检测点（玩家脚部的四个角落和中心）
+    local rayOffsets = {
+        Vector3.new(0, 0, 0),      -- 中心
+        Vector3.new(1, 0, 1),      -- 右前
+        Vector3.new(-1, 0, 1),     -- 左前
+        Vector3.new(1, 0, -1),     -- 右后
+        Vector3.new(-1, 0, -1),    -- 左后
+    }
+    
+    local minHeightDifference = math.huge
+    local hitCount = 0
+    
+    -- 从多个位置发射射线
+    for _, offset in ipairs(rayOffsets) do
+        local rayOrigin = playerPosition + Vector3.new(offset.X, 1, offset.Z)
+        local rayDirection = Vector3.new(0, -TRIGGER_HEIGHT_OFFSET - 2, 0)
+        
+        local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+        if raycastResult then
+            local hitPart = raycastResult.Instance
+            if hitPart and hitPart:IsDescendantOf(triggerModel) then
+                local hitPosition = raycastResult.Position
+                local heightDifference = playerPosition.Y - hitPosition.Y
+                
+                if heightDifference >= 0 and heightDifference <= TRIGGER_HEIGHT_OFFSET then
+                    hitCount = hitCount + 1
+                    minHeightDifference = math.min(minHeightDifference, heightDifference)
+                end
+            end
+        end
+    end
+    
+    -- 至少需要2个射线击中才认为玩家站在Model上
+    return hitCount >= 2, minHeightDifference
+end
+
+-- 检查玩家是否站在Model上面（使用射线检测）
+-- @param player Player 要检查的玩家
+-- @return boolean, Model 是否站在Model上面以及触发的Model
 local function isPlayerInTriggerZone(player)
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
         return false, nil
     end
     
-    local playerPosition = player.Character.HumanoidRootPart.Position
-    local land = workspace:FindFirstChild(GameConfig.LandName)
-    if not land then
-        error(string.format("未找到%s", GameConfig.LandName))
-        return false, nil
-    end
-    -- 检查每个触发Part
-    for _, partName in ipairs(GameConfig.TeleportPartNames) do
-        local triggerPart = land:FindFirstChild(partName)
-        if triggerPart and triggerPart:IsA("BasePart") then
-            local partPosition = triggerPart.Position
-            local partSize = triggerPart.Size
+    -- 检查每个触发Model
+    for _, modelName in ipairs(GameConfig.TeleportPartNames) do
+        local triggerModel = workspace:FindFirstChild(modelName)
+        if triggerModel and triggerModel:IsA("Model") then
+            local isOnModel, heightDifference = checkPlayerOnModel(player, triggerModel)
             
-            -- 检查玩家是否在Part的X和Z范围内，且在Part上方指定高度内
-            local xInRange = math.abs(playerPosition.X - partPosition.X) <= partSize.X / 2
-            local zInRange = math.abs(playerPosition.Z - partPosition.Z) <= partSize.Z / 2
-            local yAbovePart = playerPosition.Y >= partPosition.Y + partSize.Y / 2 and 
-                              playerPosition.Y <= partPosition.Y + partSize.Y / 2 + TRIGGER_HEIGHT_OFFSET
-            
-            if xInRange and zInRange and yAbovePart then
-                return true, triggerPart
+            if isOnModel then
+                return true, triggerModel
             end
         end
     end
@@ -178,9 +226,11 @@ local function teleportToReserveServer(player)
     
     if teleportSuccess then
         logMessage("INFO", "传送到预留服务器成功", player)
-    else
-        logMessage("WARN", string.format("传送到预留服务器失败: %s", tostring(teleportError)), player)
+        return true
     end
+
+    logMessage("WARN", string.format("传送到预留服务器失败: %s", tostring(teleportError)), player)
+    return
 end
 
 -- 处理玩家传送到恐龙岛场景
@@ -209,11 +259,11 @@ local function teleportPlayerToDungeon(player)
     if isInStudio() then
         logMessage("WARN", "Studio环境检测：模拟传送（实际传送已跳过）", player)
         logMessage("INFO", "在实际游戏环境中，玩家将被传送到预留服务器副本", player)
-        return
+        return true
     end
     
     logMessage("INFO", "使用ReserveServer方式传送", player)
-    teleportToReserveServer(player)
+    return teleportToReserveServer(player)
 end
 
 -- 检查玩家位置并处理传送
@@ -237,15 +287,22 @@ local function checkPlayerPosition(player)
         if not playerData.hasTriggered then
             -- 玩家首次进入触发区域
             logMessage("INFO", string.format("进入传送触发区域: %s", triggerPart.Name), player)
-            teleportPlayerToDungeon(player)
+            return teleportPlayerToDungeon(player)
         end
+        return
     else
         -- 玩家离开触发区域，重置触发状态
         if playerData.hasTriggered then
             playerData.hasTriggered = false
             logMessage("INFO", "离开传送触发区域", player)
         end
+        return
     end
+    return
+end
+
+function TeleportServiceModule.Client:Escape(player)
+    checkPlayerPosition(player)
 end
 
 -- 服务启动时的初始化
@@ -270,13 +327,6 @@ function TeleportServiceModule:KnitStart()
         -- 清理该玩家的预留服务器记录
         if playerReserveData[player.UserId] then
             playerReserveData[player.UserId] = nil
-        end
-    end)
-    
-    -- 启动位置检测循环
-    RunService.Heartbeat:Connect(function()
-        for _, player in pairs(Players:GetPlayers()) do
-            checkPlayerPosition(player)
         end
     end)
 end

@@ -54,9 +54,11 @@ function AIManager:InitializeAttributes(monsterInfo, position)
     self.NPC:SetAttribute('RespawnTime', monsterInfo.RespawnTime)
     self.NPC:SetAttribute("MaxDisForSpawn", monsterInfo.MaxDisForSpawn)
     self.NPC:SetAttribute("SpawnPosition", position)
-    self.NPC:SetAttribute("MaxHealth", monsterInfo.HP)
-    self.NPC:SetAttribute("Health", monsterInfo.HP)
-    self.NPC:SetAttribute("WalkSpeed", monsterInfo.MoveSpeed)
+    
+    local humanoid = self.NPC:FindFirstChildOfClass("Humanoid")
+    humanoid.WalkSpeed = monsterInfo.MoveSpeed
+    humanoid.Health = monsterInfo.HP
+    humanoid.MaxHealth = monsterInfo.HP
 end
 
 function AIManager:SetState(newState)
@@ -102,7 +104,8 @@ function AIManager:PlayAnimation(animId, isLoop)
 	local animation = Instance.new("Animation")
 	animation.AnimationId = "rbxassetid://" .. animId
 	-- 加载并播放新动画
-	local animationController = self.NPC:FindFirstChildOfClass("AnimationController")
+	--local animationController = self.NPC:FindFirstChildOfClass("AnimationController")
+	local animationController = self.NPC:FindFirstChildOfClass("Humanoid")
 	local animator = animationController:FindFirstChildOfClass("Animator")
 	local track = animator:LoadAnimation(animation)
 	track:Play()

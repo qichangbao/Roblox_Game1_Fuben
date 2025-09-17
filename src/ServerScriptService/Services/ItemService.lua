@@ -13,6 +13,14 @@ local ItemService = Knit.CreateService {
     Client = {},
 }
 
+local ItemTypeFolder = {
+    [GameConfig.ItemType.Explore] = "探索",
+    [GameConfig.ItemType.Weapon] = "进攻",
+    [GameConfig.ItemType.Assistance] = "辅助",
+    [GameConfig.ItemType.Collect] = "搜集",
+    [GameConfig.ItemType.Chest] = "箱子",
+}
+
 function ItemService:CreateItem(itemId, position, attribute)
     --itemName = "生锈铁钉"
     local itemInfo = ItemConfig:GetByIndex(itemId)
@@ -21,13 +29,25 @@ function ItemService:CreateItem(itemId, position, attribute)
         return
     end
 
-    local part = game.ServerStorage:FindFirstChild(itemInfo.Model)
+    local itemFolder = game.ServerStorage:FindFirstChild("Item")
+    if not itemFolder then
+        warn("Item folder not found")
+        return
+    end
+
+    local folder = itemFolder:FindFirstChild(ItemTypeFolder[itemInfo.Type])
+    if not folder then
+        warn("Item type folder not found: " .. ItemTypeFolder[itemInfo.Type])
+        return
+    end
+
+    local part = folder:FindFirstChild(itemInfo.Model)
     if not part then
         warn("Item model not found: " .. itemInfo.Model)
         return
     end
     local item = part:Clone()
-    item.Name = itemInfo.Item
+    item.Name = itemInfo.Item .. tick()
     item.Parent = workspace
     if item:IsA("BasePart") then
         item.Position = position
@@ -42,6 +62,7 @@ function ItemService:CreateItem(itemId, position, attribute)
             end
         end
     end
+    item:SetAttribute("ItemId", itemId)
     item:SetAttribute("CD", itemInfo.CD)
     item:SetAttribute("Duration", itemInfo.Duration)
     GameConfig.SetItemAttribute(item, attribute)
@@ -63,7 +84,7 @@ function ItemService:CreateItem(itemId, position, attribute)
     proximityPrompt.Triggered:Connect(function(player)
         print(player.Name .. " 触发了提示")
         -- 执行物品捡取逻辑
-        self:HandleItemPickup(player, item)
+        self:HandleItemPickup(player, item, itemInfo)
     end)
 
     -- 当玩家开始按住时（仅当 HoldDuration > 0 时有效）
@@ -75,6 +96,19 @@ function ItemService:CreateItem(itemId, position, attribute)
     proximityPrompt.PromptButtonHoldEnded:Connect(function(player)
         print(player.Name .. " 停止按住按钮")
     end)
+
+    task.wait(0.05)
+    if item:IsA("BasePart") then
+        -- 设置Part的锚固为false
+        item.Anchored = true
+    elseif item:IsA("Model") then
+        -- 遍历Model中的所有Part，设置锚固为false
+        for _, descendant in pairs(item:GetDescendants()) do
+            if descendant:IsA("BasePart") then
+                descendant.Anchored = true
+            end
+        end
+    end
 end
 
 --[[
@@ -84,7 +118,7 @@ end
     @param itemName 物品名称
     @param itemInfo 物品配置信息
 ]]
-function ItemService:HandleItemPickup(player, item)
+function ItemService:HandleItemPickup(player, item, itemInfo)
     if not player or not item then
         warn("HandleItemPickup: 参数不完整")
         return
@@ -95,6 +129,12 @@ function ItemService:HandleItemPickup(player, item)
         return
     end
     
+    if itemInfo.Type == GameConfig.ItemType.Chest then
+        -- 宝箱类物品，调用ChestService处理奖励
+        Knit.GetService("ChestService"):OpenChest(player, item, itemInfo)
+        return
+    end
+
     -- 尝试将物品添加到玩家背包
     local success, errorMessage = Knit.GetService("InventoryService"):GiveToolToPlayer(player, item)
     if success then
@@ -111,15 +151,19 @@ function ItemService:initItems()
     task.spawn(function()
         local pos = PosConfig:GetAll()
         for i, posData in pairs(pos) do
-            local planData = PlanConfig:GetByPlanID(posData.PlanID)
+            local planData = PlanConfig:GetByPlanId(posData.PlanId)
             if not planData then
                 continue
             end
 
-            for _, itemData in pairs(planData.Items) do
-                local random = math.random(1, 10000)
-                if random <= itemData.Probability then
-                    self:CreateItem(itemData.ItemID, posData.Position, GameConfig.GetItemAttribute())
+            if planData.CanisterId ~= 0 then    -- 宝箱类物品，调用ChestService处理奖励
+                self:CreateItem(planData.CanisterId, posData.Position, GameConfig.GetItemAttribute())
+            else                                -- 普通物品
+                for index, itemId in pairs(planData.ItemId) do
+                    local random = math.random(1, 10000)
+                    if random <= planData.Probability[index] then
+                        self:CreateItem(itemId, posData.Position, GameConfig.GetItemAttribute())
+                    end
                 end
             end
         end
@@ -131,6 +175,9 @@ end
 
 function ItemService:KnitStart()
     self:initItems()
+    -- task.spawn(function()
+    --     self:CreateItem(1033, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute())
+    -- end)
     -- self:CreateItem("传送装置", Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute())
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute())
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute())

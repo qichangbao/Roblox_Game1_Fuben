@@ -1,26 +1,185 @@
---[[
--- 自动生成的Lua配置文件
--- 生成时间: 2025-09-09 20:34:12
--- 源文件: examples\in\PlanConfig.xls
--- 数据维度: 1行 x 5列
---]]
 
--- Knit框架兼容的配置模块
 local PlanConfig = {}
 
--- 配置数据
 PlanConfig.Data = {
     [1] = {
-        PlanID = 5001,
-        Items = {
-            {
-                ItemID = 1001,
-                Probability = 3000
-            },
-            {
-                ItemID = 1002,
-                Probability = 3000
-            }
+        PlanId = 5001,
+        CanisterId = 1033,
+        ItemId = {
+            1001,
+            1002,
+            1005,
+            1013,
+            1032
+        },
+        Probability = {
+            2500,
+            3000,
+            2000,
+            1500,
+            1000
+        },
+    },
+    [2] = {
+        PlanId = 5002,
+        CanisterId = 0,
+        ItemId = {
+            1009,
+            1010,
+            1016,
+            1023,
+            1024
+        },
+        Probability = {
+            2000,
+            1500,
+            1500,
+            1000,
+            1000
+        },
+    },
+    [3] = {
+        PlanId = 5003,
+        CanisterId = 0,
+        ItemId = {
+            1003,
+            1004,
+            1007,
+            1025,
+            1027
+        },
+        Probability = {
+            2000,
+            1500,
+            1500,
+            500,
+            1000
+        },
+    },
+    [4] = {
+        PlanId = 5004,
+        CanisterId = 0,
+        ItemId = {
+            1012,
+            1015,
+            1017,
+            1021,
+            1028
+        },
+        Probability = {
+            1200,
+            1000,
+            1500,
+            1000,
+            800
+        },
+    },
+    [5] = {
+        PlanId = 5005,
+        CanisterId = 0,
+        ItemId = {
+            1011,
+            1014,
+            1019,
+            1020,
+            1022
+        },
+        Probability = {
+            1000,
+            1200,
+            1000,
+            800,
+            500
+        },
+    },
+    [6] = {
+        PlanId = 5006,
+        CanisterId = 0,
+        ItemId = {
+            1024,
+            1029,
+            1030,
+            1031,
+            1008
+        },
+        Probability = {
+            1500,
+            800,
+            500,
+            500,
+            1000
+        },
+    },
+    [7] = {
+        PlanId = 5007,
+        CanisterId = 0,
+        ItemId = {
+            1018,
+            1025,
+            1029,
+            1006,
+            1013
+        },
+        Probability = {
+            1500,
+            1200,
+            1000,
+            800,
+            500
+        },
+    },
+    [8] = {
+        PlanId = 5008,
+        CanisterId = 0,
+        ItemId = {
+            1026,
+            1030,
+            1031,
+            1001,
+            1005
+        },
+        Probability = {
+            1000,
+            800,
+            800,
+            500,
+            400
+        },
+    },
+    [9] = {
+        PlanId = 5009,
+        CanisterId = 0,
+        ItemId = {
+            1011,
+            1018,
+            1030,
+            1031,
+            1024
+        },
+        Probability = {
+            2000,
+            1500,
+            800,
+            800,
+            1000
+        },
+    },
+    [10] = {
+        PlanId = 5010,
+        CanisterId = 0,
+        ItemId = {
+            1022,
+            1020,
+            1028,
+            1027,
+            1032
+        },
+        Probability = {
+            1500,
+            1200,
+            1000,
+            800,
+            1000
         },
     },
 }
@@ -35,18 +194,36 @@ function PlanConfig:GetByIndex(index)
     return nil
 end
 
-function PlanConfig:GetByPlanID(value)
+function PlanConfig:GetByPlanId(value)
     for i, item in pairs(self.Data) do
-        if item.PlanID == value then
+        if item.PlanId == value then
             return item
         end
     end
     return nil
 end
 
-function PlanConfig:GetByItems(value)
+function PlanConfig:GetByCanisterId(value)
     for i, item in pairs(self.Data) do
-        if item.Items == value then
+        if item.CanisterId == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function PlanConfig:GetByItemId(value)
+    for i, item in pairs(self.Data) do
+        if item.ItemId == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function PlanConfig:GetByProbability(value)
+    for i, item in pairs(self.Data) do
+        if item.Probability == value then
             return item
         end
     end

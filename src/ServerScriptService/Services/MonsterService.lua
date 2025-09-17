@@ -20,7 +20,13 @@ local function CreateMonster(monsterId, position)
         return
     end
 
-    local part = game.ServerStorage:FindFirstChild(monsterInfo.Model)
+    local folder = game.ServerStorage:FindFirstChild("Monster")
+    if not folder then
+        warn("Monster type folder not found: Monster")
+        return
+    end
+    
+    local part = folder:FindFirstChild(monsterInfo.Model)
     if not part then
         warn("Monster model not found: " .. monsterInfo.Model)
         return

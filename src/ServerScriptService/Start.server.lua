@@ -21,7 +21,7 @@ end):catch(warn)
 -- 时间系统配置
 local _gameTime = 12 -- 游戏时间（小时，0-24）
 local _lastUpdateTime = tick() -- 上次更新的真实时间
-local Real_To_Game_Second = 288-- 现实1秒 = 游戏288秒
+local Real_To_Game_Second = 96-- 现实1秒 = 游戏96秒
 
 -- 时间系统更新函数
 -- @param deltaTime number 距离上次更新的真实时间间隔（秒）
@@ -43,17 +43,17 @@ local function updateGameTime(deltaTime)
     Lighting.ClockTime = _gameTime
 end
 
--- -- 连接到Heartbeat事件进行实时更新
--- game:GetService("RunService").Heartbeat:Connect(function(dt)
---     local currentTime = tick()
---     local deltaTime = currentTime - _lastUpdateTime
+-- 连接到Heartbeat事件进行实时更新
+game:GetService("RunService").Heartbeat:Connect(function(dt)
+    local currentTime = tick()
+    local deltaTime = currentTime - _lastUpdateTime
     
---     -- 更新游戏时间
---     updateGameTime(deltaTime)
+    -- 更新游戏时间
+    updateGameTime(deltaTime)
     
---     -- 记录当前时间用于下次计算
---     _lastUpdateTime = currentTime
--- end)
+    -- 记录当前时间用于下次计算
+    _lastUpdateTime = currentTime
+end)
 
 -- local TriggerManager = require(ServerScriptService:WaitForChild("TriggerFolder"):WaitForChild("TriggerManager"))
 -- TriggerManager.new()

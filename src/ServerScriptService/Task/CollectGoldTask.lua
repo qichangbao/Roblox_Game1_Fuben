@@ -21,8 +21,8 @@ function CollectGoldTask:UpdateTask(player, task)
     end
     local current = 0
     local toolData = Knit.GetService("InventoryService"):GetToolData(player)
-    for _, itemId in ipairs(toolData) do
-        local itemInfo = ItemConfig:GetByIndex(itemId)
+    for _, itemData in ipairs(toolData) do
+        local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
         if itemInfo and itemInfo.Type == GameConfig.ItemType.Collect then
             current += itemInfo.SellPrice
         end

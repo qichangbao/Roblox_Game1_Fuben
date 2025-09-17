@@ -117,7 +117,8 @@ function InventoryService:GiveToolToPlayer(player, item)
         return false, "玩家数据不存在"
     end
 
-    local itemInfo = ItemConfig:GetByItem(item.Name)
+    local itemId = item:GetAttribute("ItemId")
+    local itemInfo = ItemConfig:GetByIndex(itemId)
     if not itemInfo then
         return false, "物品不存在"
     end
@@ -334,7 +335,7 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
         if script then
             local module = require(script)
             if module and module.Activate then
-                module:Activate(player)
+                module:Activate(player, itemInfo)
             end
 
             if itemInfo.Type == GameConfig.ItemType.Weapon then    -- 进攻类
@@ -475,7 +476,10 @@ function InventoryService:DiscardTool(player, slot)
     end
     
     -- 从工具栏数据中移除
-    toolData[slotNumber] = 0
+    toolData[slotNumber] = {
+        ItemId = 0,
+        Attribute = GameConfig.GetItemAttribute()
+    }
     
     -- 获取玩家位置
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
@@ -483,8 +487,27 @@ function InventoryService:DiscardTool(player, slot)
         return
     end
     
-    -- 在玩家前方创建物品
-    local dropPosition = humanoidRootPart.Position + humanoidRootPart.CFrame.LookVector * 3
+    -- 在玩家前方创建物品，使用射线检测找到地面位置
+    local basePosition = humanoidRootPart.Position + humanoidRootPart.CFrame.LookVector * 3
+    
+    -- 创建向下的射线来检测地面
+    local rayOrigin = Vector3.new(basePosition.X, basePosition.Y, basePosition.Z) -- 从玩家上方开始
+    local rayDirection = Vector3.new(0, -10, 0) -- 向下射线
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.FilterDescendantsInstances = {character} -- 忽略玩家自身
+    
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    
+    local dropPosition
+    if raycastResult then
+        -- 找到地面，使用地面Y坐标 + 一点偏移
+        dropPosition = Vector3.new(basePosition.X, raycastResult.Position.Y, basePosition.Z)
+    else
+        -- 没找到地面，使用原始位置
+        dropPosition = basePosition
+    end
     
     -- 通过ItemService创建物品
     local ItemService = Knit.GetService("ItemService")

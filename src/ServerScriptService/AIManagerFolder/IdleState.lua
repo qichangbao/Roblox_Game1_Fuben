@@ -27,15 +27,7 @@ function IdleState:Update(dt)
 
     self.timer = self.timer - dt
 
-    -- NPC离开出生点太远后，切换到Patrol状态
     local npcPos = HumanoidRootPart.CFrame.Position
-    local maxDisForSpawn = self.AIManager.NPC:GetAttribute("MaxDisForSpawn")
-    local spawnPosition = self.AIManager.NPC:GetAttribute("SpawnPosition")
-    if (spawnPosition - npcPos).Magnitude > maxDisForSpawn then
-        self.AIManager:SetState("Patrol")
-        return
-    end
-    
     local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
     for _, v in ipairs(Players:GetPlayers()) do
         local character = v.character

@@ -1,4 +1,5 @@
 local Players = game:GetService("Players")
+local PathfindingMove = require(script.Parent:WaitForChild("PathfindingMoveModule"))
 
 local ChaseState = {}
 ChaseState.__index = ChaseState
@@ -8,14 +9,24 @@ function ChaseState.new(AIManager, animation)
     local self = setmetatable({}, ChaseState)
     self.AIManager = AIManager
     self.animation = animation
+    self.connection = nil
+    self.timer = 0
     return self
 end
 
 function ChaseState:Enter()
     print("进入Chase状态")
-    self.AIManager:PlayAnimation(self.animation, true)
+    --self.AIManager:PlayAnimation(self.animation, true)
 
     self:FindNearestModel()
+
+    if self.AIManager.target and self.AIManager.target.HumanoidRootPart then
+        local targetPos = self.AIManager.target.HumanoidRootPart.Position
+        self.connection = PathfindingMove.MoveTo(self.AIManager.NPC, targetPos, function(reached)
+            -- self.AIManager:SetState("Idle")
+            -- return
+        end)
+    end
 end
 
 function ChaseState:Update(dt)
@@ -42,51 +53,25 @@ function ChaseState:Update(dt)
         self.AIManager:SetState("Idle")
         return
     end
-    -- 计算移动方向
-    local currentPos = HumanoidRootPart.CFrame.Position
-    local direction = (targetPosition - currentPos).Unit
-    local speed = self.AIManager.NPC:GetAttribute("WalkSpeed") * dt
-    local newPos = currentPos + direction * speed
-    
-    -- 使用射线检测前方地面，支持小台阶自动攀爬
-    local rayOrigin = Vector3.new(newPos.X, currentPos.Y + 3, newPos.Z) -- 从目标位置上方5个单位处发射射线
-    local rayDirection = Vector3.new(0, -8, 0) -- 向下发射10个单位长的射线
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {self.AIManager.NPC} -- 忽略怪物自身
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-
-    local finalPos = newPos
-    local rootPartHeight = HumanoidRootPart.Size.Y
-    local maxStepHeight = 3 -- 最大可攀爬台阶高度（单位）
-    
-    if raycastResult then
-        local groundY = raycastResult.Position.Y + rootPartHeight / 2
-        local currentY = currentPos.Y
-        local heightDifference = groundY - currentY
-        
-        -- 如果高度差在可接受范围内，允许攀爬
-        if math.abs(heightDifference) <= maxStepHeight then
-            finalPos = Vector3.new(newPos.X, groundY, newPos.Z)
-        else
-            -- 如果台阶太高，保持当前高度继续移动
-            finalPos = Vector3.new(newPos.X, currentY, newPos.Z)
-        end
-    else
-        -- 如果没有检测到地面，保持当前高度
-        finalPos = Vector3.new(newPos.X, currentPos.Y, newPos.Z)
-        print("1111111111111")
-    end
-    
-    if finalPos.Y > -1 then
-        local ll = 0
-    end
-    print(finalPos)
-    -- 更新位置和方向（确保怪物正面朝向目标）
-    local lookDirection = (targetPosition - finalPos).Unit
-    HumanoidRootPart.CFrame = CFrame.lookAt(finalPos, finalPos + Vector3.new(lookDirection.X, 0, lookDirection.Z))
 
     self:CheckDistance()
+    self.timer = self.timer + dt
+    if self.timer >= 1 then
+        self.timer = 0
+        self:FindNearestModel()
+
+        if self.connection then
+            self.connection:Disconnect()
+            self.connection = nil
+        end
+        if self.AIManager.target and self.AIManager.target.HumanoidRootPart then
+            local targetPos = self.AIManager.target.HumanoidRootPart.Position
+            self.connection = PathfindingMove.MoveTo(self.AIManager.NPC, targetPos, function(reached)
+                -- self.AIManager:SetState("Idle")
+                -- return
+            end)
+        end
+    end
 end
 
 function ChaseState:FindNearestModel()
@@ -144,6 +129,10 @@ end
 
 function ChaseState:Exit()
     print("退出ChaseState状态")
+    if self.connection then
+        self.connection:Disconnect()
+        self.connection = nil
+    end
 end
 
 return ChaseState
