@@ -10,6 +10,14 @@ GameConfig.ItemType = {
     Max = 6,        -- 最大物品类型
 }
 
+GameConfig.ItemTypeFolder = {
+    [GameConfig.ItemType.Explore] = "探索",
+    [GameConfig.ItemType.Weapon] = "进攻",
+    [GameConfig.ItemType.Assistance] = "辅助",
+    [GameConfig.ItemType.Collect] = "搜集",
+    [GameConfig.ItemType.Chest] = "箱子",
+}
+
 GameConfig.BackpackSlotCount = 6    -- 背包槽位数量
 GameConfig.InitItemNums = 30        -- 初始物品数量
 GameConfig.LandName = "恐龙岛"

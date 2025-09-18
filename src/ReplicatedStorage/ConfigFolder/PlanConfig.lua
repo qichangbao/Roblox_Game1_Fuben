@@ -4,7 +4,7 @@ local PlanConfig = {}
 PlanConfig.Data = {
     [1] = {
         PlanId = 5001,
-        CanisterId = 1033,
+        CanisterId = 0,
         ItemId = {
             1001,
             1002,
@@ -76,7 +76,7 @@ PlanConfig.Data = {
     },
     [5] = {
         PlanId = 5005,
-        CanisterId = 0,
+        CanisterId = 1,
         ItemId = {
             1011,
             1014,
@@ -85,16 +85,16 @@ PlanConfig.Data = {
             1022
         },
         Probability = {
-            1000,
-            1200,
-            1000,
-            800,
-            500
+            5000,
+            4500,
+            4500,
+            3500,
+            2500
         },
     },
     [6] = {
         PlanId = 5006,
-        CanisterId = 0,
+        CanisterId = 2,
         ItemId = {
             1024,
             1029,
@@ -103,16 +103,16 @@ PlanConfig.Data = {
             1008
         },
         Probability = {
-            1500,
-            800,
-            500,
-            500,
-            1000
+            5000,
+            4500,
+            4500,
+            3500,
+            2500
         },
     },
     [7] = {
         PlanId = 5007,
-        CanisterId = 0,
+        CanisterId = 2,
         ItemId = {
             1018,
             1025,
@@ -121,16 +121,16 @@ PlanConfig.Data = {
             1013
         },
         Probability = {
-            1500,
-            1200,
-            1000,
-            800,
-            500
+            5000,
+            4500,
+            4500,
+            3500,
+            2500
         },
     },
     [8] = {
         PlanId = 5008,
-        CanisterId = 0,
+        CanisterId = 3,
         ItemId = {
             1026,
             1030,
@@ -139,11 +139,11 @@ PlanConfig.Data = {
             1005
         },
         Probability = {
-            1000,
-            800,
-            800,
-            500,
-            400
+            5000,
+            4500,
+            4500,
+            3500,
+            2500
         },
     },
     [9] = {

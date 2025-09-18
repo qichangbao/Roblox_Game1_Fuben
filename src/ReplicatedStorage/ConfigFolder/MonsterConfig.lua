@@ -48,7 +48,7 @@ MonsterConfig.Data = {
         MonsterId = 30003,
         Name = "SB3",
         DisplayName = "wolf",
-        Model = "culuflu",
+        Model = "wolf",
         Type = 3,
         HP = 200,
         VisionRange = 10,
@@ -60,10 +60,10 @@ MonsterConfig.Data = {
         MoveSpeed = 3.5,
         AttackSpeed = 2.5,
         DropPlanId = 5001,
-        AnimationIdle = 114563261272011,
-        AnimationRun = 138867349575521,
-        AnimationAttack = 98792934038893,
-        AnimationDeath = 122311177197535,
+        AnimationIdle = nil,
+        AnimationRun = nil,
+        AnimationAttack = nil,
+        AnimationDeath = nil,
     },
 }
 

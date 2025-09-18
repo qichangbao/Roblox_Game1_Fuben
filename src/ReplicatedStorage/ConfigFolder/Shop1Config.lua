@@ -11,23 +11,23 @@ Shop1Config.Data = {
         AssetId = 3386568397,
     },
     [3] = {
-        Index = 4,
+        Index = 3,
         AssetId = 3386569417,
     },
     [4] = {
-        Index = 5,
+        Index = 4,
         AssetId = 3386569943,
     },
     [5] = {
-        Index = 8,
+        Index = 5,
         AssetId = 3386571239,
     },
     [6] = {
-        Index = 9,
+        Index = 6,
         AssetId = 3386571871,
     },
     [7] = {
-        Index = 10,
+        Index = 7,
         AssetId = 3386572591,
     },
 }

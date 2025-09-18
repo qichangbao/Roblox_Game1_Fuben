@@ -8,43 +8,24 @@ local RunService = game:GetService("RunService")
 
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 
 local TeleportServiceModule = Knit.CreateService {
     Name = "TeleportService",
     Client = {},
 }
 
--- 玩家位置检测数据
-local playerPositionData = {}
-
 -- 在Part上方多少单位触发传送
 local TRIGGER_HEIGHT_OFFSET = 5
 
 -- ReserveServer配置
 local TARGET_PLACE_ID = 105534130650004  -- 目标传送场景ID（TestBoat）
-local RESERVE_SERVER_COOLDOWN = 10 -- 预留服务器冷却时间（秒）
+local _mainServerJobId = nil
 
--- 创建的场景缓存
-local createdPlaces = {}
--- 存储玩家的预留服务器使用记录
-local playerReserveData = {}
-
--- 初始化玩家位置数据
--- @param player Player 玩家实例
--- @return void
-local function initializePlayerPositionData(player)
-    if not playerPositionData[player.UserId] then
-        playerPositionData[player.UserId] = {
-            lastTeleportTime = 0,
-            hasTriggered = false
-        }
-    end
-end
-
--- 使用多射线检测玩家是否站在Model上面
+-- 使用向下射线检测玩家是否站在Model上面
 -- @param player Player 要检查的玩家
 -- @param triggerModel Model 要检测的Model
--- @return boolean, number 是否站在Model上面以及最小高度差
+-- @return boolean, number 是否站在Model上面以及高度差
 local function checkPlayerOnModel(player, triggerModel)
     local humanoidRootPart = player.Character.HumanoidRootPart
     local playerPosition = humanoidRootPart.Position
@@ -66,40 +47,25 @@ local function checkPlayerOnModel(player, triggerModel)
     raycastParams.FilterType = Enum.RaycastFilterType.Whitelist
     raycastParams.FilterDescendantsInstances = modelParts
     
-    -- 多射线检测点（玩家脚部的四个角落和中心）
-    local rayOffsets = {
-        Vector3.new(0, 0, 0),      -- 中心
-        Vector3.new(1, 0, 1),      -- 右前
-        Vector3.new(-1, 0, 1),     -- 左前
-        Vector3.new(1, 0, -1),     -- 右后
-        Vector3.new(-1, 0, -1),    -- 左后
-    }
+    -- 从玩家位置向下发射射线
+    local rayOrigin = playerPosition
+    local rayDirection = Vector3.new(0, -TRIGGER_HEIGHT_OFFSET - 2, 0)
     
-    local minHeightDifference = math.huge
-    local hitCount = 0
-    
-    -- 从多个位置发射射线
-    for _, offset in ipairs(rayOffsets) do
-        local rayOrigin = playerPosition + Vector3.new(offset.X, 1, offset.Z)
-        local rayDirection = Vector3.new(0, -TRIGGER_HEIGHT_OFFSET - 2, 0)
-        
-        local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-        if raycastResult then
-            local hitPart = raycastResult.Instance
-            if hitPart and hitPart:IsDescendantOf(triggerModel) then
-                local hitPosition = raycastResult.Position
-                local heightDifference = playerPosition.Y - hitPosition.Y
-                
-                if heightDifference >= 0 and heightDifference <= TRIGGER_HEIGHT_OFFSET then
-                    hitCount = hitCount + 1
-                    minHeightDifference = math.min(minHeightDifference, heightDifference)
-                end
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    if raycastResult then
+        local hitPart = raycastResult.Instance
+        if hitPart and hitPart:IsDescendantOf(triggerModel) then
+            local hitPosition = raycastResult.Position
+            local heightDifference = playerPosition.Y - hitPosition.Y
+            
+            -- 检查高度差是否在合理范围内
+            if heightDifference >= 0 and heightDifference <= TRIGGER_HEIGHT_OFFSET then
+                return true, heightDifference
             end
         end
     end
     
-    -- 至少需要2个射线击中才认为玩家站在Model上
-    return hitCount >= 2, minHeightDifference
+    return false, math.huge
 end
 
 -- 检查玩家是否站在Model上面（使用射线检测）
@@ -149,75 +115,58 @@ local function logMessage(level, message, player)
     end
 end
 
--- 创建预留服务器副本
--- @param player Player 触发的玩家
--- @return string|nil 预留服务器访问码，失败时返回nil
-local function createReserveServer(player)
-    logMessage("INFO", "开始创建预留服务器副本", player)
-    
-    -- 检查冷却时间
-    local currentTime = tick()
-    local lastReserveTime = playerReserveData[player.UserId] or 0
-    local cooldownRemaining = RESERVE_SERVER_COOLDOWN - (currentTime - lastReserveTime)
-    
-    if cooldownRemaining > 0 then
-        logMessage("WARN", string.format("预留服务器冷却中，剩余时间: %.1f 秒", cooldownRemaining), player)
-        return nil
-    end
-    
-    -- 创建预留服务器
-    local success, result = pcall(function()
-        logMessage("INFO", "正在调用ReserveServer API...", player)
-        logMessage("INFO", string.format("目标场景ID: %d", TARGET_PLACE_ID), player)
-        
-        -- 创建预留服务器访问码（使用目标场景ID）
-        local accessCode = TeleportService:ReserveServer(TARGET_PLACE_ID)
-        
-        logMessage("INFO", string.format("预留服务器创建成功，访问码: %s", accessCode), player)
-        return accessCode
-    end)
-    
-    if success and result then
-        playerReserveData[player.UserId] = currentTime
-        logMessage("INFO", "预留服务器副本创建完成", player)
-        return result
-    else
-        logMessage("ERROR", string.format("预留服务器创建失败: %s", tostring(result)), player)
-        return nil
-    end
-end
-
 -- 传送玩家到预留服务器副本
 -- @param player Player 要传送的玩家
 -- @return void
 local function teleportToReserveServer(player)
-    logMessage("INFO", "开始传送到预留服务器副本", player)
-    
-    -- 创建预留服务器
-    local accessCode = createReserveServer(player)
-    if not accessCode then
-        logMessage("WARN", "无法创建预留服务器，使用备用场景", player)
-        return
+    local escapeItems = Knit.GetService("InventoryService"):GetEscapeItems(player)
+    if #escapeItems > 6 then
+        -- 获取物品配置服务
+        
+        -- 创建包含价格信息的物品数组
+        local itemsWithPrice = {}
+        for _, itemId in ipairs(escapeItems) do
+            local itemInfo = ItemConfig:GetByIndex(itemId)
+            if itemInfo and itemInfo.SellPrice then
+                table.insert(itemsWithPrice, {
+                    itemId = itemId,
+                    sellPrice = itemInfo.SellPrice,
+                    name = itemInfo.Item or "未知物品"
+                })
+            end
+        end
+        
+        -- 按价格降序排序
+        table.sort(itemsWithPrice, function(a, b)
+            return a.sellPrice > b.sellPrice
+        end)
+        
+        -- 取前6个最高价值的物品
+        local topSixItems = {}
+        for i = 1, math.min(6, #itemsWithPrice) do
+            table.insert(topSixItems, itemsWithPrice[i].itemId)
+        end
+        
+        -- 更新escapeItems为最高价值的6件物品
+        escapeItems = topSixItems
+        for i, item in ipairs(itemsWithPrice) do
+            if i <= 6 then
+                logMessage("INFO", string.format("  选中: %s (价值: %d)", item.name, item.sellPrice), player)
+            end
+        end
     end
     
     -- 准备传送数据
     local teleportData = {
-        playerName = player.Name,
-        userId = player.UserId,
-        timestamp = os.time(),
-        source = "dinosaur_island_trigger",
-        serverType = "reserve_server",
-        accessCode = accessCode
+        EscapeItems = escapeItems,
     }
-    
-    logMessage("INFO", "准备传送数据完成，开始传送", player)
     
     -- 执行传送到预留服务器
     local teleportSuccess, teleportError = pcall(function()
         logMessage("INFO", string.format("开始传送到目标场景: %d", TARGET_PLACE_ID), player)
-        TeleportService:TeleportToPrivateServer(
+        TeleportService:TeleportToPlaceInstance(
             TARGET_PLACE_ID,
-            accessCode,
+            _mainServerJobId,
             {player},
             nil, -- spawnName
             teleportData
@@ -225,7 +174,6 @@ local function teleportToReserveServer(player)
     end)
     
     if teleportSuccess then
-        logMessage("INFO", "传送到预留服务器成功", player)
         return true
     end
 
@@ -237,24 +185,6 @@ end
 -- @param player Player 要传送的玩家
 -- @return void
 local function teleportPlayerToDungeon(player)
-    local currentTime = tick()
-    local userId = player.UserId
-    local playerData = playerPositionData[userId]
-    
-    logMessage("INFO", "到达触发位置，开始传送流程", player)
-    
-    -- 防止重复传送（10秒内只能传送一次）
-    if currentTime - playerData.lastTeleportTime < 10 then
-        logMessage("WARN", string.format("传送冷却中，剩余时间: %.1f秒", 10 - (currentTime - playerData.lastTeleportTime)), player)
-        return
-    end
-    
-    logMessage("INFO", "传送冷却检查通过", player)
-    
-    -- 更新传送时间
-    playerData.lastTeleportTime = currentTime
-    playerData.hasTriggered = true
-    
     -- 检查是否在Studio环境
     if isInStudio() then
         logMessage("WARN", "Studio环境检测：模拟传送（实际传送已跳过）", player)
@@ -262,7 +192,6 @@ local function teleportPlayerToDungeon(player)
         return true
     end
     
-    logMessage("INFO", "使用ReserveServer方式传送", player)
     return teleportToReserveServer(player)
 end
 
@@ -274,61 +203,24 @@ local function checkPlayerPosition(player)
         return
     end
     
-    local userId = player.UserId
-    
-    -- 确保玩家数据已初始化
-    initializePlayerPositionData(player)
-    local playerData = playerPositionData[userId]
-    
     -- 检查玩家是否在触发区域内
     local isInTrigger, triggerPart = isPlayerInTriggerZone(player)
-    
     if isInTrigger then
-        if not playerData.hasTriggered then
-            -- 玩家首次进入触发区域
-            logMessage("INFO", string.format("进入传送触发区域: %s", triggerPart.Name), player)
-            return teleportPlayerToDungeon(player)
-        end
-        return
-    else
-        -- 玩家离开触发区域，重置触发状态
-        if playerData.hasTriggered then
-            playerData.hasTriggered = false
-            logMessage("INFO", "离开传送触发区域", player)
-        end
-        return
+        return teleportPlayerToDungeon(player)
     end
-    return
 end
 
 function TeleportServiceModule.Client:Escape(player)
-    checkPlayerPosition(player)
+    return checkPlayerPosition(player)
+end
+
+function TeleportServiceModule:SetMainServerJobId(jobId)
+    _mainServerJobId = jobId
 end
 
 -- 服务启动时的初始化
 -- @return void
 function TeleportServiceModule:KnitStart()
-    -- 监听玩家加入事件
-    Players.PlayerAdded:Connect(function(player)
-        initializePlayerPositionData(player)
-    end)
-    
-    -- 监听玩家离开事件
-    Players.PlayerRemoving:Connect(function(player)
-        if playerPositionData[player.UserId] then
-            playerPositionData[player.UserId] = nil
-        end
-        
-        -- 清理该玩家的场景创建记录
-        if createdPlaces[player.UserId] then
-            createdPlaces[player.UserId] = nil
-        end
-        
-        -- 清理该玩家的预留服务器记录
-        if playerReserveData[player.UserId] then
-            playerReserveData[player.UserId] = nil
-        end
-    end)
 end
 
 return TeleportServiceModule

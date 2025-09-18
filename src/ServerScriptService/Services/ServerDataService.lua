@@ -9,7 +9,10 @@ local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Kn
 local ServerDataService = Knit.CreateService {
 	Name = "ServerDataService",
 	Client = {
+        SendInitData = Knit.CreateSignal(),
 	},
+
+    HasInitData = {},       -- 记录玩家是否初始化数据
 }
 
 function ServerDataService:KnitInit()
@@ -32,38 +35,44 @@ function ServerDataService:KnitStart()
 
         Knit.GetService("DBService"):PlayerAdded(player)
         Knit.GetService("GoldService"):playerAdd(player, 0)
+
+        local hasPlayerToolData = false
+        local hasEscapeTask = false
         -- 获取传送数据
         local joinData = player:GetJoinData()
-        if not joinData or not joinData.TeleportData then
+        if joinData and joinData.TeleportData then
+            local JobId = joinData.TeleportData.JobId
+            Knit.GetService("TeleportService"):SetMainServerJobId(JobId)
+
+            local localTeleportData = joinData.TeleportData
+            if localTeleportData.PlayersToolData then
+                -- 获取该玩家的工具数据
+                local playerToolData = localTeleportData.PlayersToolData[tostring(player.UserId)]
+                if playerToolData then
+                    Knit.GetService("InventoryService"):playerAdd(player, playerToolData)
+                    hasPlayerToolData = true
+                end
+            end
+
+            if localTeleportData.EscapeTask then
+                Knit.GetService("TaskService"):InitEscapeTask(0, localTeleportData.EscapeTask)
+                hasEscapeTask = true
+            end
+        end
+
+        if not hasPlayerToolData then
             local toolData = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
             Knit.GetService("InventoryService"):playerAdd(player, toolData)
-            Knit.GetService("TaskService"):playerAdd(player, {{Type = 1, Target = 10000}})
-            print(string.format("玩家 %s 没有传送数据", player.Name))
-            return
         end
         
-        local localTeleportData = joinData.TeleportData
-        if localTeleportData.PlayersToolData then
-            -- 获取该玩家的工具数据
-            local playerToolData = localTeleportData.PlayersToolData[tostring(player.UserId)]
-            if playerToolData then
-                Knit.GetService("InventoryService"):playerAdd(player, playerToolData)
-            else
-                local toolData = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
-                Knit.GetService("InventoryService"):playerAdd(player, toolData)
-                print(string.format("玩家 %s 在传送数据中没有找到对应的工具数据", player.Name))
-            end
-        else
-            local toolData = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
-            Knit.GetService("InventoryService"):playerAdd(player, toolData)
-            print(string.format("玩家 %s 的传送数据中没有工具数据", player.Name))
+        if not hasEscapeTask then
+            Knit.GetService("TaskService"):InitEscapeTask(0, 100)
         end
+        print(string.format("玩家 %s 没有传送数据", player.Name))
     
 
-        if localTeleportData.TaskGold then
-            Knit.GetService("TaskService"):playerAdd(player, {{Type = 1, Target = localTeleportData.TaskGold}})
-        else
-            Knit.GetService("TaskService"):playerAdd(player, {{Type = 1, Target = 10000}})
+        if not self.HasInitData[player.UserId] then
+            self.Client.SendInitData:Fire(player, self:GetInitData(player))
         end
     end
 
@@ -71,7 +80,6 @@ function ServerDataService:KnitStart()
         Knit.GetService("InventoryService"):playerRemoved(player)
         Knit.GetService("GoldService"):playerRemoved(player)
         Knit.GetService("DBService"):PlayerRemoving(player)
-        Knit.GetService("TaskService"):playerRemoved(player)
     end
 
     for _, player in pairs(Players:GetPlayers()) do
@@ -90,14 +98,20 @@ function ServerDataService:KnitStart()
 end
 
 function ServerDataService:GetInitData(player)
+    if self.HasInitData[player.UserId] then
+        return
+    end
+
     local gold = 0
     local toolData = Knit.GetService("InventoryService"):GetToolData(player)
-    local taskData = Knit.GetService("TaskService"):GetTaskData(player)
+
+    if gold and toolData then
+        self.HasInitData[player.UserId] = true
+    end
 
     return {
         Gold = gold,
         ToolData = toolData,
-        TaskData = taskData,
     }
 end
 

@@ -2,6 +2,7 @@
 -- 使用Knit框架管理服务器数据
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
@@ -14,6 +15,7 @@ local InventoryService = Knit.CreateService {
 	},
 
     ToolData = {},      -- 工具栏数据
+    EscapeItems = {},   -- 撤离上交物品数据
 }
 
 function InventoryService:KnitInit()
@@ -26,6 +28,7 @@ end
 
 function InventoryService:playerAdd(player, toolData)
     self.ToolData[player.UserId] = {}
+    self.EscapeItems[player.UserId] = {}
     for i = 1, GameConfig.SLOT_NUM do
         local itemId = 0
         if toolData[i] then
@@ -40,6 +43,7 @@ end
 
 function InventoryService:playerRemoved(player)
     self.ToolData[player.UserId] = nil
+    self.EscapeItems[player.UserId] = nil
 end
 
 -- 工具栏数据转换为数据库格式
@@ -139,7 +143,6 @@ function InventoryService:GiveToolToPlayer(player, item)
         return false, "背包已满"
     end
     self:UpdateToolData(player, toolData)
-    Knit.GetService("TaskService"):UpdateTask(player, 1)
     return true, "物品添加成功"
 end
 
@@ -151,7 +154,7 @@ end
 -- @param itemId number 物品ID
 -- @return Tool|nil 创建的工具实例
 function InventoryService:CreateToolFromItemId(itemData, slot)
-    if  itemData.ItemId == 0 then
+    if itemData.ItemId == 0 then
         return
     end
     local itemInfo = ItemConfig:GetByIndex(tonumber(itemData.ItemId))
@@ -159,8 +162,20 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
         warn("找不到物品ID: " .. tostring(itemData.ItemId))
         return
     end
+
+    local itemFolder = ServerStorage:FindFirstChild("Item")
+    if not itemFolder then
+        warn("Item folder not found")
+        return
+    end
+
+    local folder = itemFolder:FindFirstChild(GameConfig.ItemTypeFolder[itemInfo.Type])
+    if not folder then
+        warn("Item type folder not found: " .. GameConfig.ItemTypeFolder[itemInfo.Type])
+        return
+    end
     
-    local template = game.ServerStorage:FindFirstChild(itemInfo.Model)
+    local template = folder:FindFirstChild(itemInfo.Model)
     if not template then
         warn("Tool template not found:", itemInfo.Model)
         return
@@ -512,7 +527,6 @@ function InventoryService:DiscardTool(player, slot)
     -- 通过ItemService创建物品
     local ItemService = Knit.GetService("ItemService")
     ItemService:CreateItem(itemInfo.Index, dropPosition, itemData.Attribute)
-    Knit.GetService("TaskService"):UpdateTask(player, 1)
 end
 
 -- 丢弃工具
@@ -521,6 +535,51 @@ end
 -- @return void
 function InventoryService.Client:DiscardTool(player, slot)
     return self.Server:DiscardTool(player, slot)
+end
+
+function InventoryService:GetEscapeItems(player)
+    return self.EscapeItems[player.UserId] or {}
+end
+
+-- 上交搜集物品
+-- @param player Player 玩家对象
+-- @return number 获得的总金币数量
+function InventoryService:TurnInCollect(player)
+    -- 边界检查
+    if not player or not player.UserId then
+        warn("TurnInCollect: 无效的玩家对象")
+        return 0
+    end
+    
+    local userId = player.UserId
+    if not self.ToolData[userId] then
+        warn("TurnInCollect: 玩家工具数据不存在", userId)
+        return 0
+    end
+    
+    local gold = 0
+    -- 收集所有搜集类物品并记录要删除的索引
+    for i = #self.ToolData[userId], 1, -1 do  -- 倒序遍历避免索引问题
+        local toolData = self.ToolData[userId][i]
+        if toolData and toolData.ItemId then
+            local itemInfo = ItemConfig:GetByIndex(toolData.ItemId)
+            if itemInfo and itemInfo.Type == GameConfig.ItemType.Collect then
+                gold += itemInfo.SellPrice
+                table.insert(self.EscapeItems[userId], itemInfo.Index)
+                table.remove(self.ToolData[userId], i)  -- 倒序删除安全
+            end
+        end
+    end
+    
+    -- 如果有搜集物品被上交
+    if gold > 0 then
+        Knit.GetService("TaskService"):UpdateEscapeTask(gold)
+        self:UpdateToolData(player, self.ToolData[player.UserId])
+    else
+        print(string.format("玩家 %s 没有可上交的搜集物品", player.Name))
+    end
+    
+    return gold
 end
 
 return InventoryService

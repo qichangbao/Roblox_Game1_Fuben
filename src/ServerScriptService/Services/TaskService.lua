@@ -4,15 +4,15 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
-local CollectGoldTask = require(script.Parent.Parent:WaitForChild("Task"):WaitForChild("CollectGoldTask"))
 
 local TaskService = Knit.CreateService {
 	Name = "TaskService",
 	Client = {
-        UpdateTask = Knit.CreateSignal(),
+        UpdateEscapeTask = Knit.CreateSignal(),
 	},
 
-    Task = {},
+    EscapeTask = 0,
+    CurEscapeTask = 0,
 }
 
 function TaskService:KnitInit()
@@ -23,58 +23,18 @@ end
 function TaskService:KnitStart()
 end
 
-function TaskService:playerAdd(player, task)
-    self.Task[player.UserId] = task
-    for _, v in pairs(task) do
-        if v.Type == 1 then
-            CollectGoldTask:Init(player, v)
-        end
-    end
+function TaskService:InitEscapeTask(curEscapeTask, escapeTask)
+    self.EscapeTask = escapeTask
+    self:UpdateEscapeTask(curEscapeTask)
 end
 
-function TaskService:playerRemoved(player)
-    for _, v in pairs(self.Task[player.UserId]) do
-        if v.Type == 1 then
-            CollectGoldTask:Remove(player)
-        end
-    end
-    self.Task[player.UserId] = nil
+function TaskService:SetEscapeTask(gold)
+    self.EscapeTask = gold
 end
 
-function TaskService:GetTaskData(player)
-    return self.Task[player.UserId]
-end
-
-function TaskService:AddTask(player, task)
-    table.insert(self.Task[player.UserId], task)
-end
-
-function TaskService:RemoveTask(player, taskId)
-    for i, task in ipairs(self.Task[player.UserId]) do
-        if i == taskId then
-            table.remove(self.Task[player.UserId], i)
-            break
-        end
-    end
-end
-
-function TaskService:CheckTask(player, taskId)
-    local task = self.Task[player.UserId][taskId]
-    if not task then
-        return
-    end
-
-    if task.Type == 1 then  -- 收集金币
-        return CollectGoldTask:IsDone(task)
-    end
-end
-
-function TaskService:UpdateTask(player, taskType)
-    for _, v in pairs(self.Task[player.UserId]) do
-        if v.Type == taskType then
-            CollectGoldTask:UpdateTask(player, v)
-        end
-    end
+function TaskService:UpdateEscapeTask(curEscapeTask)
+    self.CurEscapeTask += curEscapeTask
+    self.Client.UpdateEscapeTask:FireAll(self.CurEscapeTask, self.EscapeTask)
 end
 
 return TaskService

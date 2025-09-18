@@ -81,6 +81,8 @@ function AttackState:Update(dt)
     -- 更新位置和方向（确保怪物正面朝向目标）
     self:ChangeDirection()
     self.AIManager:PlayAnimation(self.animation, false)
+
+    task.wait(1)
     local damage = self.AIManager.NPC:GetAttribute("Damage")
     local humanoid = target:FindFirstChild("Humanoid")
     if humanoid and humanoid.Health > 0 then

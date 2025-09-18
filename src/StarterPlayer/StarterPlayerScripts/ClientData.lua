@@ -6,7 +6,11 @@ local DataRetryUtil = require(ReplicatedStorage:WaitForChild('ToolFolder'):WaitF
 local ClientData = {}
 ClientData.Gold = 0
 ClientData.ToolData = {}
-ClientData.TaskData = {}
+ClientData.CurEscapeTask = 0    -- 当前完成的撤离任务
+ClientData.EscapeTask = 0       -- 目标完成撤离任务
+
+-- 添加重试控制器变量
+local retryController = nil
 
 local function init()
     local KnitInitClient = require(script.Parent:WaitForChild("KnitInitClient"))
@@ -14,7 +18,7 @@ local function init()
         print("ClientData AddListener")
 
         -- 使用通用重试工具获取登录数据
-        DataRetryUtil.RetryDataFetch(
+        retryController = DataRetryUtil.RetryDataFetch(
             function()
                 return Knit.GetService("ServerDataService").GetInitData()
             end,
@@ -23,16 +27,14 @@ local function init()
                 retryDelay = 2,
                 operationName = "登录数据获取",
                 dataValidator = function(data)
-                    return data and type(data) == "table" and data.Gold ~= nil and data.ToolData ~= nil and data.TaskData ~= nil
+                    return data and type(data) == "table" and data.Gold ~= nil and data.ToolData ~= nil
                 end,
                 onSuccess = function(data)
                     -- 安全地设置数据
                     ClientData.Gold = data.Gold or 0
 					ClientData.ToolData = data.ToolData or {}
-					ClientData.TaskData = data.TaskData or {}
 					Knit.GetController("UIController").ChangeGoldUI:Fire(data.Gold)
 					Knit.GetController("UIController").UpdateToolUI:Fire(data.ToolData)
-					Knit.GetController("UIController").InitTaskUI:Fire(data.TaskData)
                     
                     require(script.Parent:WaitForChild("LoadingUI")).Hide()
                 end,
@@ -52,10 +54,26 @@ local function init()
 			Knit.GetController("UIController").UpdateToolUI:Fire(toolData)
 		end)
 
-        Knit.GetService("TaskService").UpdateTask:Connect(function(taskData)
-            ClientData.TaskData = taskData or {}
-			Knit.GetController("UIController").UpdateTaskUI:Fire(taskData)
-		end)
+        Knit.GetService("TaskService").UpdateEscapeTask:Connect(function(curEscapeTask, escapeTask)
+            ClientData.CurEscapeTask = curEscapeTask
+            ClientData.EscapeTask = escapeTask
+            Knit.GetController("UIController").UpdateEscapeTask:Fire(curEscapeTask, escapeTask)
+        end)
+
+        Knit.GetService("ServerDataService").SendInitData:Connect(function(data)
+            -- 停止重试
+            if retryController then
+                retryController.stop()
+                print("通过SendInitData接收到数据，已停止DataRetryUtil重试")
+            end
+            
+            ClientData.Gold = data.Gold or 0
+            ClientData.ToolData = data.ToolData or {}
+            Knit.GetController("UIController").ChangeGoldUI:Fire(data.Gold)
+            Knit.GetController("UIController").UpdateToolUI:Fire(data.ToolData)
+                    
+            require(script.Parent:WaitForChild("LoadingUI")).Hide()
+        end)
     end)
 end
 
