@@ -32,6 +32,7 @@ function ServerDataService:KnitStart()
         end)
         
         player:LoadCharacter()
+        player:SetAttribute("JoinTime", tick())
 
         Knit.GetService("DBService"):PlayerAdded(player)
         Knit.GetService("GoldService"):playerAdd(player, 0)
@@ -69,7 +70,6 @@ function ServerDataService:KnitStart()
             Knit.GetService("TaskService"):InitEscapeTask(0, 100)
         end
         print(string.format("玩家 %s 没有传送数据", player.Name))
-    
 
         if not self.HasInitData[player.UserId] then
             self.Client.SendInitData:Fire(player, self:GetInitData(player))

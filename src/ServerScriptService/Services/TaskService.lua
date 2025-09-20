@@ -37,4 +37,8 @@ function TaskService:UpdateEscapeTask(curEscapeTask)
     self.Client.UpdateEscapeTask:FireAll(self.CurEscapeTask, self.EscapeTask)
 end
 
+function TaskService:IsSuccess()
+    return self.CurEscapeTask >= self.EscapeTask
+end
+
 return TaskService
