@@ -10,8 +10,8 @@ function PatrolState.new(AIManager, animation)
     self.AIManager = AIManager
     self.animation = animation
     self.connection = nil
-    self.patrolRadius = self.AIManager.NPC:GetAttribute('PatrolRadius')
-    self.maxDisForSpawn = self.AIManager.NPC:GetAttribute("MaxDisForSpawn")
+    self.patrolRadius = self.AIManager.monsterInfo.PatrolRadius
+    self.maxDisForSpawn = self.AIManager.monsterInfo.MaxDisForSpawn
     self.spawnPosition = self.AIManager.NPC:GetAttribute("SpawnPosition")
     self.timer = 0
 
@@ -29,7 +29,7 @@ function PatrolState:Enter()
     if (npcPosition - self.spawnPosition).Magnitude > self.maxDisForSpawn then
         self.targetPosition = self.spawnPosition
     else
-        self.targetPosition = Vector3.new(npcPosition.X + 10 + math.random(-self.patrolRadius, self.patrolRadius),
+        self.targetPosition = Vector3.new(npcPosition.X + 5 + math.random(-self.patrolRadius, self.patrolRadius),
         npcPosition.Y,
         npcPosition.Z + 10 + math.random(-self.patrolRadius, self.patrolRadius))
     end
@@ -55,7 +55,7 @@ function PatrolState:Update(dt)
 
     -- 如果有玩家进入视野范围，切换到追逐状态
     local npcPos = HumanoidRootPart.CFrame.Position
-    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
+    local visionRange = self.AIManager.monsterInfo.VisionRange
     for _, v in ipairs(Players:GetPlayers()) do
         local character = v.character
         if character then

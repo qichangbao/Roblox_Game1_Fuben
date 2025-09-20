@@ -33,7 +33,7 @@ end
 function AttackState:Enter()
     print("进入Attack状态")
 
-    self.timer = self.AIManager.NPC:GetAttribute("AttackSpeed")
+    self.timer = self.AIManager.monsterInfo.AttackSpeed
     self.isFirst = true
     -- 更新位置和方向（确保怪物正面朝向目标）
     self:ChangeDirection()
@@ -60,10 +60,10 @@ function AttackState:Update(dt)
 
     print('正在攻击')
     self.isFirst = false
-    self.timer = self.AIManager.NPC:GetAttribute("AttackSpeed")
+    self.timer = self.AIManager.monsterInfo.AttackSpeed
 
     local currentPos = HumanoidRootPart.CFrame.Position
-    local attackRange = self.AIManager.NPC:GetAttribute("AttackRange")
+    local attackRange = self.AIManager.monsterInfo.AttackRange
     local params = OverlapParams.new()
     params.FilterType = Enum.RaycastFilterType.Include
     params.FilterDescendantsInstances = {self.AIManager.target}
@@ -83,10 +83,10 @@ function AttackState:Update(dt)
     self.AIManager:PlayAnimation(self.animation, false)
 
     task.wait(1)
-    local damage = self.AIManager.NPC:GetAttribute("Damage")
+    local attack = self.AIManager.monsterInfo.Attack
     local humanoid = target:FindFirstChild("Humanoid")
     if humanoid and humanoid.Health > 0 then
-        humanoid:TakeDamage(damage)
+        humanoid:TakeDamage(attack)
     end
 end
 

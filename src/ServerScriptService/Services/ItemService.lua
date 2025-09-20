@@ -90,18 +90,19 @@ function ItemService:CreateItem(itemId, position, attribute)
         print(player.Name .. " 停止按住按钮")
     end)
 
-    task.wait(0.05)
-    if item:IsA("BasePart") then
-        -- 设置Part的锚固为false
-        item.Anchored = true
-    elseif item:IsA("Model") then
-        -- 遍历Model中的所有Part，设置锚固为false
-        for _, descendant in pairs(item:GetDescendants()) do
-            if descendant:IsA("BasePart") then
-                descendant.Anchored = true
+    task.delay(0.5, function()
+        if item:IsA("BasePart") then
+            -- 设置Part的锚固为false
+            item.Anchored = true
+        elseif item:IsA("Model") then
+            -- 遍历Model中的所有Part，设置锚固为false
+            for _, descendant in pairs(item:GetDescendants()) do
+                if descendant:IsA("BasePart") then
+                    descendant.Anchored = true
+                end
             end
         end
-    end
+    end)
 end
 
 --[[
@@ -140,6 +141,25 @@ function ItemService:HandleItemPickup(player, item, itemInfo)
     end
 end
 
+function ItemService:CreateItemByPlan(planId, position)
+    local planData = PlanConfig:GetByPlanId(planId)
+    if not planData then
+        return
+    end
+
+    if planData.CanisterId ~= 0 then    -- 宝箱类物品，调用ChestService处理奖励
+        self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute())
+    else                                -- 普通物品
+        for index, itemId in pairs(planData.ItemId) do
+            local random = math.random(1, 10000)
+            if random <= planData.Probability[index] then
+                print("创建物品:", itemId, "概率:", planData.Probability[index])
+                self:CreateItem(itemId, position, GameConfig.GetItemAttribute())
+            end
+        end
+    end
+end
+
 function ItemService:initItems()
     task.spawn(function()
         local pos = PosConfig:GetAll()
@@ -149,16 +169,7 @@ function ItemService:initItems()
                 continue
             end
 
-            if planData.CanisterId ~= 0 then    -- 宝箱类物品，调用ChestService处理奖励
-                self:CreateItem(planData.CanisterId, posData.Position, GameConfig.GetItemAttribute())
-            else                                -- 普通物品
-                for index, itemId in pairs(planData.ItemId) do
-                    local random = math.random(1, 10000)
-                    if random <= planData.Probability[index] then
-                        self:CreateItem(itemId, posData.Position, GameConfig.GetItemAttribute())
-                    end
-                end
-            end
+            self:CreateItemByPlan(planData, posData.Position)
         end
     end)
 end

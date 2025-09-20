@@ -1,13 +1,13 @@
 local AIManager = {}
 AIManager.__index = AIManager
 
-function AIManager.new(npc, position, monsterInfo, deadCallFunc)
+function AIManager.new(npc, position, monsterInfo)
     local self = setmetatable({}, AIManager)
-    self.deadCallFunc = deadCallFunc
     
     -- 保存原始NPC克隆体
     self.NPC = npc
     self.target = nil
+    self.monsterInfo = monsterInfo
     
     self:InitializeAttributes(monsterInfo, position)
 
@@ -22,14 +22,13 @@ function AIManager.new(npc, position, monsterInfo, deadCallFunc)
 
     self.currentTrack = nil
 
-    -- -- 监听死亡状态
-    -- self.Humanoid.Died:Connect(function()
-    --     print("怪物死亡")
-    --     self:SetState("Dead")
-    --     if self.deadCallFunc then
-    --         self.deadCallFunc()
-    --     end
-    -- end)
+    local Humanoid = self.NPC:FindFirstChildOfClass("Humanoid")
+    if Humanoid then
+        -- 监听死亡状态
+        Humanoid.Died:Connect(function()
+            self:SetState("Dead")
+        end)
+    end
     self.connection = game:GetService("RunService").Heartbeat:Connect(function(dt)
         if self.CurrentState then
             self.CurrentState:Update(dt)
@@ -45,14 +44,6 @@ function AIManager:InitializeAttributes(monsterInfo, position)
         return
     end
 
-    self.NPC:SetAttribute('Type', monsterInfo.Type)
-    self.NPC:SetAttribute('VisionRange', monsterInfo.VisionRange)
-    self.NPC:SetAttribute('AttackRange', monsterInfo.AttackRange)
-    self.NPC:SetAttribute('AttackSpeed', monsterInfo.AttackSpeed)
-    self.NPC:SetAttribute('Damage', monsterInfo.Attack)
-    self.NPC:SetAttribute('PatrolRadius', monsterInfo.PatrolRadius)
-    self.NPC:SetAttribute('RespawnTime', monsterInfo.RespawnTime)
-    self.NPC:SetAttribute("MaxDisForSpawn", monsterInfo.MaxDisForSpawn)
     self.NPC:SetAttribute("SpawnPosition", position)
     
     local humanoid = self.NPC:FindFirstChildOfClass("Humanoid")
@@ -81,12 +72,12 @@ function AIManager:Destroy()
     end
     -- 清理AI实例相关资源
     self:StopAnimation()
-    self.NPC:Destroy()
     self.States = nil
     if self.CurrentState then
         self.CurrentState:Exit()
         self.CurrentState = nil
     end
+    self.NPC:Destroy()
 end
 
 function AIManager:StopAnimation()

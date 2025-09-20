@@ -15,7 +15,7 @@ function IdleState:Enter()
     print("进入Idle状态")
     self.AIManager:PlayAnimation(self.animation, true)
 
-    self.timer = math.random(3, 8)
+    self.timer = math.random(5, 15)
 end
 
 function IdleState:Update(dt)
@@ -28,7 +28,7 @@ function IdleState:Update(dt)
     self.timer = self.timer - dt
 
     local npcPos = HumanoidRootPart.CFrame.Position
-    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
+    local visionRange = self.AIManager.monsterInfo.VisionRange
     for _, v in ipairs(Players:GetPlayers()) do
         local character = v.character
         if character then

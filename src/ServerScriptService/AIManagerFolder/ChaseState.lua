@@ -16,7 +16,7 @@ end
 
 function ChaseState:Enter()
     print("进入Chase状态")
-    --self.AIManager:PlayAnimation(self.animation, true)
+    self.AIManager:PlayAnimation(self.animation, true)
 
     self:FindNearestModel()
 
@@ -80,7 +80,7 @@ function ChaseState:FindNearestModel()
         return
     end
     local npcPos = HumanoidRootPart.CFrame.Position
-    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
+    local visionRange = self.AIManager.monsterInfo.VisionRange
     local minDistance = math.huge
 
     for _, v in ipairs(Players:GetPlayers()) do
@@ -111,8 +111,8 @@ function ChaseState:CheckDistance()
         return
     end
     
-    local attackRange = self.AIManager.NPC:GetAttribute("AttackRange")
-    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
+    local attackRange = self.AIManager.monsterInfo.AttackRange
+    local visionRange = self.AIManager.monsterInfo.VisionRange
     local params = OverlapParams.new()
     params.FilterType = Enum.RaycastFilterType.Include
     params.FilterDescendantsInstances = {target}

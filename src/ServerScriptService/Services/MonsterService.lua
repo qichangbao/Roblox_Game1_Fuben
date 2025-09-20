@@ -37,9 +37,7 @@ local function CreateMonster(monsterId, position)
     monster.Name = monsterInfo.Model .."_" .. tick()
     monster:PivotTo(CFrame.new(position, monster.HumanoidRootPart.CFrame.LookVector))
 
-    local aiManager = AIManager.new(monster, position, monsterInfo, function()
-        print("怪物死亡")
-    end)
+    local aiManager = AIManager.new(monster, position, monsterInfo)
     aiManager:Start()
 end
 
