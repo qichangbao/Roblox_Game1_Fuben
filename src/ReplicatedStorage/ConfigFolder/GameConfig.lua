@@ -18,13 +18,14 @@ GameConfig.ItemTypeFolder = {
     [GameConfig.ItemType.Chest] = "箱子",
 }
 
-GameConfig.BackpackSlotCount = 6    -- 背包槽位数量
-GameConfig.InitItemNums = 30        -- 初始物品数量
 GameConfig.LandName = "恐龙岛"
 GameConfig.TeleportPartNames = {"撤离点"}-- 触发传送的model名称
 GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
-GameConfig.SLOT_NUM = 9
-GameConfig.Item_DragTime = 0.3       -- 物品拖拽响应事件
+GameConfig.SLOT_NUM = 6
+GameConfig.BAG_NUM = 3
+GameConfig.Item_DragTime = 0.3      -- 物品拖拽响应事件
+GameConfig.AdditionalBackpackId = 6 -- 额外的背包ID
+GameConfig.MaxTurnInItemNum = 18    -- 最大可提交物品数量
 
 -- 物品的扩展属性，用于服务器客户端同步一些动态数据
 GameConfig.GetItemAttribute = function(item)

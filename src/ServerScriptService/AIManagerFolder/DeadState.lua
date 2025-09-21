@@ -107,10 +107,12 @@ function DeadState:Enter()
     end
 
     task.delay(5, function()
-        if self.AIManager then
-            self.AIManager:Destroy()
-            self.AIManager = nil
-        end
+        task.spawn(function()
+            if self.AIManager then
+                self.AIManager:Destroy()
+                self.AIManager = nil
+            end
+        end)
     end)
 end
 

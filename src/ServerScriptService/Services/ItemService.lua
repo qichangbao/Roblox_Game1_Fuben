@@ -112,9 +112,24 @@ end
     @param itemName 物品名称
     @param itemInfo 物品配置信息
 ]]
+-- 处理玩家拾取物品的逻辑
+-- @param player: 拾取物品的玩家
+-- @param item: 要拾取的物品实例
+-- @param itemInfo: 物品配置信息
 function ItemService:HandleItemPickup(player, item, itemInfo)
     if not player or not item then
         warn("HandleItemPickup: 参数不完整")
+        return
+    end
+    
+    -- 检查玩家是否死亡
+    local character = player.Character
+    if not character then
+        return
+    end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then
         return
     end
     
@@ -134,10 +149,9 @@ function ItemService:HandleItemPickup(player, item, itemInfo)
     if success then
         -- 成功添加到背包，销毁世界中的物品
         item:Destroy()
-        print(player.Name .. " 成功捡取了 " .. item.Name)
     else
         -- 添加失败，显示错误信息
-        warn(player.Name .. " 捡取失败: " .. (errorMessage or "未知错误"))
+        print(player.Name .. " 捡取失败: " .. (errorMessage or "未知错误"))
     end
 end
 
@@ -184,11 +198,11 @@ function ItemService:KnitStart()
     -- end)
     self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute())
     self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute())
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute())
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -190), GameConfig.GetItemAttribute())
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -200), GameConfig.GetItemAttribute())
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -210), GameConfig.GetItemAttribute())
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -220), GameConfig.GetItemAttribute())
+    self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute())
+    self:CreateItem(1032, Vector3.new(353, -1.5, -190), GameConfig.GetItemAttribute())
+    self:CreateItem(1032, Vector3.new(353, -1.5, -200), GameConfig.GetItemAttribute())
+    self:CreateItem(1032, Vector3.new(353, -1.5, -210), GameConfig.GetItemAttribute())
+    self:CreateItem(1032, Vector3.new(353, -1.5, -220), GameConfig.GetItemAttribute())
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230), GameConfig.GetItemAttribute())
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute())
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute())

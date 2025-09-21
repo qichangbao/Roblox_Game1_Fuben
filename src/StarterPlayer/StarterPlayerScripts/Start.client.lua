@@ -1,5 +1,11 @@
 --require(game:GetService('StarterPlayer'):WaitForChild("StarterPlayerScripts"):WaitForChild("ClientData"))
 
+-- 禁用自动本地化功能，防止UI文本被自动翻译
+local GuiService = game:GetService("GuiService")
+pcall(function()
+    GuiService.AutoLocalize = false
+end)
+
 -- -- 禁用滚轮缩放
 -- local contextActionService = game:GetService('ContextActionService')
 -- contextActionService:BindAction("BlockZoom",

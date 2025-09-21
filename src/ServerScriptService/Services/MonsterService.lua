@@ -42,7 +42,7 @@ local function CreateMonster(monsterId, position)
 end
 
 function MonsterService:KnitInit()
-    CreateMonster(30001, Vector3.new(353, -1.5, -240))
+    --CreateMonster(30001, Vector3.new(353, -1.5, -240))
     --CreateMonster(30002, Vector3.new(353, -1.5, -250))
 end
 

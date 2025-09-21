@@ -12,9 +12,11 @@ local UIController = Knit.CreateController {
     MoveDragUI = Signal.new(),
     HideDragUI = Signal.new(),
 	UpdateToolUI = Signal.new(),
+    UpdateBagUI = Signal.new(),
     InitTaskUI = Signal.new(),
     UpdateTaskUI = Signal.new(),
     UpdateEscapeTask = Signal.new(),
+    ShowAdditionalBackpackUI = Signal.new(),
 }
 
 function UIController:KnitInit()

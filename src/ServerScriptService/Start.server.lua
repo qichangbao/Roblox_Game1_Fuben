@@ -67,6 +67,13 @@ print("服务器PlaceID：", game.PlaceId)
 print("服务器名称：", game.Name)
 print("服务器PrivateServerId：", game.PrivateServerId)
 
+-- 禁用自动本地化功能
+local GuiService = game:GetService("GuiService")
+pcall(function()
+    GuiService.AutoLocalize = false
+    print("已禁用自动本地化功能")
+end)
+
 -- 服务器启动状态检查事件
 local serverStartCheckEvent = Instance.new("RemoteEvent")
 serverStartCheckEvent.Name = "IsServerStartOver"

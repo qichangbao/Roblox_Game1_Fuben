@@ -6,6 +6,7 @@ local DataRetryUtil = require(ReplicatedStorage:WaitForChild('ToolFolder'):WaitF
 local ClientData = {}
 ClientData.Gold = 0
 ClientData.ToolData = {}
+ClientData.BagData = {}
 ClientData.CurEscapeTask = 0    -- 当前完成的撤离任务
 ClientData.EscapeTask = 0       -- 目标完成撤离任务
 
@@ -54,10 +55,19 @@ local function init()
 			Knit.GetController("UIController").UpdateToolUI:Fire(toolData)
 		end)
 
+        Knit.GetService("InventoryService").SendBagData:Connect(function(bagData)
+            ClientData.BagData = bagData or {}
+			Knit.GetController("UIController").UpdateBagUI:Fire(bagData)
+		end)
+
         Knit.GetService("TaskService").UpdateEscapeTask:Connect(function(curEscapeTask, escapeTask)
             ClientData.CurEscapeTask = curEscapeTask
             ClientData.EscapeTask = escapeTask
             Knit.GetController("UIController").UpdateEscapeTask:Fire(curEscapeTask, escapeTask)
+        end)
+
+        Knit.GetService("InventoryService").EquipAdditionalBackpack:Connect(function(equip)
+            Knit.GetController("UIController").ShowAdditionalBackpackUI:Fire(equip)
         end)
 
         Knit.GetService("ServerDataService").SendInitData:Connect(function(data)

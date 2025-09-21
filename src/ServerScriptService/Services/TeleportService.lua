@@ -116,7 +116,8 @@ end
 -- @param player Player 要传送的玩家
 -- @return void
 local function teleportToReserveServer(player)
-    local escapeItems = Knit.GetService("InventoryService"):GetEscapeItems(player)
+    local InventoryService = Knit.GetService("InventoryService")
+    local escapeItems = InventoryService:GetEscapeItems(player)
     if #escapeItems > 6 then
         -- 创建包含价格信息的物品数组
         local itemsWithPrice = {}
@@ -147,12 +148,38 @@ local function teleportToReserveServer(player)
     end
 
     local totalValue = 0
-    for i, itemId in ipairs(escapeItems) do
+    for _, itemId in ipairs(escapeItems) do
         local itemInfo = ItemConfig:GetByIndex(itemId)
         if itemInfo and itemInfo.SellPrice then
             totalValue += itemInfo.SellPrice
         end
     end
+
+    -- 工具栏4-6格和背包的探索，辅助，进攻类物品可以带回出生岛
+    local toolData = InventoryService:GetToolData(player)
+    for i = 4, #toolData do
+        local data = toolData[i]
+        if data.ItemId ~= 0 then
+            local itemInfo = ItemConfig:GetByIndex(data.ItemId)
+            if itemInfo and itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
+                table.insert(escapeItems, data.ItemId)
+            end
+        end
+        toolData[i] = nil
+    end
+    local bagData = InventoryService:GetBagData(player)
+    for i = 1, #bagData do
+        local data = bagData[i]
+        if data.ItemId ~= 0 then
+            local itemInfo = ItemConfig:GetByIndex(data.ItemId)
+            if itemInfo and itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
+                table.insert(escapeItems, data.ItemId)
+            end
+        end
+        bagData[i] = nil
+    end
+    InventoryService:ToolDataToDB(player)
+
     local totalTime = tick() - player:GetAttribute("JoinTime")
     
     -- 准备传送数据
@@ -162,6 +189,16 @@ local function teleportToReserveServer(player)
         TotalTime = totalTime,
         IsSuccess = Knit.GetService("TaskService"):IsSuccess(),
     }
+
+    -- 检查是否在Studio环境
+    if isInStudio() then
+        logMessage("INFO", "在实际游戏环境中，玩家将被传送到预留服务器副本", player)
+        logMessage("INFO", "传送物品: " .. table.concat(teleportData.EscapeItems, ", "))
+        logMessage("INFO", "物品总价值: " .. teleportData.TotalValue)
+        logMessage("INFO", "物品总时间: " .. teleportData.TotalTime)
+        logMessage("INFO", "是否成功: " .. tostring(teleportData.IsSuccess))
+        return true
+    end
     
     -- 执行传送到预留服务器
     local teleportSuccess, teleportError = pcall(function()
@@ -185,13 +222,6 @@ end
 -- @param player Player 要传送的玩家
 -- @return void
 local function teleportPlayerToDungeon(player)
-    -- 检查是否在Studio环境
-    if isInStudio() then
-        logMessage("WARN", "Studio环境检测：模拟传送（实际传送已跳过）", player)
-        logMessage("INFO", "在实际游戏环境中，玩家将被传送到预留服务器副本", player)
-        return true
-    end
-    
     return teleportToReserveServer(player)
 end
 

@@ -7,15 +7,20 @@ local ServerStorage = game:GetService("ServerStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local InventoryService = Knit.CreateService {
 	Name = "InventoryService",
 	Client = {
         SendToolData = Knit.CreateSignal(),
+        SendBagData = Knit.CreateSignal(),
+        EquipAdditionalBackpack = Knit.CreateSignal(),
 	},
 
     ToolData = {},      -- 工具栏数据
+    BagData = {},       -- 背包数据
     EscapeItems = {},   -- 撤离上交物品数据
+    TurnInNum = {},     -- 上交物品数量
 }
 
 function InventoryService:KnitInit()
@@ -28,7 +33,6 @@ end
 
 function InventoryService:playerAdd(player, toolData)
     self.ToolData[player.UserId] = {}
-    self.EscapeItems[player.UserId] = {}
     for i = 1, GameConfig.SLOT_NUM do
         local itemId = 0
         if toolData[i] then
@@ -39,11 +43,24 @@ function InventoryService:playerAdd(player, toolData)
             Attribute = GameConfig.GetItemAttribute()
         })
     end
+
+    self.BagData[player.UserId] = {}
+    for i = 1, GameConfig.BAG_NUM do
+        table.insert(self.BagData[player.UserId], {
+            ItemId = 0,
+            Attribute = GameConfig.GetItemAttribute()
+        })
+    end
+
+    self.EscapeItems[player.UserId] = {}
+    self.TurnInNum[player.UserId] = 0
 end
 
 function InventoryService:playerRemoved(player)
     self.ToolData[player.UserId] = nil
+    self.BagData[player.UserId] = nil
     self.EscapeItems[player.UserId] = nil
+    self.TurnInNum[player.UserId] = nil
 end
 
 -- 工具栏数据转换为数据库格式
@@ -68,7 +85,7 @@ function InventoryService:UpdateToolData(player, data)
     self.ToolData[player.UserId] = {}
     for i = 1, GameConfig.SLOT_NUM do
         local itemId = 0
-        if data[i] then
+        if data and data[i] then
             table.insert(self.ToolData[player.UserId], {
                 ItemId = data[i].ItemId or 0,
                 Attribute = data[i].Attribute or GameConfig.GetItemAttribute()
@@ -80,7 +97,7 @@ function InventoryService:UpdateToolData(player, data)
             })
         end
     end
-	self:ToolDataToDB(player)
+	--self:ToolDataToDB(player)
     
     -- 检查当前装备的工具是否在新的data中
     local character = player.Character
@@ -107,8 +124,30 @@ function InventoryService:UpdateToolData(player, data)
             end
         end
     end
-
     self.Client.SendToolData:Fire(player, self.ToolData[player.UserId])
+end
+
+function InventoryService:UpdateBagData(player, data)
+    self.BagData[player.UserId] = {}
+    for i = 1, GameConfig.BAG_NUM do
+        local itemId = 0
+        if data and data[i] then
+            table.insert(self.BagData[player.UserId], {
+                ItemId = data[i].ItemId or 0,
+                Attribute = data[i].Attribute or GameConfig.GetItemAttribute()
+            })
+        else
+            table.insert(self.BagData[player.UserId], {
+                ItemId = itemId,
+                Attribute = GameConfig.GetItemAttribute()
+            })
+        end
+    end
+    self.Client.SendBagData:Fire(player, self.BagData[player.UserId])
+end
+
+function InventoryService:GetBagData(player)
+    return self.BagData[player.UserId]
 end
 
 function InventoryService:GetToolData(player)
@@ -140,14 +179,45 @@ function InventoryService:GiveToolToPlayer(player, item)
     end
 
     if not isPickUp then
-        return false, "背包已满"
+        -- 先检查工具栏是否有空格
+        local hasBag = false
+        for i, itemData in ipairs(toolData) do
+            if itemData.ItemId == GameConfig.AdditionalBackpackId then        -- 特殊处理，额外的背包ID为6
+                hasBag = true
+                break
+            end
+        end
+
+        if hasBag then
+            local bagData = self.BagData[player.UserId]
+            for i, itemData in ipairs(bagData) do
+                if itemData.ItemId == 0 then
+                    slot = i
+                    attribute = GameConfig.GetItemAttribute(item)
+                    bagData[slot] = {ItemId = itemInfo.Index, Attribute = attribute}
+                    isPickUp = true
+                    break
+                end
+            end
+        end
+
+        if not isPickUp then
+            return false, "背包已满"
+        else
+            self:UpdateBagData(player, self.BagData[player.UserId])
+        end
+    else
+        self:UpdateToolData(player, toolData)
     end
-    self:UpdateToolData(player, toolData)
     return true, "物品添加成功"
 end
 
 function InventoryService.Client:UpdateToolData(player, data)
-    self.Server:UpdateToolData(player, data)
+    return self.Server:UpdateToolData(player, data)
+end
+
+function InventoryService.Client:UpdateBagData(player, data)
+    return self.Server:UpdateBagData(player, data)
 end
 
 -- 根据物品ID创建工具实例
@@ -302,15 +372,10 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
     
     -- 连接工具卸下事件，清理状态
     tool.Unequipped:Connect(function()
-        local player = game.Players:GetPlayerFromCharacter(tool.Parent)
+        local userId = tool:GetAttribute("PlayerId")
+        if not userId then return end
+        local player = game.Players:GetPlayerByUserId(userId)
         if not player then return end
-        
-        local character = player.Character
-        if not character then return end
-        
-        local humanoid = character:FindFirstChild("Humanoid")
-        if not humanoid then return end
-
 		local script = tool:FindFirstChild("ModuleScript")
 		if script then
 			local module = require(script)
@@ -412,14 +477,17 @@ function InventoryService:EquipToolByKey(player, slot)
         -- 如果是同一个工具，则取下工具
         if isEquippingSameTool then
             if currentTool then
-                for i, v in pairs(toolData) do
+                for _, v in pairs(toolData) do
                     if v.ItemId == currentItemId and v.Attribute.CreateTime == attribute.CreateTime then
                         v.Attribute.IsEquipped = false
                         break
                     end
                 end
                 GameConfig.UpdateItemAttribute(currentTool, "IsEquipped", false)
-                currentTool:Destroy()
+                character.Humanoid:UnequipTools()
+                task.delay(0.05, function()
+                    currentTool:Destroy()
+                end)
             end
             return 1, toolData
         end
@@ -432,7 +500,10 @@ function InventoryService:EquipToolByKey(player, slot)
             end
         end
         GameConfig.UpdateItemAttribute(currentTool, "IsEquipped", false)
-        currentTool:Destroy()
+        character.Humanoid:UnequipTools()
+        task.delay(0.05, function()
+            currentTool:Destroy()
+        end)
     end
     
     -- 按需创建新工具
@@ -442,6 +513,7 @@ function InventoryService:EquipToolByKey(player, slot)
         
         -- 确保工具被正确装备
         if character:FindFirstChild("Humanoid") then
+            newTool:SetAttribute("PlayerId", player.UserId)
             character.Humanoid:EquipTool(newTool)
         	itemData.Attribute.IsEquipped = true
 			GameConfig.UpdateItemAttribute(newTool, "IsEquipped", true)
@@ -453,49 +525,7 @@ function InventoryService:EquipToolByKey(player, slot)
     return 0
 end
 
--- 丢弃工具实现
--- @param player Player 玩家对象
--- @param slot number 工具槽位
--- @return void
-function InventoryService:DiscardTool(player, slot)
-    local character = player.Character
-    if not character then
-        return
-    end
-    
-    local toolData = self.ToolData[player.UserId]
-    if not toolData then
-        return
-    end
-    
-    local slotNumber = tonumber(slot)
-    local itemData = toolData[slotNumber]
-    if not itemData or itemData.ItemId == 0 then
-        return
-    end
-    
-    -- 获取物品配置信息
-    local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
-    if not itemInfo then
-        return
-    end
-    
-    -- 获取玩家当前装备的工具
-    local equippedTool = character:FindFirstChildOfClass("Tool")
-    if equippedTool then
-        local equippedItemId = equippedTool:GetAttribute("ItemId")
-        -- 如果当前装备的工具就是要丢弃的工具，则销毁它
-        if equippedItemId == itemData.ItemId then
-            equippedTool:Destroy()
-        end
-    end
-    
-    -- 从工具栏数据中移除
-    toolData[slotNumber] = {
-        ItemId = 0,
-        Attribute = GameConfig.GetItemAttribute()
-    }
-    
+local function CreateItemToFloor(character, itemInfo, attribute)
     -- 获取玩家位置
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then
@@ -504,6 +534,7 @@ function InventoryService:DiscardTool(player, slot)
     
     -- 在玩家前方创建物品，使用射线检测找到地面位置
     local basePosition = humanoidRootPart.Position + humanoidRootPart.CFrame.LookVector * 3
+    basePosition = Vector3.new(basePosition.X + math.random(-3, 3), basePosition.Y, basePosition.Z + math.random(-3, 3))
     
     -- 创建向下的射线来检测地面
     local rayOrigin = Vector3.new(basePosition.X, basePosition.Y, basePosition.Z) -- 从玩家上方开始
@@ -526,7 +557,121 @@ function InventoryService:DiscardTool(player, slot)
     
     -- 通过ItemService创建物品
     local ItemService = Knit.GetService("ItemService")
-    ItemService:CreateItem(itemInfo.Index, dropPosition, itemData.Attribute)
+    ItemService:CreateItem(itemInfo.Index, dropPosition, attribute)
+end
+
+-- 丢弃工具实现
+-- @param player Player 玩家对象
+-- @param slot number 工具槽位
+-- @return void
+function InventoryService:DiscardTool(player, slot)
+    local character = player.Character
+    if not character then
+        return
+    end
+    
+    local toolData = self.ToolData[player.UserId]
+    if not toolData then
+        return
+    end
+    
+    local slotNumber = tonumber(slot)
+    local itemData = toolData[slotNumber]
+    local itemId = itemData.ItemId
+    local attribute = itemData.Attribute
+    if not itemData or itemId == 0 then
+        return
+    end
+    
+    -- 获取物品配置信息
+    local itemInfo = ItemConfig:GetByIndex(itemId)
+    if not itemInfo then
+        return
+    end
+
+    -- 从工具栏数据中移除
+    toolData[slotNumber] = {
+        ItemId = 0,
+        Attribute = GameConfig.GetItemAttribute()
+    }
+    
+    -- 获取玩家当前装备的工具
+    local equippedTool = character:FindFirstChildOfClass("Tool")
+    if equippedTool then
+        local equippedItemId = equippedTool:GetAttribute("ItemId")
+        -- 如果当前装备的工具就是要丢弃的工具，则销毁它
+        if equippedItemId == itemId then
+            equippedTool:Destroy()
+        end
+    end
+    
+    -- 如果丢掉的是背包，则把背包里的物品也丢出来
+    if itemId == GameConfig.AdditionalBackpackId then
+        local data = Interface.clone(self.BagData[player.UserId])
+        self:UpdateBagData(player)
+        
+        -- 异步处理物品丢出，每个物品间隔0.5秒
+        task.spawn(function()
+            local itemsToThrow = {}
+            
+            -- 收集需要丢出的物品
+            for _, v in pairs(data) do
+                if v.ItemId ~= 0 then
+                    table.insert(itemsToThrow, {
+                        itemInfo = ItemConfig:GetByIndex(v.ItemId),
+                        attribute = v.Attribute
+                    })
+                end
+            end
+            
+            -- 逐个丢出物品，每个间隔0.5秒
+            for i, itemDataTemp in ipairs(itemsToThrow) do
+                CreateItemToFloor(character, itemDataTemp.itemInfo, itemDataTemp.attribute)
+                
+                -- 如果不是最后一个物品，等待0.3秒
+                if i < #itemsToThrow then
+                    task.wait(0.3)
+                end
+            end
+        end)
+    end
+    
+    -- 把物品丢出来
+    task.spawn(function()
+        CreateItemToFloor(character, itemInfo, attribute)
+    end)
+end
+
+function InventoryService:DiscardBag(player, slot)
+    local character = player.Character
+    if not character then
+        return
+    end
+
+    local bagData = self.BagData[player.UserId]
+    if not bagData then
+        return
+    end
+
+    local slotNumber = tonumber(slot)
+    local itemData = bagData[slotNumber]
+    local itemId = itemData.ItemId
+    local attribute = itemData.Attribute
+    if not itemData or itemId == 0 then
+        return
+    end
+
+    -- 获取物品配置信息
+    local itemInfo = ItemConfig:GetByIndex(itemId)
+    if not itemInfo then
+        return
+    end
+    
+    bagData[slotNumber] = {
+        ItemId = 0,
+        Attribute = GameConfig.GetItemAttribute()
+    }
+    CreateItemToFloor(character, itemInfo, attribute)
 end
 
 -- 丢弃工具
@@ -535,6 +680,14 @@ end
 -- @return void
 function InventoryService.Client:DiscardTool(player, slot)
     return self.Server:DiscardTool(player, slot)
+end
+
+-- 丢弃工具
+-- @param player Player 玩家对象
+-- @param slot number 工具槽位
+-- @return void
+function InventoryService.Client:DiscardBag(player, slot)
+    return self.Server:DiscardBag(player, slot)
 end
 
 function InventoryService:GetEscapeItems(player)
@@ -551,22 +704,64 @@ function InventoryService:TurnInCollect(player)
         return 0
     end
     
+    -- 检查玩家是否死亡
+    local character = player.Character
+    if not character then
+        return 0
+    end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then
+        return 0
+    end
+    
     local userId = player.UserId
     if not self.ToolData[userId] then
         warn("TurnInCollect: 玩家工具数据不存在", userId)
         return 0
     end
     
+    local isToolChanged = false
     local gold = 0
-    -- 收集所有搜集类物品并记录要删除的索引
-    for i = #self.ToolData[userId], 1, -1 do  -- 倒序遍历避免索引问题
+    -- 收集所有搜集类物品
+    for i = 1, #self.ToolData[userId] do
         local toolData = self.ToolData[userId][i]
-        if toolData and toolData.ItemId then
+        if toolData and toolData.ItemId ~= 0 then
             local itemInfo = ItemConfig:GetByIndex(toolData.ItemId)
             if itemInfo and itemInfo.Type == GameConfig.ItemType.Collect then
+                if self.TurnInNum[userId] >= GameConfig.MaxTurnInItemNum then
+                    break
+                end
+                self.TurnInNum[userId] += 1
                 gold += itemInfo.SellPrice
                 table.insert(self.EscapeItems[userId], itemInfo.Index)
-                table.remove(self.ToolData[userId], i)  -- 倒序删除安全
+                self.ToolData[userId][i] = {
+                    ItemId = 0,
+                    Attribute = GameConfig.GetItemAttribute()
+                }
+                isToolChanged = true
+            end
+        end
+    end
+
+    local isBagChanged = false
+    -- 收集所有搜集类物品
+    for i = 1, #self.BagData[userId] do
+        local bagData = self.BagData[userId][i]
+        if bagData and bagData.ItemId ~= 0 then
+            local itemInfo = ItemConfig:GetByIndex(bagData.ItemId)
+            if itemInfo and itemInfo.Type == GameConfig.ItemType.Collect then
+                if self.TurnInNum[userId] >= GameConfig.MaxTurnInItemNum then
+                    break
+                end
+                self.TurnInNum[userId] += 1
+                gold += itemInfo.SellPrice
+                table.insert(self.EscapeItems[userId], itemInfo.Index)
+                self.BagData[userId][i] = {
+                    ItemId = 0,
+                    Attribute = GameConfig.GetItemAttribute()
+                }
+                isBagChanged = true
             end
         end
     end
@@ -575,11 +770,21 @@ function InventoryService:TurnInCollect(player)
     if gold > 0 then
         Knit.GetService("TaskService"):UpdateEscapeTask(gold)
         self:UpdateToolData(player, self.ToolData[player.UserId])
+        if isToolChanged then
+            self:UpdateToolData(player, self.ToolData[player.UserId])
+        end
+        if isBagChanged then
+            self:UpdateBagData(player, self.BagData[player.UserId])
+        end
     else
         print(string.format("玩家 %s 没有可上交的搜集物品", player.Name))
     end
     
     return gold
+end
+
+function InventoryService:EquipAdditionalBackpack(player, equip)
+    self.Client.EquipAdditionalBackpack:Fire(player, equip)
 end
 
 return InventoryService
