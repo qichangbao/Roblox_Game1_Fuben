@@ -84,6 +84,10 @@ local function init()
                     
             require(script.Parent:WaitForChild("LoadingUI")).Hide()
         end)
+
+        Knit.GetService("SettleService").SendShowUI:Connect(function(player, data)
+            Knit.GetController("UIController").ShowSettleUI:Fire(player, data)
+        end)
     end)
 end
 

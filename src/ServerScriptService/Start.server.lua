@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Lighting = game:GetService("Lighting")
-local Players = game:GetService("Players")
 
 math.randomseed(os.time())
 

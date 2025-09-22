@@ -435,6 +435,79 @@ function InventoryService.Client:PressKeyBind(player, keyCode)
     return self.Server:EquipToolByKey(player, keyCode)
 end
 
+--[[
+    激活玩家装备的工具
+    @param player Player 玩家对象
+    @param slot number 工具槽位
+    @return boolean 是否成功激活工具
+]]
+function InventoryService:ActivateTool(player, slot)
+    -- 验证玩家和角色
+    if not player or not player.Character then
+        warn("ActivateTool: 玩家或角色不存在")
+        return false
+    end
+    
+    local character = player.Character
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then
+        warn("ActivateTool: 玩家角色没有Humanoid")
+        return false
+    end
+    
+    -- 验证槽位
+    local slotNumber = tonumber(slot)
+    if not slotNumber or slotNumber < 1 or slotNumber > GameConfig.SLOT_NUM then
+        warn("ActivateTool: 无效的槽位号: " .. tostring(slot))
+        return false
+    end
+    
+    -- 获取玩家工具数据
+    local userId = player.UserId
+    local toolData = self.ToolData[userId]
+    if not toolData then
+        warn("ActivateTool: 玩家工具数据不存在")
+        return false
+    end
+    
+    -- 获取指定槽位的工具数据
+    local itemData = toolData[slotNumber]
+    if not itemData or not itemData.ItemId or itemData.ItemId == 0 then
+        warn("ActivateTool: 槽位 " .. slotNumber .. " 没有装备工具")
+        return false
+    end
+    
+    -- 查找玩家当前装备的工具
+    for _, tool in pairs(character:GetChildren()) do
+        if tool:IsA("Tool") then
+            local itemId = tool:GetAttribute("ItemId")
+            -- 获取物品信息
+            local itemInfo = ItemConfig:GetByIndex(itemId)
+            if not itemInfo then
+                warn("ActivateTool: 无法获取物品信息，ItemId: " .. itemId)
+                return false
+            end
+
+			if itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
+                tool:Activate()
+            end
+        end
+    end
+    
+    print("ActivateTool: 成功激活槽位 " .. slotNumber .. " 的工具")
+    return true
+end
+
+--[[
+    客户端调用激活工具的接口
+    @param player Player 玩家对象
+    @param slot number 工具槽位
+    @return boolean 是否成功激活工具
+]]
+function InventoryService.Client:ActivateTool(player, slot)
+    return self.Server:ActivateTool(player, slot)
+end
+
 -- 根据按键装备对应工具
 -- @param player Player 玩家对象
 -- @param keyCode Enum.KeyCode 按键代码

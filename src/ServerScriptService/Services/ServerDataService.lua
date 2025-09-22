@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
 local ServerDataService = Knit.CreateService {
 	Name = "ServerDataService",
@@ -36,15 +37,14 @@ function ServerDataService:KnitStart()
 
         Knit.GetService("DBService"):PlayerAdded(player)
         Knit.GetService("GoldService"):playerAdd(player, 0)
+        Knit.GetService("SettleService"):PlayerAdded(player)
 
         local hasPlayerToolData = false
         local hasEscapeTask = false
+        local hasEscapeTime = false
         -- 获取传送数据
         local joinData = player:GetJoinData()
         if joinData and joinData.TeleportData then
-            local JobId = joinData.TeleportData.JobId
-            Knit.GetService("TeleportService"):SetMainServerJobId(JobId)
-
             local localTeleportData = joinData.TeleportData
             if localTeleportData.PlayersToolData then
                 -- 获取该玩家的工具数据
@@ -55,10 +55,23 @@ function ServerDataService:KnitStart()
                 end
             end
 
-            if localTeleportData.EscapeTask then
-                Knit.GetService("TaskService"):InitEscapeTask(0, localTeleportData.EscapeTask)
+            local TaskService = Knit.GetService("TaskService")
+            if not TaskService:GetIsInit() then
+                if localTeleportData.EscapeTask then
+                    TaskService:InitEscapeTask(localTeleportData.EscapeTask)
+                    hasEscapeTask = true
+                end
+
+                if localTeleportData.EscapeTime then
+                    TaskService:InitEscapeTime(localTeleportData.EscapeTime)
+                    hasEscapeTime = true
+                end
+            else
                 hasEscapeTask = true
+                hasEscapeTime = true
             end
+        else
+            print(string.format("玩家 %s 没有传送数据", player.Name))
         end
 
         if not hasPlayerToolData then
@@ -67,9 +80,12 @@ function ServerDataService:KnitStart()
         end
         
         if not hasEscapeTask then
-            Knit.GetService("TaskService"):InitEscapeTask(0, 100)
+            Knit.GetService("TaskService"):InitEscapeTask(GameConfig.DefaultEscapeTask)
         end
-        print(string.format("玩家 %s 没有传送数据", player.Name))
+
+        if not hasEscapeTime then
+            Knit.GetService("TaskService"):InitEscapeTime(GameConfig.DefaultEscapeTime)
+        end
 
         if not self.HasInitData[player.UserId] then
             self.Client.SendInitData:Fire(player, self:GetInitData(player))
@@ -79,6 +95,7 @@ function ServerDataService:KnitStart()
     local function playerRemoved(player)
         Knit.GetService("InventoryService"):playerRemoved(player)
         Knit.GetService("GoldService"):playerRemoved(player)
+        Knit.GetService("SettleService"):PlayerRemoving(player)
         Knit.GetService("DBService"):PlayerRemoving(player)
     end
 

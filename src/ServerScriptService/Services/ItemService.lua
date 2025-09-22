@@ -155,20 +155,22 @@ function ItemService:HandleItemPickup(player, item, itemInfo)
     end
 end
 
-function ItemService:CreateItemByPlan(planId, position)
-    local planData = PlanConfig:GetByPlanId(planId)
-    if not planData then
-        return
-    end
-
+function ItemService:CreateItemByPlan(planData, position)
     if planData.CanisterId ~= 0 then    -- 宝箱类物品，调用ChestService处理奖励
         self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute())
     else                                -- 普通物品
-        for index, itemId in pairs(planData.ItemId) do
+        if type(planData.ItemId) ~= "table" then
             local random = math.random(1, 10000)
-            if random <= planData.Probability[index] then
-                print("创建物品:", itemId, "概率:", planData.Probability[index])
-                self:CreateItem(itemId, position, GameConfig.GetItemAttribute())
+            if random <= planData.Probability then
+                self:CreateItem(planData.ItemId, position, GameConfig.GetItemAttribute())
+            end
+        else
+            for index, itemId in pairs(planData.ItemId) do
+                local random = math.random(1, 10000)
+                if random <= planData.Probability[index] then
+                    print("创建物品:", itemId, "概率:", planData.Probability[index])
+                    self:CreateItem(itemId, position, GameConfig.GetItemAttribute())
+                end
             end
         end
     end

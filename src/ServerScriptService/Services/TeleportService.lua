@@ -3,66 +3,71 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
-local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 
 local TeleportServiceModule = Knit.CreateService {
     Name = "TeleportService",
     Client = {},
 }
 
--- 在Part上方多少单位触发传送
+-- 在Part上方多少单位触发传送（减小范围提高精度）
 local TRIGGER_HEIGHT_OFFSET = 5
+-- 射线检测的最大距离
+local RAYCAST_DISTANCE = 10
 
 -- ReserveServer配置
 local TARGET_PLACE_ID = 105534130650004  -- 目标传送场景ID（TestBoat）
-local _mainServerJobId = nil
 
--- 使用包围盒检测玩家是否在撤离区内
+function TeleportServiceModule:KnitInit()
+end
+
+function TeleportServiceModule:KnitStart()
+end
+
+-- 使用射线检测玩家是否真正站在Model上
 -- @param player Player 要检查的玩家
 -- @param triggerModel Model 要检测的Model
 -- @return boolean, number 是否在撤离区内以及高度差
 local function checkPlayerOnModel(player, triggerModel)
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return false, math.huge
+    end
+    
     local humanoidRootPart = player.Character.HumanoidRootPart
     local playerPosition = humanoidRootPart.Position
     
-    -- 获取Model的包围盒
-    local modelCFrame, modelSize = triggerModel:GetBoundingBox()
+    -- 创建射线检测参数
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Include
+    raycastParams.FilterDescendantsInstances = {triggerModel}
     
-    -- 将玩家位置转换到Model的本地坐标系
-    local localPlayerPosition = modelCFrame:PointToObjectSpace(playerPosition)
+    -- 从玩家脚下向下发射射线
+    local rayOrigin = playerPosition + Vector3.new(0, 1, 0) -- 稍微抬高起点
+    local rayDirection = Vector3.new(0, -RAYCAST_DISTANCE, 0)
     
-    -- 计算包围盒的半尺寸
-    local halfSize = modelSize / 2
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
     
-    -- 检查玩家是否在包围盒的X和Z范围内
-    local isInXRange = math.abs(localPlayerPosition.X) <= halfSize.X
-    local isInZRange = math.abs(localPlayerPosition.Z) <= halfSize.Z
-    
-    if isInXRange and isInZRange then
-        -- 计算玩家与Model顶部的高度差
-        local modelTop = modelCFrame.Position.Y + halfSize.Y
-        local modelBottom = modelCFrame.Position.Y - halfSize.Y
-        local heightDifference = playerPosition.Y - modelTop
+    if raycastResult then
+        local hitPart = raycastResult.Instance
+        local hitPosition = raycastResult.Position
         
-        -- 检查玩家是否在Model上方的合理高度范围内
-        if heightDifference >= 0 and heightDifference <= TRIGGER_HEIGHT_OFFSET then
-            return true, heightDifference
-        end
-        
-        -- 如果在XZ范围内但高度不合适，检查是否在Model内部
-        if playerPosition.Y >= modelBottom and playerPosition.Y <= modelTop then
-            -- 玩家在Model内部，也算作触发
-            local heightDifferenceFromBottom = playerPosition.Y - modelBottom
-            return true, heightDifferenceFromBottom
+        -- 检查射线是否击中了triggerModel中的Part
+        if hitPart and hitPart:IsDescendantOf(triggerModel) then
+            -- 计算玩家位置到击中点的距离（使用HumanoidRootPart位置更准确）
+            local heightDifference = playerPosition.Y - hitPosition.Y
+            
+            -- 当玩家站在船上的物体上时，heightDifference可能是负数
+            -- 我们需要检查玩家是否在合理的高度范围内（可以在船体上方或下方一定距离）
+            if math.abs(heightDifference) <= TRIGGER_HEIGHT_OFFSET then
+                return true
+            end
         end
     end
     
-    return false, math.huge
+    return false
 end
 
 -- 检查玩家是否站在Model上面（使用射线检测）
@@ -70,22 +75,18 @@ end
 -- @return boolean, Model 是否站在Model上面以及触发的Model
 local function isPlayerInTriggerZone(player)
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-        return false, nil
+        return false
     end
     
     -- 检查每个触发Model
     for _, modelName in ipairs(GameConfig.TeleportPartNames) do
         local triggerModel = workspace:FindFirstChild(modelName)
         if triggerModel and triggerModel:IsA("Model") then
-            local isOnModel, heightDifference = checkPlayerOnModel(player, triggerModel)
-            
-            if isOnModel then
-                return true, triggerModel
-            end
+            return checkPlayerOnModel(player, triggerModel)
         end
     end
     
-    return false, nil
+    return false
 end
 
 -- 检查是否在Studio环境中
@@ -116,79 +117,12 @@ end
 -- @param player Player 要传送的玩家
 -- @return void
 local function teleportToReserveServer(player)
-    local InventoryService = Knit.GetService("InventoryService")
-    local escapeItems = InventoryService:GetEscapeItems(player)
-    if #escapeItems > 6 then
-        -- 创建包含价格信息的物品数组
-        local itemsWithPrice = {}
-        for _, itemId in ipairs(escapeItems) do
-            local itemInfo = ItemConfig:GetByIndex(itemId)
-            if itemInfo and itemInfo.SellPrice then
-                table.insert(itemsWithPrice, {
-                    itemId = itemId,
-                    sellPrice = itemInfo.SellPrice,
-                    name = itemInfo.Item or "未知物品"
-                })
-            end
-        end
-        
-        -- 按价格降序排序
-        table.sort(itemsWithPrice, function(a, b)
-            return a.sellPrice > b.sellPrice
-        end)
-        
-        -- 取前6个最高价值的物品
-        local topSixItems = {}
-        for i = 1, math.min(6, #itemsWithPrice) do
-            table.insert(topSixItems, itemsWithPrice[i].itemId)
-        end
-        
-        -- 更新escapeItems为最高价值的6件物品
-        escapeItems = topSixItems
+    local SettleService = Knit.GetService("SettleService")
+    local teleportData = SettleService:GetSettleData(player)
+    if not teleportData then
+        logMessage("ERROR", "玩家数据不存在", player)
+        return false
     end
-
-    local totalValue = 0
-    for _, itemId in ipairs(escapeItems) do
-        local itemInfo = ItemConfig:GetByIndex(itemId)
-        if itemInfo and itemInfo.SellPrice then
-            totalValue += itemInfo.SellPrice
-        end
-    end
-
-    -- 工具栏4-6格和背包的探索，辅助，进攻类物品可以带回出生岛
-    local toolData = InventoryService:GetToolData(player)
-    for i = 4, #toolData do
-        local data = toolData[i]
-        if data.ItemId ~= 0 then
-            local itemInfo = ItemConfig:GetByIndex(data.ItemId)
-            if itemInfo and itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
-                table.insert(escapeItems, data.ItemId)
-            end
-        end
-        toolData[i] = nil
-    end
-    local bagData = InventoryService:GetBagData(player)
-    for i = 1, #bagData do
-        local data = bagData[i]
-        if data.ItemId ~= 0 then
-            local itemInfo = ItemConfig:GetByIndex(data.ItemId)
-            if itemInfo and itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
-                table.insert(escapeItems, data.ItemId)
-            end
-        end
-        bagData[i] = nil
-    end
-    InventoryService:ToolDataToDB(player)
-
-    local totalTime = tick() - player:GetAttribute("JoinTime")
-    
-    -- 准备传送数据
-    local teleportData = {
-        EscapeItems = escapeItems,
-        TotalValue = totalValue,
-        TotalTime = totalTime,
-        IsSuccess = Knit.GetService("TaskService"):IsSuccess(),
-    }
 
     -- 检查是否在Studio环境
     if isInStudio() then
@@ -200,55 +134,41 @@ local function teleportToReserveServer(player)
         return true
     end
     
+	local teleportOptions = Instance.new("TeleportOptions")
+	teleportOptions:SetTeleportData(teleportData)
     -- 执行传送到预留服务器
     local teleportSuccess, teleportError = pcall(function()
         logMessage("INFO", string.format("开始传送到目标场景: %d", TARGET_PLACE_ID), player)
-        TeleportService:Teleport(
+        TeleportService:TeleportAsync(
             TARGET_PLACE_ID,
-            player,
-            teleportData
+            {player},
+            teleportOptions
         )
     end)
     
     if teleportSuccess then
         return true
     end
-
     logMessage("WARN", string.format("传送到预留服务器失败: %s", tostring(teleportError)), player)
-    return
 end
 
--- 处理玩家传送到恐龙岛场景
--- @param player Player 要传送的玩家
--- @return void
-local function teleportPlayerToDungeon(player)
-    return teleportToReserveServer(player)
-end
-
--- 检查玩家位置并处理传送
+-- 传送
 -- @param player Player 要检查的玩家
 -- @return void
-local function checkPlayerPosition(player)
+function TeleportServiceModule:Escape(player, needCheckPos)
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
         return
     end
     
-    -- 检查玩家是否在触发区域内
-    local isInTrigger, triggerPart = isPlayerInTriggerZone(player)
-    if isInTrigger then
-        return teleportPlayerToDungeon(player)
+    if needCheckPos then
+        -- 检查玩家是否在触发区域内
+        local isInTrigger = isPlayerInTriggerZone(player)
+        if isInTrigger then
+            return teleportToReserveServer(player)
+        end
+    else
+        return teleportToReserveServer(player)
     end
-end
-
-function TeleportServiceModule.Client:Escape(player)
-    return checkPlayerPosition(player)
-end
-
-function TeleportServiceModule:SetMainServerJobId(jobId)
-    _mainServerJobId = jobId
-end
-
-function TeleportServiceModule:KnitStart()
 end
 
 return TeleportServiceModule
