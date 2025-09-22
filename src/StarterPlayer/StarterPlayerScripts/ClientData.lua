@@ -13,6 +13,15 @@ ClientData.EscapeTask = 0       -- 目标完成撤离任务
 -- 添加重试控制器变量
 local retryController = nil
 
+local function setInitData(data)
+    ClientData.Gold = data.Gold or 0
+    ClientData.ToolData = data.ToolData or {}
+    Knit.GetController("UIController").ChangeGoldUI:Fire(data.Gold)
+    Knit.GetController("UIController").UpdateToolUI:Fire(data.ToolData)
+    
+    require(script.Parent:WaitForChild("LoadingUI")).Hide()
+end
+
 local function init()
     local KnitInitClient = require(script.Parent:WaitForChild("KnitInitClient"))
     KnitInitClient.AddListener(function()
@@ -31,13 +40,7 @@ local function init()
                     return data and type(data) == "table" and data.Gold ~= nil and data.ToolData ~= nil
                 end,
                 onSuccess = function(data)
-                    -- 安全地设置数据
-                    ClientData.Gold = data.Gold or 0
-					ClientData.ToolData = data.ToolData or {}
-					Knit.GetController("UIController").ChangeGoldUI:Fire(data.Gold)
-					Knit.GetController("UIController").UpdateToolUI:Fire(data.ToolData)
-                    
-                    require(script.Parent:WaitForChild("LoadingUI")).Hide()
+                    setInitData(data)
                 end,
                 onFailure = function(errorMsg)
                     warn("登录数据获取失败:", errorMsg)
@@ -77,12 +80,7 @@ local function init()
                 print("通过SendInitData接收到数据，已停止DataRetryUtil重试")
             end
             
-            ClientData.Gold = data.Gold or 0
-            ClientData.ToolData = data.ToolData or {}
-            Knit.GetController("UIController").ChangeGoldUI:Fire(data.Gold)
-            Knit.GetController("UIController").UpdateToolUI:Fire(data.ToolData)
-                    
-            require(script.Parent:WaitForChild("LoadingUI")).Hide()
+            setInitData(data)
         end)
 
         Knit.GetService("SettleService").SendShowUI:Connect(function(player, data)
