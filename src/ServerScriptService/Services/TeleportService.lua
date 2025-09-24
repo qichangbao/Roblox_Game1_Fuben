@@ -80,7 +80,7 @@ local function isPlayerInTriggerZone(player)
     
     -- 检查每个触发Model
     for _, modelName in ipairs(GameConfig.TeleportPartNames) do
-        local triggerModel = workspace:FindFirstChild(modelName)
+        local triggerModel = workspace:FindFirstChild(GameConfig.LandName):FindFirstChild("Special"):FindFirstChild(modelName)
         if triggerModel and triggerModel:IsA("Model") then
             return checkPlayerOnModel(player, triggerModel)
         end
