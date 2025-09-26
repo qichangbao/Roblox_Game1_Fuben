@@ -13,7 +13,26 @@ local MonsterService = Knit.CreateService {
 	Name = "MonsterService",
 	Client = {
 	},
+
+    KillMonsters = {}
 }
+
+function MonsterService:PlayerAdded(player)
+    self.KillMonsters[player.userId] = {}
+end
+
+function MonsterService:playerRemoved(player)
+    self.KillMonsters[player.userId] = nil
+end
+
+function MonsterService:KillMonster(player, monster)
+    if not self.KillMonsters[player.userId] then
+        return
+    end
+
+    local monsterId = monster:GetAttribute("MonsterId")
+    table.insert(self.KillMonsters[player.userId], monsterId)
+end
 
 function MonsterService:CreateMonster(monsterId, position)
     local monsterInfo = MonsterConfig:GetByMonsterId(monsterId)
@@ -41,6 +60,10 @@ function MonsterService:CreateMonster(monsterId, position)
 
     local aiManager = AIManager.new(monster, position, monsterInfo)
     aiManager:Start()
+end
+
+function MonsterService:GetKillMonsters(player)
+    return self.KillMonsters[player.userId]
 end
 
 function MonsterService:CreateMonsterByPlan(planData, position)

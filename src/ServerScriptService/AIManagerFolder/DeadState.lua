@@ -1,8 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local MonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterConfig"))
+local PlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PlanConfig"))
 
 local DeadState = {}
 DeadState.__index = DeadState
@@ -101,9 +101,12 @@ function DeadState:Enter()
         local ignoreList = {self.AIManager.NPC} -- 忽略NPC本身
         local groundPosition = getGroundPosition(npcPosition, ignoreList)
         
-        -- 在地面位置创建物品
-        Knit.GetService("ItemService"):CreateItemByPlan(config.DropPlanId, groundPosition)
-        print("在位置创建物品:", groundPosition)
+    -- 在地面位置创建物品
+        local planData = PlanConfig:GetByPlanId(config.DropPlanId)
+        if planData then
+            Knit.GetService("ItemService"):CreateItemByPlan(planData, groundPosition)
+            print("在位置创建物品:", groundPosition)
+        end
     end
 
     task.delay(5, function()

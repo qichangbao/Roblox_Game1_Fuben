@@ -38,6 +38,9 @@ function ServerDataService:KnitStart()
         Knit.GetService("DBService"):PlayerAdded(player)
         Knit.GetService("GoldService"):playerAdd(player, 0)
         Knit.GetService("SettleService"):PlayerAdded(player)
+        Knit.GetService("MonsterService"):PlayerAdded(player)
+        local duanWeiData = Knit.GetService("DBService"):Get(player.UserId, "DuanWeiData")
+        Knit.GetService("LevelService"):playerAdd(player, duanWeiData)
 
         local hasPlayerToolData = false
         local hasEscapeTask = false
@@ -97,6 +100,8 @@ function ServerDataService:KnitStart()
         Knit.GetService("GoldService"):playerRemoved(player)
         Knit.GetService("SettleService"):PlayerRemoving(player)
         Knit.GetService("DBService"):PlayerRemoving(player)
+        Knit.GetService("MonsterService"):playerRemoved(player)
+        Knit.GetService("LevelService"):playerRemoved(player)
     end
 
     for _, player in pairs(Players:GetPlayers()) do

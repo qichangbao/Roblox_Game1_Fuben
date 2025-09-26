@@ -18,8 +18,7 @@ local function setInitData(data)
     ClientData.ToolData = data.ToolData or {}
     Knit.GetController("UIController").ChangeGoldUI:Fire(data.Gold)
     Knit.GetController("UIController").UpdateToolUI:Fire(data.ToolData)
-    
-    require(script.Parent:WaitForChild("LoadingUI")).Hide()
+    Knit.GetController("UIController").HideLoadingUI:Fire()
 end
 
 local function init()

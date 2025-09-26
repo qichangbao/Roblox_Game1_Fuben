@@ -97,9 +97,13 @@ function SettleService:Settle(player, needCheckPos)
 
     local totalTime = tick() - player:GetAttribute("JoinTime")
     
+    local killMonsters = Knit.GetService("MonsterService"):GetKillMonsters(player)
+    local levelData = Knit.GetService("LevelService"):GetLevelData(player)
     -- 准备传送数据
     self.SettleData[player.UserId] = {
+        LevelData = levelData,
         EscapeItems = escapeItems,
+        KillMonsterNum = #killMonsters,
         TotalValue = totalValue,
         TotalTime = totalTime,
         IsSuccess = Knit.GetService("TaskService"):IsSuccess(),

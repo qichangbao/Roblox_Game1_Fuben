@@ -42,12 +42,6 @@ Knit.AddControllers(script.Parent:WaitForChild('ControllersFolder'))
 
 _G.ClientData = require(game.Players.LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("ClientData"))
 
-local loadingUI = require(script.Parent:WaitForChild("LoadingUI"))
-
--- 显示加载界面（不自动隐藏）
-loadingUI.Show()
-loadingUI.UpdateText("Waiting for server startup...")
-
 -- 等待RemoteEvent创建
 local isServerStartOverEvent = ReplicatedStorage:WaitForChild("IsServerStartOver")
 
@@ -63,7 +57,6 @@ end
 isServerStartOverEvent.OnClientEvent:Connect(function(isStarted)
     if isStarted then
         print("服务器已启动完成！")
-        loadingUI.UpdateText("Server startup completed")
         
         -- 通知KnitInit服务器已启动完成
         local success, KnitInitClient = pcall(function()
@@ -76,13 +69,8 @@ isServerStartOverEvent.OnClientEvent:Connect(function(isStarted)
         else
             warn("KnitInitClient执行失败")
         end
-        
-        -- -- 等待0.5秒后隐藏加载界面
-        -- task.wait(0.5)
-        -- loadingUI.Hide()
     else
         print("服务器尚未启动完成，继续等待...")
-        loadingUI.UpdateText("Server startup in progress...")
         -- 等待1秒后重新查询
         task.wait(1)
         checkServerStartStatus()
@@ -102,7 +90,6 @@ end):catch(warn)
 ]]
 local function createPositionDisplay()
 	local Players = game:GetService("Players")
-	local RunService = game:GetService("RunService")
 	local player = Players.LocalPlayer
 	local playerGui = player:WaitForChild("PlayerGui")
 
@@ -163,15 +150,7 @@ end
 ]]
 local function updatePositionDisplay(positionLabel)
 	local Players = game:GetService("Players")
-	local RunService = game:GetService("RunService")
 	local player = Players.LocalPlayer
-
-	-- 等待角色加载
-	local function waitForCharacter()
-		local character = player.Character or player.CharacterAdded:Wait()
-		local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-		return humanoidRootPart
-	end
 
 	-- 位置更新连接
 	local connection

@@ -44,6 +44,7 @@ function AIManager:InitializeAttributes(monsterInfo, position)
         return
     end
 
+    self.NPC:SetAttribute("MonsterId", monsterInfo.MonsterId)
     self.NPC:SetAttribute("SpawnPosition", position)
     
     local humanoid = self.NPC:FindFirstChildOfClass("Humanoid")

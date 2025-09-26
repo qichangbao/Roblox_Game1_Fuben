@@ -5,6 +5,7 @@ local Signal = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("
 local UIController = Knit.CreateController {
     Name = "UIController",
 
+    HideLoadingUI = Signal.new(),
     ShowTip = Signal.new(),
     ShowMessageBoxUI = Signal.new(),
 	ChangeGoldUI = Signal.new(),
