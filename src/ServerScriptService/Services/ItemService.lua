@@ -9,26 +9,29 @@ local PosConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFor
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local PlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PlanConfig"))
 
+local ItemFolder = ServerStorage:WaitForChild("Item")
+if not ItemFolder then
+    warn("Item folder not found")
+    return
+end
+
 local ItemService = Knit.CreateService {
     Name = "ItemService",
     Client = {},
 }
 
 function ItemService:CreateItem(itemId, position, attribute)
-    --itemName = "生锈铁钉"
+    if itemId == 0 then
+        return
+    end
+
     local itemInfo = ItemConfig:GetByIndex(itemId)
     if not itemInfo then
         warn("Item not found: " .. itemId)
         return
     end
 
-    local itemFolder = ServerStorage:FindFirstChild("Item")
-    if not itemFolder then
-        warn("Item folder not found")
-        return
-    end
-
-    local folder = itemFolder:FindFirstChild(GameConfig.ItemTypeFolder[itemInfo.Type])
+    local folder = ItemFolder:FindFirstChild(GameConfig.ItemTypeFolder[itemInfo.Type])
     if not folder then
         warn("Item type folder not found: " .. GameConfig.ItemTypeFolder[itemInfo.Type])
         return
@@ -194,17 +197,17 @@ function ItemService:KnitInit()
 end
 
 function ItemService:KnitStart()
-    --self:initItems()
+    self:initItems()
     -- task.spawn(function()
     --     self:CreateItem(1033, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute())
     -- end)
-    self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute())
-    self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute())
-    self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute())
-    self:CreateItem(1032, Vector3.new(353, -1.5, -190), GameConfig.GetItemAttribute())
-    self:CreateItem(1032, Vector3.new(353, -1.5, -200), GameConfig.GetItemAttribute())
-    self:CreateItem(1032, Vector3.new(353, -1.5, -210), GameConfig.GetItemAttribute())
-    self:CreateItem(1032, Vector3.new(353, -1.5, -220), GameConfig.GetItemAttribute())
+    -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute())
+    -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute())
+    -- self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute())
+    -- self:CreateItem(1032, Vector3.new(353, -1.5, -190), GameConfig.GetItemAttribute())
+    -- self:CreateItem(1032, Vector3.new(353, -1.5, -200), GameConfig.GetItemAttribute())
+    -- self:CreateItem(1032, Vector3.new(353, -1.5, -210), GameConfig.GetItemAttribute())
+    -- self:CreateItem(1032, Vector3.new(353, -1.5, -220), GameConfig.GetItemAttribute())
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230), GameConfig.GetItemAttribute())
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute())
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute())

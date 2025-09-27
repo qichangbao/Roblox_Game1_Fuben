@@ -10,7 +10,11 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 
 local TeleportServiceModule = Knit.CreateService {
     Name = "TeleportService",
-    Client = {},
+    Client = {
+        SendStartTeleport = Knit.CreateSignal(),
+    },
+
+    TeleportingPlayer = {},
 }
 
 -- 在Part上方多少单位触发传送（减小范围提高精度）
@@ -25,6 +29,10 @@ function TeleportServiceModule:KnitInit()
 end
 
 function TeleportServiceModule:KnitStart()
+end
+
+function TeleportServiceModule:isPlayerTeleport(player)
+    return self.TeleportingPlayer[player.UserId]
 end
 
 -- 使用射线检测玩家是否真正站在Model上
@@ -116,7 +124,7 @@ end
 -- 传送玩家到预留服务器副本
 -- @param player Player 要传送的玩家
 -- @return void
-local function teleportToReserveServer(player)
+function TeleportServiceModule:teleportToReserveServer(player)
     local SettleService = Knit.GetService("SettleService")
     local teleportData = SettleService:GetSettleData(player)
     if not teleportData then
@@ -133,7 +141,11 @@ local function teleportToReserveServer(player)
         logMessage("INFO", "是否成功: " .. tostring(teleportData.IsSuccess))
         return true
     end
-    
+
+    self.Client.SendStartTeleport:Fire(player)
+    -- 记录玩家正在传送中
+    self.TeleportingPlayer[player.UserId] = true
+        
 	local teleportOptions = Instance.new("TeleportOptions")
 	teleportOptions:SetTeleportData(teleportData)
     -- 执行传送到预留服务器
@@ -164,10 +176,10 @@ function TeleportServiceModule:Escape(player, needCheckPos)
         -- 检查玩家是否在触发区域内
         local isInTrigger = isPlayerInTriggerZone(player)
         if isInTrigger then
-            return teleportToReserveServer(player)
+            return self:teleportToReserveServer(player)
         end
     else
-        return teleportToReserveServer(player)
+        return self:teleportToReserveServer(player)
     end
 end
 

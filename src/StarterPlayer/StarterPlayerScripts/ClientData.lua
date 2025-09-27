@@ -18,7 +18,9 @@ local function setInitData(data)
     ClientData.ToolData = data.ToolData or {}
     Knit.GetController("UIController").ChangeGoldUI:Fire(data.Gold)
     Knit.GetController("UIController").UpdateToolUI:Fire(data.ToolData)
-    Knit.GetController("UIController").HideLoadingUI:Fire()
+    local playerGui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+    local loadingUI = playerGui:FindFirstChild("LoadingUI")
+    loadingUI.Enabled = false
 end
 
 local function init()
@@ -84,6 +86,12 @@ local function init()
 
         Knit.GetService("SettleService").SendShowUI:Connect(function(player, data)
             Knit.GetController("UIController").ShowSettleUI:Fire(player, data)
+        end)
+
+        Knit.GetService("TeleportService").SendStartTeleport:Connect(function()
+			local playerGui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+			local loadingUI = playerGui:FindFirstChild("LoadingUI")
+			loadingUI.Enabled = true
         end)
     end)
 end

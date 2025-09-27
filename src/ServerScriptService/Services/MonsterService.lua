@@ -101,7 +101,8 @@ end
 function MonsterService:KnitInit()
     self:initMonsters()
     --self:CreateMonster(30001, Vector3.new(353, -1.5, -240))
-    --self:CreateMonster(30002, Vector3.new(353, -1.5, -250))
+    --self:CreateMonster(30002, Vector3.new(353, -1.5, -220))
+    --self:CreateMonster(30003, Vector3.new(353, -1.5, -220))
 end
 
 -- 服务启动时的初始化
