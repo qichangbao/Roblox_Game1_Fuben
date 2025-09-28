@@ -21,7 +21,7 @@ function PathfindingMove.MoveTo(npc, targetPosition, callback)
         AgentHeight = 6,
         AgentCanJump = true,
         Cost = {
-            --Water = math.huge,
+            Water = math.huge,
         },
     })
     path:ComputeAsync(startPos, targetPosition)

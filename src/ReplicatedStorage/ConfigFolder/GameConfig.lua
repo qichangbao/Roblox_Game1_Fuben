@@ -26,7 +26,7 @@ GameConfig.BAG_NUM = 3
 GameConfig.Item_DragTime = 0.3      -- 物品拖拽响应事件
 GameConfig.AdditionalBackpackId = 6 -- 额外的背包ID
 GameConfig.MaxTurnInItemNum = 18    -- 最大可提交物品数量
-GameConfig.DefaultEscapeTask = 100  -- 默认的撤离任务
+GameConfig.DefaultEscapeTask = 10000  -- 默认的撤离任务
 GameConfig.DefaultEscapeTime = 600   -- 默认的撤离时间
 
 -- 物品的扩展属性，用于服务器客户端同步一些动态数据
@@ -34,7 +34,7 @@ GameConfig.GetItemAttribute = function(item)
     if not item then
         return {
             CreateTime = tick(),        -- 创建时间
-            IsEquipped = 0,         -- 是否装备
+            IsEquipped = 0,             -- 是否装备
             CDElapsedTime = 0,          -- CD截止时间
             UsedTime = 0,               -- 已使用时间
             UsedNum = 0,                -- 已使用次数
@@ -105,10 +105,10 @@ GameConfig.DuanWeiType = {
         levelNum = 4,
         levelStarNum = 4,
         icons = {
-            "rbxassetid://114482168195907",
-            "rbxassetid://127969857581439",
-            "rbxassetid://139793493452303",
-            "rbxassetid://83209250893244",
+            "rbxassetid://91422772501756",
+            "rbxassetid://132653545970076",
+            "rbxassetid://91255303512428",
+            "rbxassetid://129588252282861",
         },
         allowDeduction = true,
     },

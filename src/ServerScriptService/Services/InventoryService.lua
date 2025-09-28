@@ -17,8 +17,9 @@ local InventoryService = Knit.CreateService {
         EquipAdditionalBackpack = Knit.CreateSignal(),
 	},
 
+	Inventory = {},     -- 背包数据
     ToolData = {},      -- 工具栏数据
-    BagData = {},       -- 背包数据
+    BagData = {},       -- 包裹数据
     EscapeItems = {},   -- 撤离上交物品数据
     TurnInNum = {},     -- 上交物品数量
 }
@@ -31,14 +32,36 @@ end
 function InventoryService:KnitStart()
 end
 
-function InventoryService:playerAdd(player, toolData)
+
+function InventoryService:playerAdd(player, inventory, toolData)
+	self.Inventory[player.UserId] = {}
+	for _, v in pairs(inventory) do
+        local attribute = GameConfig.GetItemAttribute()
+        attribute.UsedTime = v.UsedTime
+        attribute.UsedNum = v.UsedNum
+		table.insert(self.Inventory[player.UserId], {
+            ItemId = v.ItemId,
+            Attribute = attribute,
+        })
+	end
+
     self.ToolData[player.UserId] = {}
     for i = 1, GameConfig.SLOT_NUM do
         local data = toolData[i]
-        table.insert(self.ToolData[player.UserId], {
-            ItemId = (data and data.ItemId) or 0,
-            Attribute = (data and data.Attribute) or GameConfig.GetItemAttribute()
-        })
+        local attribute = GameConfig.GetItemAttribute()
+        if data then
+            attribute.UsedTime = data.UsedTime
+            attribute.UsedNum = data.UsedNum
+            table.insert(self.ToolData[player.UserId], {
+                ItemId = data.ItemId,
+                Attribute = attribute
+            })
+        else
+            table.insert(self.ToolData[player.UserId], {
+                ItemId = 0,
+                Attribute = attribute
+            })
+        end
     end
 
     self.BagData[player.UserId] = {}
@@ -54,10 +77,27 @@ function InventoryService:playerAdd(player, toolData)
 end
 
 function InventoryService:playerRemoved(player)
+    self.Inventory[player.UserId] = nil
     self.ToolData[player.UserId] = nil
     self.BagData[player.UserId] = nil
     self.EscapeItems[player.UserId] = nil
     self.TurnInNum[player.UserId] = nil
+end
+
+-- 背包数据转换为数据库格式
+-- @param player Player 玩家对象
+-- @return void
+function InventoryService:InventoryToDB(player)
+	local DBService = Knit.GetService("DBService")
+    local data = {}
+    for _, v in pairs(self.Inventory[player.UserId]) do
+        table.insert(data, {
+            ItemId = v.ItemId,
+            UsedTime = v.Attribute.UsedTime,
+            UsedNum = v.Attribute.UsedNum,
+        })
+    end
+	DBService:Set(player.UserId, "PlayerInventory", data)
 end
 
 -- 工具栏数据转换为数据库格式
@@ -65,7 +105,31 @@ end
 -- @return void
 function InventoryService:ToolDataToDB(player)
 	local DBService = Knit.GetService("DBService")
-	DBService:Set(player.UserId, "PlayerToolData", self.ToolData[player.UserId])
+    local data = {}
+    for _, v in pairs(self.ToolData[player.UserId]) do
+        table.insert(data, {
+            ItemId = v.ItemId,
+            UsedTime = v.Attribute.UsedTime,
+            UsedNum = v.Attribute.UsedNum,
+        })
+    end
+	DBService:Set(player.UserId, "PlayerToolData", data)
+end
+
+-- 添加物品到玩家背包
+-- @param player Player 玩家对象
+-- @param itemData table 物品数据
+-- @return void
+function InventoryService:AddItem(player, itemData)
+    table.insert(self.Inventory[player.UserId], itemData)
+end
+
+-- 更新玩家背包数据
+-- @param player Player 玩家对象
+-- @param inventory table 背包数据
+-- @return void
+function InventoryService:UpdateInventory(player, inventory)
+    self.Inventory[player.UserId] = inventory
 end
 
 -- 更新玩家工具栏数据并创建工具
@@ -250,7 +314,6 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
     tool.ToolTip = itemInfo.Description or ""
     tool.CanBeDropped = true
     tool.RequiresHandle = true
-    tool:SetAttribute("Duration", itemInfo.Duration)
     tool:SetAttribute("ItemId", itemData.ItemId)
     GameConfig.SetItemAttribute(tool, itemData.Attribute)
     
@@ -797,7 +860,10 @@ function InventoryService:TurnInCollect(player)
                 end
                 self.TurnInNum[userId] += 1
                 gold += itemInfo.SellPrice
-                table.insert(self.EscapeItems[userId], itemInfo.Index)
+                table.insert(self.EscapeItems[userId], {
+                    ItemId = toolData.ItemId,
+                    Attribute = Interface.clone(toolData.Attribute)
+                })
                 self.ToolData[userId][i] = {
                     ItemId = 0,
                     Attribute = GameConfig.GetItemAttribute()
@@ -819,7 +885,10 @@ function InventoryService:TurnInCollect(player)
                 end
                 self.TurnInNum[userId] += 1
                 gold += itemInfo.SellPrice
-                table.insert(self.EscapeItems[userId], itemInfo.Index)
+                table.insert(self.EscapeItems[userId], {
+                    ItemId = bagData.ItemId,
+                    Attribute = Interface.clone(bagData.Attribute)
+                })
                 self.BagData[userId][i] = {
                     ItemId = 0,
                     Attribute = GameConfig.GetItemAttribute()
@@ -848,6 +917,46 @@ end
 
 function InventoryService:EquipAdditionalBackpack(player, equip)
     self.Client.EquipAdditionalBackpack:Fire(player, equip)
+end
+
+function InventoryService:GetCurrentToolData(player, tool)
+    for _, v in pairs(self.ToolData[player.UserId]) do
+        if v.ItemId == tool:GetAttribute("ItemId") and v.Attribute.CreateTime == tool:GetAttribute("CreateTime") then
+            return v
+        end
+    end
+end
+
+-- 使用工具
+-- @param player Player 玩家对象
+-- @param tool table 工具数据
+-- @return void
+function InventoryService:UseTool(player, tool, type, dt)
+    if not player.character then
+        return
+    end
+
+    -- 获取玩家当前装备的工具
+    local itemId = tool:GetAttribute("ItemId")
+    local equippedTool = player.character:FindFirstChildOfClass("Tool")
+    if not equippedTool then
+        return
+    end
+    
+    local equippedItemId = equippedTool:GetAttribute("ItemId")
+    if equippedItemId ~= itemId then
+        return
+    end
+
+    local currentToolData = self:GetCurrentToolData(player, tool)
+    if currentToolData then
+        if type == 1 then
+            currentToolData.Attribute.UsedNum += 1
+        else
+            currentToolData.Attribute.usedTime += dt
+        end
+        GameConfig.UpdateItemAttribute(tool, "UsedNum", currentToolData.Attribute.UsedNum)
+    end
 end
 
 return InventoryService

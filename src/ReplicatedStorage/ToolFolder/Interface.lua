@@ -1,7 +1,8 @@
 local Interface = {}
 
--- 获取服务
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
 --[[
     深拷贝函数 - 递归复制表结构
@@ -101,6 +102,73 @@ function Interface.isMobile()
         return true
     end
     return false
+end
+
+--[[
+    安全等待子对象出现
+    @param parent Instance 父对象
+    @param child string 子对象名称
+    @param time number 超时时间（秒），默认1秒
+    @return Instance 子对象，如果超时返回nil
+]]
+function Interface.safeWaitPart(parent, childName, time)
+    time = time or 1
+    local child = parent:FindFirstChild(childName)
+    while not child do
+        task.wait(time)
+        child = parent:FindFirstChild(childName)
+    end
+    return child
+end
+
+--[[
+    计算 DuanWei 升级
+    @param duanWeiData table DuanWei 数据
+    @param escapeSucc boolean 是否成功逃脱
+    @return table 更新后的 DuanWei 数据
+]]
+function Interface.calculateDuanWei(duanWeiData, escapeSucc)
+    local tempData = Interface.clone(duanWeiData)
+    local DuanWeiType = GameConfig.DuanWeiType
+    if escapeSucc then
+        tempData.star += 1
+        -- 到达当前升级星数
+        if tempData.star > DuanWeiType[tempData.duanWei].levelStarNum
+        and DuanWeiType[tempData.duanWei].levelStarNum ~= -1 then
+            tempData.level += 1
+            tempData.star = 1
+        end
+
+        -- 到达当前升段位标准
+        if tempData.level > DuanWeiType[tempData.duanWei].levelNum
+        and DuanWeiType[tempData.duanWei].levelNum ~= -1 then
+            tempData.duanWei = math.min(tempData.duanWei + 1, #DuanWeiType)
+            tempData.level = 1
+            tempData.star = 1
+        end
+    else
+        if DuanWeiType[tempData.duanWei].allowDeduction then
+            tempData.star = tempData.star - 1
+            if tempData.star <= 0 then
+                tempData.level = tempData.level - 1
+                if tempData.level <= 0 then
+                    if tempData.duanWei > 1 then
+                        tempData.duanWei = tempData.duanWei - 1
+                        tempData.level = DuanWeiType[tempData.duanWei].levelNum
+                        tempData.star = DuanWeiType[tempData.duanWei].levelStarNum
+                    else
+                        tempData.duanWei = 1
+                        tempData.level = 1
+                        tempData.star = 0
+                    end
+                else
+                    tempData.star = DuanWeiType[tempData.duanWei].levelStarNum
+                end
+            end
+        end
+    end
+
+    return tempData
 end
 
 return Interface

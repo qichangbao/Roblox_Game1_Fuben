@@ -59,9 +59,18 @@ function ItemService:CreateItem(itemId, position, attribute)
         end
     end
     item:SetAttribute("ItemId", itemId)
-    item:SetAttribute("CD", itemInfo.CD)
-    item:SetAttribute("Duration", itemInfo.Duration)
+    if attribute then
+        attribute.IsEquipped = 0
+    end
     GameConfig.SetItemAttribute(item, attribute)
+
+    -- 创建外发光
+    local highlight = Instance.new("Highlight")
+    highlight.Parent = item
+    highlight.FillTransparency = 1
+    highlight.OutlineTransparency = 0.85
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.DepthMode = Enum.HighlightDepthMode.Occluded
     
     -- 创建 ProximityPrompt 实例
     local proximityPrompt = Instance.new("ProximityPrompt")

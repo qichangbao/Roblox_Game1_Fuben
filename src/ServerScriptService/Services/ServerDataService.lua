@@ -41,23 +41,16 @@ function ServerDataService:KnitStart()
         Knit.GetService("MonsterService"):PlayerAdded(player)
         local duanWeiData = Knit.GetService("DBService"):Get(player.UserId, "DuanWeiData")
         Knit.GetService("LevelService"):playerAdd(player, duanWeiData)
+        local inventory = Knit.GetService("DBService"):Get(player.UserId, "PlayerInventory")
+        local toolData = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
+        Knit.GetService("InventoryService"):playerAdd(player, inventory, toolData)
 
-        local hasPlayerToolData = false
         local hasEscapeTask = false
         local hasEscapeTime = false
         -- 获取传送数据
         local joinData = player:GetJoinData()
         if joinData and joinData.TeleportData then
             local localTeleportData = joinData.TeleportData
-            if localTeleportData.PlayersToolData then
-                -- 获取该玩家的工具数据
-                local playerToolData = localTeleportData.PlayersToolData[tostring(player.UserId)]
-                if playerToolData then
-                    Knit.GetService("InventoryService"):playerAdd(player, playerToolData)
-                    hasPlayerToolData = true
-                end
-            end
-
             local TaskService = Knit.GetService("TaskService")
             if not TaskService:GetIsInit() then
                 if localTeleportData.EscapeTask then
@@ -75,11 +68,6 @@ function ServerDataService:KnitStart()
             end
         else
             print(string.format("玩家 %s 没有传送数据", player.Name))
-        end
-
-        if not hasPlayerToolData then
-            local toolData = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
-            Knit.GetService("InventoryService"):playerAdd(player, toolData)
         end
         
         if not hasEscapeTask then

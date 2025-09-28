@@ -135,7 +135,7 @@ function TeleportServiceModule:teleportToReserveServer(player)
     -- 检查是否在Studio环境
     if isInStudio() then
         logMessage("INFO", "在实际游戏环境中，玩家将被传送到预留服务器副本", player)
-        logMessage("INFO", "传送物品: " .. table.concat(teleportData.EscapeItems, ", "))
+        logMessage("INFO", "传送物品: " .. #teleportData.EscapeItems)
         logMessage("INFO", "物品总价值: " .. teleportData.TotalValue)
         logMessage("INFO", "物品总时间: " .. teleportData.TotalTime)
         logMessage("INFO", "是否成功: " .. tostring(teleportData.IsSuccess))
