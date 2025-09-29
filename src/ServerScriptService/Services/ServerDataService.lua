@@ -11,6 +11,7 @@ local ServerDataService = Knit.CreateService {
 	Name = "ServerDataService",
 	Client = {
         SendInitData = Knit.CreateSignal(),
+        ShowTip = Knit.CreateSignal(),
 	},
 
     HasInitData = {},       -- 记录玩家是否初始化数据
@@ -130,6 +131,10 @@ end
 -- @return table 玩家数据
 function ServerDataService.Client:GetInitData(player)
     return self.Server:GetInitData(player)
+end
+
+function ServerDataService:ShowTip(player, tip)
+    self.Client.ShowTip:Fire(player, tip)
 end
 
 return ServerDataService

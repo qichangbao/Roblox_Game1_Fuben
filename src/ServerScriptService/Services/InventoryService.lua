@@ -179,7 +179,8 @@ function InventoryService:UpdateToolData(player, data)
             end
         end
     end
-    self.Client.SendToolData:Fire(player, self.ToolData[player.UserId])
+
+    self:SendToolData(player)
 end
 
 function InventoryService:UpdateBagData(player, data)
@@ -467,7 +468,7 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
 					local CDElapsedTime = currentTime + itemInfo.CD
 					self.ToolData[player.UserId][slot].Attribute.CDElapsedTime = CDElapsedTime
 					GameConfig.UpdateItemAttribute(tool, "CDElapsedTime", CDElapsedTime)
-					self.Client.SendToolData:Fire(player, self.ToolData[player.UserId])
+                    self:SendToolData(player)
                 end
             end
 
@@ -953,10 +954,15 @@ function InventoryService:UseTool(player, tool, type, dt)
         if type == 1 then
             currentToolData.Attribute.UsedNum += 1
         else
-            currentToolData.Attribute.usedTime += dt
+            currentToolData.Attribute.UsedTime += dt
         end
         GameConfig.UpdateItemAttribute(tool, "UsedNum", currentToolData.Attribute.UsedNum)
+        self:SendToolData(player)
     end
+end
+
+function InventoryService:SendToolData(player)
+    self.Client.SendToolData:Fire(player, self.ToolData[player.UserId])
 end
 
 return InventoryService

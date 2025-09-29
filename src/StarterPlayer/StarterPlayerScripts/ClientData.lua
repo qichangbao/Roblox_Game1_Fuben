@@ -67,14 +67,14 @@ local function init()
 			Knit.GetController("UIController").UpdateBagUI:Fire(bagData)
 		end)
 
+        Knit.GetService("InventoryService").EquipAdditionalBackpack:Connect(function(equip)
+            Knit.GetController("UIController").ShowAdditionalBackpackUI:Fire(equip)
+        end)
+
         Knit.GetService("TaskService").UpdateEscapeTask:Connect(function(curEscapeTask, escapeTask)
             ClientData.CurEscapeTask = curEscapeTask
             ClientData.EscapeTask = escapeTask
             Knit.GetController("UIController").UpdateEscapeTask:Fire(curEscapeTask, escapeTask)
-        end)
-
-        Knit.GetService("InventoryService").EquipAdditionalBackpack:Connect(function(equip)
-            Knit.GetController("UIController").ShowAdditionalBackpackUI:Fire(equip)
         end)
 
         Knit.GetService("ServerDataService").SendInitData:Connect(function(data)
@@ -85,6 +85,10 @@ local function init()
             end
             
             setInitData(data)
+        end)
+
+        Knit.GetService("ServerDataService").ShowTip:Connect(function(player, tip)
+            Knit.GetController("UIController").ShowTip:Fire(player, tip)
         end)
 
         Knit.GetService("SettleService").SendShowUI:Connect(function(player, data)
