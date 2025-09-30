@@ -16,17 +16,8 @@ function DeadState.new(AIManager, animation)
 end
 
 function DeadState:Enter()
-    print("进入Dead状态")
-    
     -- 播放死亡动画并分析
      self.AIManager:PlayAnimation(self.animation, false)
-         
-    -- 或者完全禁用HumanoidRootPart的动画影响
-    local humanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
-    if humanoidRootPart then
-        -- 锁定HumanoidRootPart的位置
-        humanoidRootPart.Anchored = true
-    end
     
     -- 触发物品掉落
     local monsterInfo = self.AIManager.monsterInfo
@@ -61,8 +52,6 @@ function DeadState:Update(dt)
 end
 
 function DeadState:Exit()
-    print("退出Dead状态")
-    
     -- 确保HumanoidRootPart解锁
     local humanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
     if humanoidRootPart then

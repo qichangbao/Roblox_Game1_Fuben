@@ -2,6 +2,14 @@ local PathfindingService = game:GetService("PathfindingService")
 
 local PathfindingMove = {}
 
+function PathfindingMove.StopMove(npc)
+    local Humanoid = npc:FindFirstChild('Humanoid')
+    if Humanoid and Humanoid.RootPart then
+        Humanoid.WalkToPoint = Humanoid.RootPart.Position
+        Humanoid.WalkToPart = nil
+    end
+end
+
 -- npc: Model, targetPosition: Vector3, callback: function(reached)
 function PathfindingMove.MoveTo(npc, targetPosition, callback)
     local rootPart = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("RootPart")
@@ -21,14 +29,23 @@ function PathfindingMove.MoveTo(npc, targetPosition, callback)
         AgentHeight = 6,
         AgentCanJump = true,
         Cost = {
-            Water = math.huge,
         },
     })
     path:ComputeAsync(startPos, targetPosition)
     local waypoints = path:GetWaypoints()
     if path.Status ~= Enum.PathStatus.Success then
+        PathfindingMove.StopMove(npc)
         if callback then callback(false) end
         return
+    end
+
+    local tempWaypoints = {}
+    for _, wp in ipairs(waypoints) do
+        -- 检查路径点是否需要跳跃
+        if wp.Label == "Water" then
+            break
+        end
+        table.insert(tempWaypoints, wp)
     end
 
     local connection = nil
@@ -36,7 +53,8 @@ function PathfindingMove.MoveTo(npc, targetPosition, callback)
 
     local function moveToNextWaypoint(jumpAttempts)
         jumpAttempts = jumpAttempts or 0
-        if currentWaypoint > #waypoints then
+        if currentWaypoint > #tempWaypoints then
+            PathfindingMove.StopMove(npc)
             if callback then callback(true) end
             return
         end
@@ -45,7 +63,7 @@ function PathfindingMove.MoveTo(npc, targetPosition, callback)
             warn("NPC模型没有Humanoid")
             return
         end
-        local wp = waypoints[currentWaypoint]
+        local wp = tempWaypoints[currentWaypoint]
 
         -- 检查路径点是否需要跳跃
         if wp.Action == Enum.PathWaypointAction.Jump then
@@ -62,6 +80,7 @@ function PathfindingMove.MoveTo(npc, targetPosition, callback)
                 currentWaypoint = currentWaypoint + 1
                 moveToNextWaypoint()
             else
+                PathfindingMove.StopMove(npc)
                 if callback then callback(false) end
             end
         end)

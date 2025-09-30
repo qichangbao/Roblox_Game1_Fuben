@@ -8,6 +8,7 @@ local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 local PosConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PosConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local PlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PlanConfig"))
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local ItemFolder = ServerStorage:WaitForChild("Item")
 if not ItemFolder then
@@ -18,6 +19,8 @@ end
 local ItemService = Knit.CreateService {
     Name = "ItemService",
     Client = {},
+
+    ChestNum = 0,
 }
 
 function ItemService:CreateItem(itemId, position, attribute)
@@ -169,7 +172,11 @@ end
 
 function ItemService:CreateItemByPlan(planData, position)
     if planData.CanisterId ~= 0 then    -- 宝箱类物品，调用ChestService处理奖励
-        self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute())
+        local random = math.random(1, 10000)
+        if random <= planData.ChestProbability and self.ChestNum < GameConfig.ChestMaxNum then
+            self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute())
+            self.ChestNum += 1
+        end
     else                                -- 普通物品
         if type(planData.ItemId) ~= "table" then
             local random = math.random(1, 10000)
@@ -191,7 +198,9 @@ end
 function ItemService:initItems()
     task.spawn(function()
         local pos = PosConfig:GetAll()
-        for i, posData in pairs(pos) do
+        -- 随机打乱数组
+        local posArray = Interface.randomTable(pos)
+        for _, posData in pairs(posArray) do
             local planData = PlanConfig:GetByPlanId(posData.PlanId)
             if not planData then
                 continue
@@ -208,7 +217,8 @@ end
 function ItemService:KnitStart()
     self:initItems()
     -- task.spawn(function()
-    --     self:CreateItem(1033, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute())
+    --     self:CreateItem(1001, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute())
+    --     self:CreateItem(1001, Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute())
     -- end)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute())
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute())

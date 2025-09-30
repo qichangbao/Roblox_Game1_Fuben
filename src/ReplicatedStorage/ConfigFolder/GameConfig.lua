@@ -28,6 +28,7 @@ GameConfig.AdditionalBackpackId = 6 -- 额外的背包ID
 GameConfig.MaxTurnInItemNum = 18    -- 最大可提交物品数量
 GameConfig.DefaultEscapeTask = 10000  -- 默认的撤离任务
 GameConfig.DefaultEscapeTime = 600   -- 默认的撤离时间
+GameConfig.ChestMaxNum = 4          -- 宝箱最大数量
 
 -- 物品的扩展属性，用于服务器客户端同步一些动态数据
 GameConfig.GetItemAttribute = function(item)
@@ -146,24 +147,5 @@ GameConfig.DuanWeiType = {
         allowDeduction = true,
     },
 }
-
-function GameConfig.GetDuanWeiIcon(duanweiData)
-    if not duanweiData then
-        return
-    end
-    local duanwei = tonumber(duanweiData.duanWei)
-    if not duanwei then
-        return
-    end
-    local level = tonumber(duanweiData.level)
-    if not level then
-        return
-    end
-    local duanweiConfig = GameConfig.DuanWeiType[duanwei]
-    if not duanweiConfig then
-        return
-    end
-    return duanweiConfig.icons[level]
-end
 
 return GameConfig

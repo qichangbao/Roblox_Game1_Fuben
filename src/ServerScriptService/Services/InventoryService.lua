@@ -152,7 +152,6 @@ function InventoryService:UpdateToolData(player, data)
             })
         end
     end
-	--self:ToolDataToDB(player)
     
     -- 检查当前装备的工具是否在新的data中
     local character = player.Character
@@ -402,7 +401,9 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
     end
 
     -- 直接设置Tool的Grip属性来控制握持方向
-    tool.Grip = CFrame.Angles(0, 0, math.rad(90))  -- 只旋转，不偏移位置
+    if itemInfo.Index ~= 4 then
+        tool.Grip = CFrame.Angles(0, 0, math.rad(90))  -- 只旋转，不偏移位置
+    end
     
     -- 连接工具装备事件，重置状态
     tool.Equipped:Connect(function()

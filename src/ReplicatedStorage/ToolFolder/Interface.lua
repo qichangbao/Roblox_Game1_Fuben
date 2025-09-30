@@ -22,6 +22,22 @@ function Interface.clone(original)
     return copy
 end
 
+-- 随机打乱一个数组
+function Interface.randomTable(t)
+    -- 数组随机打乱
+    local array = {}
+    for _, posData in pairs(t) do
+        table.insert(array, posData)
+    end
+    
+    -- Fisher-Yates洗牌算法随机打乱数组
+    for i = #array, 2, -1 do
+        local j = math.random(i)
+        array[i], array[j] = array[j], array[i]
+    end
+    return array
+end
+
 function Interface.formatTimeMMSS(seconds)
 	seconds = math.max(0, math.floor(seconds))
 	local minutes = math.floor(seconds / 60)
@@ -121,6 +137,25 @@ function Interface.safeWaitPart(parent, childName, time)
     return child
 end
 
+function Interface.GetDuanWeiIcon(duanweiData)
+    if not duanweiData then
+        return
+    end
+    local duanwei = tonumber(duanweiData.duanWei)
+    if not duanwei then
+        return
+    end
+    local level = tonumber(duanweiData.level)
+    if not level then
+        return
+    end
+    local duanweiConfig = GameConfig.DuanWeiType[duanwei]
+    if not duanweiConfig then
+        return
+    end
+    return duanweiConfig.icons[level]
+end
+
 --[[
     计算 DuanWei 升级
     @param duanWeiData table DuanWei 数据
@@ -169,6 +204,91 @@ function Interface.calculateDuanWei(duanWeiData, escapeSucc)
     end
 
     return tempData
+end
+
+--[[
+    判断一个点是否在地形水体内
+    @param point Vector3 要判断的点
+    @return boolean 如果在水体内返回true，否则返回false
+]]
+function Interface.isPointInTerrainWater(point)
+    -- 判断一个点是否在地形水体内
+    local Terrain = workspace:FindFirstChildOfClass("Terrain")
+    if not Terrain then return false end
+
+    -- 将世界坐标转换为体素坐标
+    local voxelResolution = 4  -- Roblox Terrain 的体素分辨率为4
+    local region = Region3.new(
+        point - Vector3.new(voxelResolution/2, voxelResolution/2, voxelResolution/2),
+        point + Vector3.new(voxelResolution/2, voxelResolution/2, voxelResolution/2)
+    ):ExpandToGrid(voxelResolution)
+
+    local materials, _ = Terrain:ReadVoxels(region, voxelResolution)
+    -- 只取中间体素
+    local mat = materials[1][1][1]
+    return mat == Enum.Material.Water
+end
+
+-- 使用射线检测玩家是否真正站在Model上
+-- @param player Player 要检查的玩家
+-- @param triggerModel Model 要检测的Model
+-- @return boolean, number 是否在撤离区内以及高度差
+function Interface.checkPlayerOnModel(player, triggerModel)
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    
+    local humanoidRootPart = player.Character.HumanoidRootPart
+    local playerPosition = humanoidRootPart.Position
+    
+    -- 创建射线检测参数
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Include
+    raycastParams.FilterDescendantsInstances = {triggerModel}
+    
+    -- 从玩家脚下向下发射射线
+    local rayOrigin = playerPosition + Vector3.new(0, 1, 0) -- 稍微抬高起点
+    local rayDirection = Vector3.new(0, -10, 0)
+    
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    
+    if raycastResult then
+        local hitPart = raycastResult.Instance
+        local hitPosition = raycastResult.Position
+        
+        -- 检查射线是否击中了triggerModel中的Part
+        if hitPart and hitPart:IsDescendantOf(triggerModel) then
+            -- 计算玩家位置到击中点的距离（使用HumanoidRootPart位置更准确）
+            local heightDifference = playerPosition.Y - hitPosition.Y
+            
+            -- 当玩家站在船上的物体上时，heightDifference可能是负数
+            -- 我们需要检查玩家是否在合理的高度范围内（可以在船体上方或下方一定距离）
+            if math.abs(heightDifference) <= 5 then
+                return true
+            end
+        end
+    end
+    
+    return false
+end
+
+-- 检查玩家是否站在船上面
+-- @param player Player 要检查的玩家
+-- @return boolean 是否站在船上面
+function Interface.isPlayerOnBoat(player)
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    
+    -- 检查每个触发Model
+    for _, modelName in ipairs(GameConfig.TeleportPartNames) do
+        local triggerModel = workspace:FindFirstChild(GameConfig.LandName):FindFirstChild("Special"):FindFirstChild(modelName)
+        if triggerModel and triggerModel:IsA("Model") then
+            return Interface.checkPlayerOnModel(player, triggerModel)
+        end
+    end
+    
+    return false
 end
 
 return Interface

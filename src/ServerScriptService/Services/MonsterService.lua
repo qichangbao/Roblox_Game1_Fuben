@@ -8,6 +8,7 @@ local MonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):Wai
 local AIManager = require(script.Parent.Parent:WaitForChild("AIManagerFolder"):WaitForChild("AIManager"))
 local MonsterPosConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterPosConfig"))
 local MonsterPlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterPlanConfig"))
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local MonsterService = Knit.CreateService {
 	Name = "MonsterService",
@@ -87,7 +88,9 @@ end
 function MonsterService:initMonsters()
     task.spawn(function()
         local pos = MonsterPosConfig:GetAll()
-        for _, posData in pairs(pos) do
+        -- 随机打乱数组
+        local posArray = Interface.randomTable(pos)
+        for _, posData in pairs(posArray) do
             local planData = MonsterPlanConfig:GetByMonsterPlanId(posData.MonsterPlanId)
             if not planData then
                 continue

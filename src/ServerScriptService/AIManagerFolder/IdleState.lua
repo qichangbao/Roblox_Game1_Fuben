@@ -1,4 +1,6 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local IdleState = {}
 IdleState.__index = IdleState
@@ -12,7 +14,6 @@ function IdleState.new(AIManager, animation)
 end
 
 function IdleState:Enter()
-    print("进入Idle状态")
     self.AIManager:PlayAnimation(self.animation, true)
 
     self.timer = math.random(5, 15)
@@ -35,10 +36,12 @@ function IdleState:Update(dt)
             local targetHumanoidRootPart = character:FindFirstChild('HumanoidRootPart')
             local targetHumanoid = character:FindFirstChild('Humanoid')
             if targetHumanoidRootPart and targetHumanoid and targetHumanoid.Health > 0 then
-                local dis = (targetHumanoidRootPart.CFrame.Position - npcPos).Magnitude
-                if dis <= visionRange then
-                    self.AIManager:SetState("Chase")
-                    return
+                if not Interface.isPointInTerrainWater(targetHumanoidRootPart.Position) then
+                    local dis = (targetHumanoidRootPart.CFrame.Position - npcPos).Magnitude
+                    if dis <= visionRange then
+                        self.AIManager:SetState("Chase")
+                        return
+                    end
                 end
             end
         end
@@ -51,7 +54,6 @@ function IdleState:Update(dt)
 end
 
 function IdleState:Exit()
-    print("退出Idle状态")
 end
 
 return IdleState

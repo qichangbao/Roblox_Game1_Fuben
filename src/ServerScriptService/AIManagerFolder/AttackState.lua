@@ -31,13 +31,14 @@ function AttackState:ChangeDirection()
 end
 
 function AttackState:Enter()
-    print("进入Attack状态")
-
     self.timer = self.AIManager.monsterInfo.AttackSpeed
     self.isFirst = true
+    local HumanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
+    if HumanoidRootPart then
+        HumanoidRootPart.Anchored = true
+    end
     -- 更新位置和方向（确保怪物正面朝向目标）
     self:ChangeDirection()
-    self.AIManager.NPC.HumanoidRootPart.Anchored = true
 end
 
 function AttackState:Update(dt)
@@ -58,9 +59,14 @@ function AttackState:Update(dt)
         return
     end
 
-    print('正在攻击')
     self.isFirst = false
     self.timer = self.AIManager.monsterInfo.AttackSpeed
+    
+    -- 更新位置和方向（确保怪物正面朝向目标）
+    self:ChangeDirection()
+    self.AIManager:PlayAnimation(self.animation, false)
+
+    task.wait(1)
 
     local currentPos = HumanoidRootPart.CFrame.Position
     local attackRange = self.AIManager.monsterInfo.AttackRange
@@ -78,11 +84,6 @@ function AttackState:Update(dt)
         return
     end
     
-    -- 更新位置和方向（确保怪物正面朝向目标）
-    self:ChangeDirection()
-    self.AIManager:PlayAnimation(self.animation, false)
-
-    task.wait(1)
     local attack = self.AIManager.monsterInfo.Attack
     local humanoid = target:FindFirstChild("Humanoid")
     if humanoid and humanoid.Health > 0 then
@@ -91,9 +92,11 @@ function AttackState:Update(dt)
 end
 
 function AttackState:Exit()
-    print("退出Attack状态")
     self.AIManager.target = nil
-    self.AIManager.NPC.HumanoidRootPart.Anchored = false
+    local HumanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
+    if HumanoidRootPart then
+        HumanoidRootPart.Anchored = false
+    end
 end
 
 return AttackState

@@ -47,114 +47,163 @@ function SettleService:GetSettleData(player)
     return self.SettleData[player.UserId]
 end
 
+local function succ(player)
+    local InventoryService = Knit.GetService("InventoryService")
+    local toolData = InventoryService:GetToolData(player)
+    local bagData = InventoryService:GetBagData(player)
+    local totalValue = 0
+    local totalTime = tick() - player:GetAttribute("JoinTime")
+    local escapeItems = InventoryService:GetEscapeItems(player)
+    if #escapeItems > 6 then
+        -- 创建包含价格信息的物品数组
+        local itemsWithPrice = {}
+        for _, itemData in ipairs(escapeItems) do
+            local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+            if itemInfo and itemInfo.SellPrice then
+                table.insert(itemsWithPrice, {
+                    ItemId = itemData.ItemId,
+                    Attribute = itemData.Attribute,
+                    SellPrice = itemInfo.SellPrice,
+                })
+            end
+        end
+        
+        -- 按价格降序排序
+        table.sort(itemsWithPrice, function(a, b)
+            return a.SellPrice > b.SellPrice
+        end)
+        
+        -- 取前6个最高价值的物品
+        local topSixItems = {}
+        for i = 1, math.min(6, #itemsWithPrice) do
+            table.insert(topSixItems, {
+                ItemId = itemsWithPrice[i].ItemId,
+                Attribute = itemsWithPrice[i].Attribute,
+            })
+        end
+        
+        -- 更新escapeItems为最高价值的6件物品
+        escapeItems = topSixItems
+    end
+
+    for _, itemData in ipairs(escapeItems) do
+        local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+        if itemInfo then
+            totalValue += itemInfo.SellPrice
+        end
+    end
+
+    -- 获取玩家当前位置
+    local playerPosition = player.Character:GetPivot().Position
+    -- 使用高级射线检测获取最佳地面位置
+    local ignoreList = {player.Character} -- 忽略玩家本身
+    local groundPosition = Interface.getGroundPosition(playerPosition, ignoreList)
+    -- 工具栏4-6格和背包的探索，辅助，进攻类物品可以带回出生岛
+    for i = 1, #toolData do
+        local data = toolData[i]
+        if data.ItemId ~= 0 then
+            local itemInfo = ItemConfig:GetByIndex(data.ItemId)
+            if not itemInfo then
+                continue
+            end
+
+            if i < 4 then
+                -- 工具栏1-3格只能带回除收集类物品以外的物品
+                if itemInfo.Type == GameConfig.ItemType.Collect then
+                    task.spawn(function()
+                        Knit.GetService("ItemService"):CreateItem(data.ItemId, groundPosition)
+                        task.wait(0.3)
+                    end)
+                    toolData[i] = {ItemId = 0, Attribute = GameConfig.GetItemAttribute()}
+                end
+            else
+                if itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
+                    table.insert(escapeItems, {
+                        ItemId = data.ItemId,
+                        Attribute = Interface.clone(data.Attribute),
+                    })
+                end
+                toolData[i] = {ItemId = 0, Attribute = GameConfig.GetItemAttribute()}
+            end
+        end
+    end
+
+    InventoryService:UpdateToolData(player, toolData)
+    for i = 1, #bagData do
+        local data = bagData[i]
+        if data.ItemId ~= 0 then
+            local itemInfo = ItemConfig:GetByIndex(data.ItemId)
+            if itemInfo and itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
+                table.insert(escapeItems, {
+                    ItemId = data.ItemId,
+                    Attribute = Interface.clone(data.Attribute),
+                })
+            end
+        end
+        bagData[i] = nil
+    end
+    return escapeItems, totalValue, totalTime
+end
+
+local function faild(player)
+    local InventoryService = Knit.GetService("InventoryService")
+    local toolData = InventoryService:GetToolData(player)
+    local bagData = InventoryService:GetBagData(player)
+    -- 撤离失败，清空工具栏和背包
+    local allItems = {}
+    for _, itemId in ipairs(toolData) do
+        table.insert(allItems, itemId)
+    end
+    for _, itemId in ipairs(bagData) do
+        table.insert(allItems, itemId)
+    end
+
+    -- 获取玩家当前位置
+    local playerPosition = player.Character:GetPivot().Position
+    -- 使用高级射线检测获取最佳地面位置
+    local ignoreList = {player.Character} -- 忽略玩家本身
+    local groundPosition = Interface.getGroundPosition(playerPosition, ignoreList)
+    for _, itemData in ipairs(allItems) do
+        task.spawn(function()
+            Knit.GetService("ItemService"):CreateItem(itemData.ItemId, groundPosition)
+            task.wait(0.3)
+        end)
+    end
+
+    -- 清空工具栏和背包数据
+    InventoryService:UpdateToolData(player)
+
+    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid:TakeDamage(humanoid.MaxHealth)
+    end
+end
+
 function SettleService:Settle(player, needCheckPos)
     local InventoryService = Knit.GetService("InventoryService")
     local isSuccess = Knit.GetService("TaskService"):IsSuccess()
     local escapeItems = {}
     local totalValue = 0
     local totalTime = 0
-    local killMonsters = {}
-    local toolData = InventoryService:GetToolData(player)
-    local bagData = InventoryService:GetBagData(player)
+    local killMonsters = Knit.GetService("MonsterService"):GetKillMonsters(player)
     if isSuccess then
-        totalTime = tick() - player:GetAttribute("JoinTime")
-        killMonsters = Knit.GetService("MonsterService"):GetKillMonsters(player)
-        escapeItems = InventoryService:GetEscapeItems(player)
-        if #escapeItems > 6 then
-            -- 创建包含价格信息的物品数组
-            local itemsWithPrice = {}
-            for _, itemData in ipairs(escapeItems) do
-                local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
-                if itemInfo and itemInfo.SellPrice then
-                    table.insert(itemsWithPrice, {
-                        ItemId = itemData.ItemId,
-                        Attribute = itemData.Attribute,
-                        SellPrice = itemInfo.SellPrice,
-                    })
-                end
-            end
-            
-            -- 按价格降序排序
-            table.sort(itemsWithPrice, function(a, b)
-                return a.SellPrice > b.SellPrice
-            end)
-            
-            -- 取前6个最高价值的物品
-            local topSixItems = {}
-            for i = 1, math.min(6, #itemsWithPrice) do
-                table.insert(topSixItems, {
-                    ItemId = itemsWithPrice[i].ItemId,
-                    Attribute = itemsWithPrice[i].Attribute,
-                })
-            end
-            
-            -- 更新escapeItems为最高价值的6件物品
-            escapeItems = topSixItems
+        -- 检查每个触发Model
+		local isOnBoat = Interface.isPlayerOnBoat(player)
+        if needCheckPos and not isOnBoat then
+            return false
         end
-
-        for _, itemData in ipairs(escapeItems) do
-            local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
-            if itemInfo then
-                totalValue += itemInfo.SellPrice
-            end
-        end
-
-        -- 工具栏4-6格和背包的探索，辅助，进攻类物品可以带回出生岛
-        for i = 4, #toolData do
-            local data = toolData[i]
-            if data.ItemId ~= 0 then
-                local itemInfo = ItemConfig:GetByIndex(data.ItemId)
-                if itemInfo and itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
-                    table.insert(escapeItems, {
-                        ItemId = data.ItemId,
-                        Attribute = Interface.clone(data.Attribute),
-                    })
-                end
-            end
-            toolData[i] = nil
-        end
-        for i = 1, #bagData do
-            local data = bagData[i]
-            if data.ItemId ~= 0 then
-                local itemInfo = ItemConfig:GetByIndex(data.ItemId)
-                if itemInfo and itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
-                    table.insert(escapeItems, {
-                        ItemId = data.ItemId,
-                        Attribute = Interface.clone(data.Attribute),
-                    })
-                end
-            end
-            bagData[i] = nil
+        if isOnBoat then
+            escapeItems, totalValue, totalTime = succ(player)
+        else
+            isSuccess = false
+            faild(player)
         end
     else
-        -- 撤离失败，清空工具栏和背包
-        local allItems = {}
-        for _, itemId in ipairs(toolData) do
-            table.insert(allItems, itemId)
-        end
-        for _, itemId in ipairs(bagData) do
-            table.insert(allItems, itemId)
-        end
-
-        -- 获取玩家当前位置
-        local playerPosition = player.Character:GetPivot().Position
-        -- 使用高级射线检测获取最佳地面位置
-        local ignoreList = {player.Character} -- 忽略玩家本身
-        local groundPosition = Interface.getGroundPosition(playerPosition, ignoreList)
-        for _, itemData in ipairs(allItems) do
-            task.spawn(function()
-                Knit.GetService("ItemService"):CreateItem(itemData.ItemId, groundPosition)
-                task.wait(0.3)
-            end)
-        end
-        InventoryService:UpdateToolData(player)
-        InventoryService:UpdateBagData(player)
-
-        local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid:TakeDamage(humanoid.MaxHealth)
-        end
+        faild(player)
     end
+
+    -- 清空背包数据
+    InventoryService:UpdateBagData(player)
     InventoryService:ToolDataToDB(player)
     for _, v in pairs(escapeItems) do
         InventoryService:AddItem(player, v)
@@ -174,10 +223,11 @@ function SettleService:Settle(player, needCheckPos)
     }
 
     self.Client.SendShowUI:Fire(player, self.SettleData[player.UserId])
+    return true
 end
 
 function SettleService.Client:Settle(player, needCheckPos)
-    self.Server:Settle(player, needCheckPos)
+    return self.Server:Settle(player, needCheckPos)
 end
 
 function SettleService:Escape(player, needCheckPos)
