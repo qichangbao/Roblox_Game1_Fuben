@@ -21,6 +21,7 @@ GameConfig.ItemTypeFolder = {
 GameConfig.LandName = "恐龙岛"
 GameConfig.TeleportPartNames = {"撤离点"}-- 触发传送的model名称
 GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
+GameConfig.MAIN_SLOT_NUM = 3        -- 主工具栏插槽数量
 GameConfig.SLOT_NUM = 6
 GameConfig.BAG_NUM = 3
 GameConfig.Item_DragTime = 0.3      -- 物品拖拽响应事件

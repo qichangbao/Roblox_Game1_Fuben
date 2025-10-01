@@ -69,14 +69,25 @@ function ChaseState:Enter()
     end
 
     if self.AIManager.target and self.AIManager.target.HumanoidRootPart then
+        -- 目标在水里，则放弃追踪
+        if Interface.isPointInTerrainWater(self.AIManager.target.HumanoidRootPart.Position) then
+            self.AIManager.target = nil
+            self.AIManager:SetState("Idle")
+            return
+        end
+
         local targetPos = self.AIManager.target.HumanoidRootPart.Position
         -- self.connection = PathfindingMove.MoveTo(self.AIManager.NPC, targetPos, function(reached)
         --     -- self.AIManager:SetState("Idle")
         --     -- return
         -- end)
         self:moveTo(Humanoid, targetPos, self.AIManager.target.HumanoidRootPart)
+        self.AIManager:PlayAnimation(self.animation, true)
+        return
+    else
+        self.AIManager:SetState("Idle")
+        return
     end
-    self.AIManager:PlayAnimation(self.animation, true)
 end
 
 function ChaseState:Update(dt)

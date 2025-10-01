@@ -106,12 +106,15 @@ end
 function InventoryService:ToolDataToDB(player)
 	local DBService = Knit.GetService("DBService")
     local data = {}
-    for _, v in pairs(self.ToolData[player.UserId]) do
-        table.insert(data, {
-            ItemId = v.ItemId,
-            UsedTime = v.Attribute.UsedTime,
-            UsedNum = v.Attribute.UsedNum,
-        })
+    for i = 1, GameConfig.MAIN_SLOT_NUM do
+        local toolData = self.ToolData[player.UserId][i]
+        if toolData and toolData.ItemId ~= 0 then
+            table.insert(data, {
+                ItemId = toolData.ItemId,
+                UsedTime = toolData.Attribute.UsedTime,
+                UsedNum = toolData.Attribute.UsedNum,
+            })
+        end
     end
 	DBService:Set(player.UserId, "PlayerToolData", data)
 end
@@ -201,12 +204,24 @@ function InventoryService:UpdateBagData(player, data)
     self.Client.SendBagData:Fire(player, self.BagData[player.UserId])
 end
 
+-- 获取玩家背包数据
+-- @param player Player 玩家对象
+-- @return table 背包数据，如果不存在则返回空表
 function InventoryService:GetBagData(player)
-    return self.BagData[player.UserId]
+    if not player or not player.UserId then
+        return {}
+    end
+    return self.BagData[player.UserId] or {}
 end
 
+-- 获取玩家工具栏数据
+-- @param player Player 玩家对象
+-- @return table 工具栏数据，如果不存在则返回空表
 function InventoryService:GetToolData(player)
-    return self.ToolData[player.UserId]
+    if not player or not player.UserId then
+        return {}
+    end
+    return self.ToolData[player.UserId] or {}
 end
 
 function InventoryService:GiveToolToPlayer(player, item)

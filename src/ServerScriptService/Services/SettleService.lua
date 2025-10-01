@@ -27,7 +27,7 @@ function SettleService:PlayerAdded(player)
         if Humanoid then
             -- 监听死亡状态
             Humanoid.Died:Connect(function()
-                self:Settle(player, false)
+                self:Settle(player, false, true)
             end)
         end
     end
@@ -36,10 +36,8 @@ end
 function SettleService:PlayerRemoving(player)
     self.SettleData[player.UserId] = nil
     -- 如果玩家不是正常退出，则判定为撤离失败，掉落身上所有物品
-    if not Knit.GetService("TeleportService"):isPlayerTeleport(player) then
-        local InventoryService = Knit.GetService("InventoryService")
-        InventoryService:UpdateToolData(player)
-        InventoryService:UpdateBagData(player)
+    if not Knit.GetService("TeleportService"):isPlayerTeleport(player) and not game:GetService("RunService"):IsStudio() then
+        self:Settle(player, false, true)
     end
 end
 
@@ -149,44 +147,59 @@ local function faild(player)
     local InventoryService = Knit.GetService("InventoryService")
     local toolData = InventoryService:GetToolData(player)
     local bagData = InventoryService:GetBagData(player)
+    
+    -- 添加 nil 值检查，防止 ipairs 接收到 nil
+    if not toolData then
+        toolData = {}
+    end
+    if not bagData then
+        bagData = {}
+    end
+    
     -- 撤离失败，清空工具栏和背包
     local allItems = {}
-    for _, itemId in ipairs(toolData) do
-        table.insert(allItems, itemId)
+    for _, itemData in ipairs(toolData) do
+        table.insert(allItems, itemData)
     end
-    for _, itemId in ipairs(bagData) do
-        table.insert(allItems, itemId)
-    end
-
-    -- 获取玩家当前位置
-    local playerPosition = player.Character:GetPivot().Position
-    -- 使用高级射线检测获取最佳地面位置
-    local ignoreList = {player.Character} -- 忽略玩家本身
-    local groundPosition = Interface.getGroundPosition(playerPosition, ignoreList)
-    for _, itemData in ipairs(allItems) do
-        task.spawn(function()
-            Knit.GetService("ItemService"):CreateItem(itemData.ItemId, groundPosition)
-            task.wait(0.3)
-        end)
+    for _, itemData in ipairs(bagData) do
+        table.insert(allItems, itemData)
     end
 
     -- 清空工具栏和背包数据
     InventoryService:UpdateToolData(player)
 
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid:TakeDamage(humanoid.MaxHealth)
+    -- 获取玩家当前位置
+    if player.Character then
+        local playerPosition = player.Character:GetPivot().Position
+        -- 使用高级射线检测获取最佳地面位置
+        local ignoreList = {player.Character} -- 忽略玩家本身
+        local groundPosition = Interface.getGroundPosition(playerPosition, ignoreList)
+        for _, itemData in ipairs(allItems) do
+            task.spawn(function()
+                Knit.GetService("ItemService"):CreateItem(itemData.ItemId, groundPosition)
+                task.wait(0.3)
+            end)
+        end
+
+        local humanoid = player.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid:TakeDamage(humanoid.MaxHealth)
+        end
     end
 end
 
-function SettleService:Settle(player, needCheckPos)
+-- 结算玩家
+-- @param player Player 玩家对象
+-- @param needCheckPos boolean 是否需要检查玩家位置
+-- @param isForceLose boolean 是否强制失败
+function SettleService:Settle(player, needCheckPos, isForceLose)
     local InventoryService = Knit.GetService("InventoryService")
     local isSuccess = Knit.GetService("TaskService"):IsSuccess()
     local escapeItems = {}
     local totalValue = 0
     local totalTime = 0
     local killMonsters = Knit.GetService("MonsterService"):GetKillMonsters(player)
-    if isSuccess then
+    if not isForceLose and isSuccess then
         -- 检查每个触发Model
 		local isOnBoat = Interface.isPlayerOnBoat(player)
         if needCheckPos and not isOnBoat then

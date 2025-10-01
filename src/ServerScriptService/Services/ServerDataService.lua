@@ -85,9 +85,9 @@ function ServerDataService:KnitStart()
     end
 
     local function playerRemoved(player)
+        Knit.GetService("SettleService"):PlayerRemoving(player)
         Knit.GetService("InventoryService"):playerRemoved(player)
         Knit.GetService("GoldService"):playerRemoved(player)
-        Knit.GetService("SettleService"):PlayerRemoving(player)
         Knit.GetService("DBService"):PlayerRemoving(player)
         Knit.GetService("MonsterService"):playerRemoved(player)
         Knit.GetService("LevelService"):playerRemoved(player)
