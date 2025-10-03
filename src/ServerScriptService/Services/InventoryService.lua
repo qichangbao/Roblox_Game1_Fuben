@@ -932,6 +932,10 @@ function InventoryService:TurnInCollect(player)
     return gold
 end
 
+function InventoryService.Client:TurnInCollect(player)
+    return self.Server:TurnInCollect(player)
+end
+
 function InventoryService:EquipAdditionalBackpack(player, equip)
     self.Client.EquipAdditionalBackpack:Fire(player, equip)
 end

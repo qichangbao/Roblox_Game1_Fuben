@@ -18,6 +18,7 @@ local UIController = Knit.CreateController {
     UpdateEscapeTask = Signal.new(),
     ShowAdditionalBackpackUI = Signal.new(),
     ShowSettleUI = Signal.new(),
+    OpenTaskUI = Signal.new(),
 }
 
 function UIController:KnitInit()

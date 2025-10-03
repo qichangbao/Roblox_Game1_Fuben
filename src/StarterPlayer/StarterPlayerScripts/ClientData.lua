@@ -77,6 +77,10 @@ local function init()
             Knit.GetController("UIController").UpdateEscapeTask:Fire(curEscapeTask, escapeTask)
         end)
 
+        Knit.GetService("TaskService").OpenTaskUI:Connect(function()
+            Knit.GetController("UIController").OpenTaskUI:Fire()
+        end)
+
         Knit.GetService("ServerDataService").SendInitData:Connect(function(data)
             -- 停止重试
             if retryController then

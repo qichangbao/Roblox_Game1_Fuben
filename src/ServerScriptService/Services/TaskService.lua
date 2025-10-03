@@ -10,6 +10,7 @@ local TaskService = Knit.CreateService {
 	Client = {
         UpdateEscapeTask = Knit.CreateSignal(),
         InitEscapeTime = Knit.CreateSignal(),
+        OpenTaskUI = Knit.CreateSignal(),
 	},
 
     EscapeTask = 0,
@@ -77,6 +78,10 @@ function TaskService:UpdateEscapeTime(curEscapeTime)
             SettleService:Settle(player, false)
         end
     end
+end
+
+function TaskService:OpenTaskUI(player)
+    self.Client.OpenTaskUI:Fire(player)
 end
 
 return TaskService

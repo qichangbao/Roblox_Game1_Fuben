@@ -172,22 +172,27 @@ end
 
 function ItemService:CreateItemByPlan(planData, position)
     if planData.CanisterId ~= 0 then    -- 宝箱类物品，调用ChestService处理奖励
-        local random = math.random(1, 10000)
-        if random <= planData.ChestProbability and self.ChestNum < GameConfig.ChestMaxNum then
-            self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute())
-            self.ChestNum += 1
-        end
+        -- local random = math.random(1, 10000)
+        -- if random <= planData.ChestProbability and self.ChestNum < GameConfig.ChestMaxNum then
+        --     self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute())
+        --     self.ChestNum += 1
+        -- end
+        self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute())
     else                                -- 普通物品
         if type(planData.ItemId) ~= "table" then
-            local random = math.random(1, 10000)
-            if random <= planData.Probability then
-                self:CreateItem(planData.ItemId, position, GameConfig.GetItemAttribute())
-            end
+            -- local random = math.random(1, 10000)
+            -- if random <= planData.Probability then
+            --     self:CreateItem(planData.ItemId, position, GameConfig.GetItemAttribute())
+            -- end
+            self:CreateItem(planData.ItemId, position, GameConfig.GetItemAttribute())
         else
             for index, itemId in pairs(planData.ItemId) do
-                local random = math.random(1, 10000)
-                if random <= planData.Probability[index] then
-                    print("创建物品:", itemId, "概率:", planData.Probability[index])
+                -- local random = math.random(1, 10000)
+                -- if random <= planData.Probability[index] then
+                --     print("创建物品:", itemId, "概率:", planData.Probability[index])
+                --     self:CreateItem(itemId, position, GameConfig.GetItemAttribute())
+                -- end
+                if index == 1 then
                     self:CreateItem(itemId, position, GameConfig.GetItemAttribute())
                 end
             end
