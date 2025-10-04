@@ -217,21 +217,21 @@ function ItemService:initItems()
             end
         end
 
-        -- task.delay(5, function()
-        --     for _, item in pairs(self.Items) do
-        --         if item:IsA("BasePart") then
-        --             -- 设置Part的锚固为false
-        --             item.Anchored = true
-        --         elseif item:IsA("Model") then
-        --             -- 遍历Model中的所有Part，设置锚固为false
-        --             for _, descendant in pairs(item:GetDescendants()) do
-        --                 if descendant:IsA("BasePart") then
-        --                     descendant.Anchored = true
-        --                 end
-        --             end
-        --         end
-        --     end
-        -- end)
+        task.delay(5, function()
+            for _, item in pairs(self.Items) do
+                if item:IsA("BasePart") then
+                    -- 设置Part的锚固为false
+                    item.Anchored = true
+                elseif item:IsA("Model") then
+                    -- 遍历Model中的所有Part，设置锚固为false
+                    for _, descendant in pairs(item:GetDescendants()) do
+                        if descendant:IsA("BasePart") then
+                            descendant.Anchored = true
+                        end
+                    end
+                end
+            end
+        end)
     end)
 end
 
@@ -241,7 +241,7 @@ end
 function ItemService:KnitStart()
     self:initItems()
     -- task.spawn(function()
-    --     self:CreateItem(1008, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+    --     self:CreateItem(1020, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
     -- end)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute(), false)

@@ -18,6 +18,11 @@ end
 function DeadState:Enter()
     -- 播放死亡动画并分析
      self.AIManager:PlayAnimation(self.animation, false)
+
+    local HumanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
+    if HumanoidRootPart then
+        HumanoidRootPart.Anchored = true
+    end
     
     -- 触发物品掉落
     local monsterInfo = self.AIManager.monsterInfo
@@ -52,11 +57,6 @@ function DeadState:Update(dt)
 end
 
 function DeadState:Exit()
-    -- 确保HumanoidRootPart解锁
-    local humanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
-    if humanoidRootPart then
-        humanoidRootPart.Anchored = false
-    end
 end
 
 return DeadState
