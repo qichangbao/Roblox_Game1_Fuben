@@ -93,8 +93,8 @@ function InventoryService:InventoryToDB(player)
     for _, v in pairs(self.Inventory[player.UserId]) do
         table.insert(data, {
             ItemId = v.ItemId,
-            UsedTime = v.Attribute.UsedTime,
-            UsedNum = v.Attribute.UsedNum,
+            UsedTime = v.Attribute.UsedTime or 0,
+            UsedNum = v.Attribute.UsedNum or 0,
         })
     end
 	DBService:Set(player.UserId, "PlayerInventory", data)
@@ -111,8 +111,8 @@ function InventoryService:ToolDataToDB(player)
         if toolData and toolData.ItemId ~= 0 then
             table.insert(data, {
                 ItemId = toolData.ItemId,
-                UsedTime = toolData.Attribute.UsedTime,
-                UsedNum = toolData.Attribute.UsedNum,
+                UsedTime = toolData.Attribute.UsedTime or 0,
+                UsedNum = toolData.Attribute.UsedNum or 0,
             })
         end
     end
@@ -218,7 +218,7 @@ end
 -- @param player Player 玩家对象
 -- @return table 工具栏数据，如果不存在则返回空表
 function InventoryService:GetToolData(player)
-    if not player or not player.UserId then
+    if not player or not player.UserId or not self.ToolData[player.UserId]then
         return {}
     end
     return self.ToolData[player.UserId] or {}
@@ -700,7 +700,7 @@ local function CreateItemToFloor(character, itemInfo, attribute)
     
     -- 通过ItemService创建物品
     local ItemService = Knit.GetService("ItemService")
-    ItemService:CreateItem(itemInfo.Index, dropPosition, attribute)
+    ItemService:CreateItem(itemInfo.Index, dropPosition, attribute, true)
 end
 
 -- 丢弃工具实现

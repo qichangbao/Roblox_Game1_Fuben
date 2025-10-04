@@ -33,7 +33,7 @@ function DeadState:Enter()
     -- 在地面位置创建物品
         local planData = PlanConfig:GetByPlanId(config.DropPlanId)
         if planData then
-            Knit.GetService("ItemService"):CreateItemByPlan(planData, groundPosition)
+            Knit.GetService("ItemService"):CreateItemByPlan(planData, groundPosition, true)
             print("在位置创建物品:", groundPosition)
         end
     end

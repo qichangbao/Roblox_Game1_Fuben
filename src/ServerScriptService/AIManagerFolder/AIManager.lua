@@ -96,7 +96,6 @@ function AIManager:PlayAnimation(animId, isLoop)
 	local animation = Instance.new("Animation")
 	animation.AnimationId = "rbxassetid://" .. animId
 	-- 加载并播放新动画
-	--local animationController = self.NPC:FindFirstChildOfClass("AnimationController")
 	local animationController = self.NPC:FindFirstChildOfClass("Humanoid")
 	local animator = animationController:FindFirstChildOfClass("Animator")
 	local track = animator:LoadAnimation(animation)

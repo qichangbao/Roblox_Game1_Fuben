@@ -109,7 +109,7 @@ local function succ(player)
                 -- 工具栏1-3格只能带回除收集类物品以外的物品
                 if itemInfo.Type == GameConfig.ItemType.Collect then
                     task.spawn(function()
-                        Knit.GetService("ItemService"):CreateItem(data.ItemId, groundPosition)
+                        Knit.GetService("ItemService"):CreateItem(data.ItemId, groundPosition, nil, true)
                         task.wait(0.3)
                     end)
                     toolData[i] = {ItemId = 0, Attribute = GameConfig.GetItemAttribute()}
@@ -176,7 +176,7 @@ local function faild(player)
         local groundPosition = Interface.getGroundPosition(playerPosition, ignoreList)
         for _, itemData in ipairs(allItems) do
             task.spawn(function()
-                Knit.GetService("ItemService"):CreateItem(itemData.ItemId, groundPosition)
+                Knit.GetService("ItemService"):CreateItem(itemData.ItemId, groundPosition, nil, true)
                 task.wait(0.3)
             end)
         end

@@ -27,7 +27,7 @@ function ChestService:OpenChest(player, item, itemInfo)
     for i, itemId in pairs(plan.ItemId) do
         local random = math.random(1, 10000)
         if random <= plan.Probability[i] then
-            Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute())
+            Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
             print("开箱子创建物品:", itemId)
         end
     end

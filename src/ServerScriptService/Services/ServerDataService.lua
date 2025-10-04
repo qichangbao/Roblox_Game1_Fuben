@@ -37,14 +37,12 @@ function ServerDataService:KnitStart()
         player:SetAttribute("JoinTime", tick())
 
         Knit.GetService("DBService"):PlayerAdded(player)
-        Knit.GetService("GoldService"):playerAdd(player, 0)
         Knit.GetService("SettleService"):PlayerAdded(player)
         Knit.GetService("MonsterService"):PlayerAdded(player)
         local duanWeiData = Knit.GetService("DBService"):Get(player.UserId, "DuanWeiData")
         Knit.GetService("LevelService"):playerAdd(player, duanWeiData)
-        local inventory = Knit.GetService("DBService"):Get(player.UserId, "PlayerInventory")
-        local toolData = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
-        Knit.GetService("InventoryService"):playerAdd(player, inventory, toolData)
+        local inventory = nil
+        local toolData = nil
 
         local hasEscapeTask = false
         local hasEscapeTime = false
@@ -52,6 +50,15 @@ function ServerDataService:KnitStart()
         local joinData = player:GetJoinData()
         if joinData and joinData.TeleportData then
             local localTeleportData = joinData.TeleportData
+            if localTeleportData.PlayerData then
+                local playerData = localTeleportData.PlayerData[tostring(player.UserId)]
+                if playerData and playerData.InventoryData and playerData.ToolData then
+                    inventory = playerData.InventoryData
+                    toolData = playerData.ToolData
+                    Knit.GetService("InventoryService"):playerAdd(player, inventory, toolData)
+                end
+            end
+
             local TaskService = Knit.GetService("TaskService")
             if not TaskService:GetIsInit() then
                 if localTeleportData.EscapeTask then
@@ -70,6 +77,12 @@ function ServerDataService:KnitStart()
         else
             print(string.format("玩家 %s 没有传送数据", player.Name))
         end
+
+        if not inventory and not toolData then
+            inventory = Knit.GetService("DBService"):Get(player.UserId, "PlayerInventory")
+            toolData = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
+            Knit.GetService("InventoryService"):playerAdd(player, inventory, toolData)
+        end
         
         if not hasEscapeTask then
             Knit.GetService("TaskService"):InitEscapeTask(GameConfig.DefaultEscapeTask)
@@ -79,15 +92,12 @@ function ServerDataService:KnitStart()
             Knit.GetService("TaskService"):InitEscapeTime(GameConfig.DefaultEscapeTime)
         end
 
-        if not self.HasInitData[player.UserId] then
-            self.Client.SendInitData:Fire(player, self:GetInitData(player))
-        end
+        self.Client.SendInitData:Fire(player, self:GetInitData(player))
     end
 
     local function playerRemoved(player)
         Knit.GetService("SettleService"):PlayerRemoving(player)
         Knit.GetService("InventoryService"):playerRemoved(player)
-        Knit.GetService("GoldService"):playerRemoved(player)
         Knit.GetService("DBService"):PlayerRemoving(player)
         Knit.GetService("MonsterService"):playerRemoved(player)
         Knit.GetService("LevelService"):playerRemoved(player)
@@ -109,19 +119,8 @@ function ServerDataService:KnitStart()
 end
 
 function ServerDataService:GetInitData(player)
-    if self.HasInitData[player.UserId] then
-        return
-    end
-
-    local gold = 0
     local toolData = Knit.GetService("InventoryService"):GetToolData(player)
-
-    if gold and toolData then
-        self.HasInitData[player.UserId] = true
-    end
-
     return {
-        Gold = gold,
         ToolData = toolData,
     }
 end

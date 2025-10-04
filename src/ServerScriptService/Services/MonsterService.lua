@@ -59,8 +59,8 @@ function MonsterService:CreateMonster(monsterId, position)
     monster.Name = monsterInfo.Model .."_" .. tick()
     monster:PivotTo(CFrame.new(position, monster.HumanoidRootPart.CFrame.LookVector))
 
-    -- local aiManager = AIManager.new(monster, position, monsterInfo)
-    -- aiManager:Start()
+    local aiManager = AIManager.new(monster, position, monsterInfo)
+    aiManager:Start()
 end
 
 function MonsterService:GetKillMonsters(player)
@@ -69,20 +69,14 @@ end
 
 function MonsterService:CreateMonsterByPlan(planData, position)
     if type(planData.MonsterId) ~= "table" then
-        -- local random = math.random(1, 10000)
-        -- if random <= planData.Probability then
-        --     print("创建怪物:", planData.MonsterId, "概率:", planData.Probability)
-        --     self:CreateMonster(planData.MonsterId, position)
-        -- end
-        self:CreateMonster(planData.MonsterId, position)
+        local random = math.random(1, 10000)
+        if random <= planData.Probability then
+            self:CreateMonster(planData.MonsterId, position)
+        end
     else
         for index, monsterId in pairs(planData.MonsterId) do
-            -- local random = math.random(1, 10000)
-            -- if random <= planData.Probability[index] then
-            --     print("创建怪物:", monsterId, "概率:", planData.Probability[index])
-            --     self:CreateMonster(monsterId, position)
-            -- end
-            if index == 1 then
+            local random = math.random(1, 10000)
+            if random <= planData.Probability[index] then
                 self:CreateMonster(monsterId, position)
             end
         end
