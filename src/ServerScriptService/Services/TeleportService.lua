@@ -19,7 +19,8 @@ local TeleportServiceModule = Knit.CreateService {
 }
 
 -- ReserveServer配置
-local TARGET_PLACE_ID = 105534130650004  -- 目标传送场景ID（TestBoat）
+--local TARGET_PLACE_ID = 105534130650004  -- 目标传送场景ID（TestBoat）
+local TARGET_PLACE_ID = 133323957345255
 
 function TeleportServiceModule:KnitInit()
 end
@@ -58,7 +59,7 @@ end
 -- 传送玩家到预留服务器副本
 -- @param player Player 要传送的玩家
 -- @return void
-function TeleportServiceModule:teleportToReserveServer(player)
+function TeleportServiceModule:teleportToReserveServer(player, showUI)
     local SettleService = Knit.GetService("SettleService")
     local teleportData = SettleService:GetSettleData(player)
     if not teleportData then
@@ -76,7 +77,9 @@ function TeleportServiceModule:teleportToReserveServer(player)
         return true
     end
 
-    self.Client.SendStartTeleport:Fire(player)
+    if showUI then
+        self.Client.SendStartTeleport:Fire(player)
+    end
     -- 记录玩家正在传送中
     self.TeleportingPlayer[player.UserId] = true
         
@@ -96,6 +99,7 @@ function TeleportServiceModule:teleportToReserveServer(player)
         return true
     end
     logMessage("WARN", string.format("传送到预留服务器失败: %s", tostring(teleportError)), player)
+    self:teleportToReserveServer(player, false)
 end
 
 -- 传送
@@ -110,10 +114,10 @@ function TeleportServiceModule:Escape(player, needCheckPos)
         -- 检查玩家是否在触发区域内
         local isInTrigger = Interface.isPlayerOnBoat(player)
         if isInTrigger then
-            return self:teleportToReserveServer(player)
+            return self:teleportToReserveServer(player, true)
         end
     else
-        return self:teleportToReserveServer(player)
+        return self:teleportToReserveServer(player, true)
     end
 end
 

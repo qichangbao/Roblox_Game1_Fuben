@@ -46,22 +46,18 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
         warn("Item model not found: " .. itemInfo.Model)
         return
     end
-    position = Vector3.new(position.X, position.Y + 0.3, position.Z)
     local item = part:Clone()
     item.Name = itemInfo.Item .. tick()
     item.Parent = workspace
     if item:IsA("BasePart") then
+        position = Vector3.new(position.X, position.Y + item.Size.Y / 2, position.Z)
         item.Position = position
-        -- 设置Part的锚固为false
-        item.Anchored = false
     elseif item:IsA("Model") then
-        item:PivotTo(CFrame.new(position))
-        -- 遍历Model中的所有Part，设置锚固为false
-        for _, descendant in pairs(item:GetDescendants()) do
-            if descendant:IsA("BasePart") then
-                descendant.Anchored = false
-            end
+        if math.floor(position.X) == 559 then
+            local ll = 0
         end
+        position = Vector3.new(position.X, position.Y + item.PrimaryPart.Size.Y / 2, position.Z)
+        item:PivotTo(CFrame.new(position))
     end
     item:SetAttribute("ItemId", itemId)
     if attribute then
@@ -124,6 +120,12 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     end
 
     return item
+end
+
+function ItemService:RemoveItem(item)
+    if item then
+        item:Destroy()
+    end
 end
 
 --[[
@@ -217,21 +219,16 @@ function ItemService:initItems()
             end
         end
 
-        task.delay(5, function()
-            for _, item in pairs(self.Items) do
-                if item:IsA("BasePart") then
-                    -- 设置Part的锚固为false
-                    item.Anchored = true
-                elseif item:IsA("Model") then
-                    -- 遍历Model中的所有Part，设置锚固为false
-                    for _, descendant in pairs(item:GetDescendants()) do
-                        if descendant:IsA("BasePart") then
-                            descendant.Anchored = true
-                        end
-                    end
+        for _, item in pairs(self.Items) do
+            if item:IsA("BasePart") then
+                -- 设置Part的锚固为false
+                item.Anchored = true
+            elseif item:IsA("Model") then
+                if item.PrimaryPart then
+                    item.PrimaryPart.Anchored = true
                 end
             end
-        end)
+        end
     end)
 end
 
@@ -241,7 +238,23 @@ end
 function ItemService:KnitStart()
     self:initItems()
     -- task.spawn(function()
-    --     self:CreateItem(1020, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+    --     local itemTemp = self:CreateItem(501, Vector3.new(559.6, -0.7, 154.7), GameConfig.GetItemAttribute(), false)
+    --     if itemTemp then
+    --         table.insert(self.Items, itemTemp)
+    --     end
+
+    --     task.delay(5, function()
+    --         for _, item in pairs(self.Items) do
+    --             if item:IsA("BasePart") then
+    --                 -- 设置Part的锚固为false
+    --                 item.Anchored = true
+    --             elseif item:IsA("Model") then
+    --                 if item.PrimaryPart then
+    --                     item.PrimaryPart.Anchored = true
+    --                 end
+    --             end
+    --         end
+    --     end)
     -- end)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute(), false)

@@ -10,11 +10,8 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 local ServerDataService = Knit.CreateService {
 	Name = "ServerDataService",
 	Client = {
-        SendInitData = Knit.CreateSignal(),
         ShowTip = Knit.CreateSignal(),
 	},
-
-    HasInitData = {},       -- 记录玩家是否初始化数据
 }
 
 function ServerDataService:KnitInit()
@@ -31,68 +28,15 @@ function ServerDataService:KnitStart()
             if humanoid then
                 humanoid.AutoJumpEnabled = false
             end
+            
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                humanoidRootPart.CollisionGroup = "Player"
+            end
         end)
         
         player:LoadCharacter()
         player:SetAttribute("JoinTime", tick())
-
-        Knit.GetService("DBService"):PlayerAdded(player)
-        Knit.GetService("SettleService"):PlayerAdded(player)
-        Knit.GetService("MonsterService"):PlayerAdded(player)
-        local duanWeiData = Knit.GetService("DBService"):Get(player.UserId, "DuanWeiData")
-        Knit.GetService("LevelService"):playerAdd(player, duanWeiData)
-        local inventory = nil
-        local toolData = nil
-
-        local hasEscapeTask = false
-        local hasEscapeTime = false
-        -- 获取传送数据
-        local joinData = player:GetJoinData()
-        if joinData and joinData.TeleportData then
-            local localTeleportData = joinData.TeleportData
-            if localTeleportData.PlayerData then
-                local playerData = localTeleportData.PlayerData[tostring(player.UserId)]
-                if playerData and playerData.InventoryData and playerData.ToolData then
-                    inventory = playerData.InventoryData
-                    toolData = playerData.ToolData
-                    Knit.GetService("InventoryService"):playerAdd(player, inventory, toolData)
-                end
-            end
-
-            local TaskService = Knit.GetService("TaskService")
-            if not TaskService:GetIsInit() then
-                if localTeleportData.EscapeTask then
-                    TaskService:InitEscapeTask(localTeleportData.EscapeTask)
-                    hasEscapeTask = true
-                end
-
-                if localTeleportData.EscapeTime then
-                    TaskService:InitEscapeTime(localTeleportData.EscapeTime)
-                    hasEscapeTime = true
-                end
-            else
-                hasEscapeTask = true
-                hasEscapeTime = true
-            end
-        else
-            print(string.format("玩家 %s 没有传送数据", player.Name))
-        end
-
-        if not inventory and not toolData then
-            inventory = Knit.GetService("DBService"):Get(player.UserId, "PlayerInventory")
-            toolData = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
-            Knit.GetService("InventoryService"):playerAdd(player, inventory, toolData)
-        end
-        
-        if not hasEscapeTask then
-            Knit.GetService("TaskService"):InitEscapeTask(GameConfig.DefaultEscapeTask)
-        end
-
-        if not hasEscapeTime then
-            Knit.GetService("TaskService"):InitEscapeTime(GameConfig.DefaultEscapeTime)
-        end
-
-        self.Client.SendInitData:Fire(player, self:GetInitData(player))
     end
 
     local function playerRemoved(player)
@@ -119,9 +63,72 @@ function ServerDataService:KnitStart()
 end
 
 function ServerDataService:GetInitData(player)
+    Knit.GetService("DBService"):PlayerAdded(player)
+    Knit.GetService("SettleService"):PlayerAdded(player)
+    Knit.GetService("MonsterService"):PlayerAdded(player)
+    local duanWeiData = Knit.GetService("DBService"):Get(player.UserId, "DuanWeiData")
+    Knit.GetService("LevelService"):playerAdd(player, duanWeiData)
+    local inventory = nil
+    local tool = nil
+
+    local hasEscapeTask = false
+    local hasEscapeTime = false
+    -- 获取传送数据
+    local joinData = player:GetJoinData()
+    if joinData and joinData.TeleportData then
+        local localTeleportData = joinData.TeleportData
+        if localTeleportData.PlayerData then
+            local playerData = localTeleportData.PlayerData[tostring(player.UserId)]
+            if playerData and playerData.InventoryData and playerData.ToolData then
+                inventory = playerData.InventoryData
+                tool = playerData.ToolData
+                Knit.GetService("InventoryService"):playerAdd(player, inventory, tool)
+            end
+        end
+
+        local TaskService = Knit.GetService("TaskService")
+        if not TaskService:GetIsInit() then
+            if localTeleportData.EscapeTask then
+                TaskService:InitEscapeTask(localTeleportData.EscapeTask)
+                hasEscapeTask = true
+            end
+
+            if localTeleportData.EscapeTime then
+                TaskService:InitEscapeTime(localTeleportData.EscapeTime)
+                hasEscapeTime = true
+            end
+        else
+            hasEscapeTask = true
+            hasEscapeTime = true
+        end
+    else
+        print(string.format("玩家 %s 没有传送数据", player.Name))
+    end
+
+    if not inventory and not tool then
+        inventory = Knit.GetService("DBService"):Get(player.UserId, "PlayerInventory")
+        tool = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
+        Knit.GetService("InventoryService"):playerAdd(player, inventory, tool)
+    end
+    
+    if not hasEscapeTask then
+        Knit.GetService("TaskService"):InitEscapeTask(GameConfig.DefaultEscapeTask)
+    end
+
+    if not hasEscapeTime then
+        Knit.GetService("TaskService"):InitEscapeTime(GameConfig.DefaultEscapeTime)
+    end
+
+    local inventoryData = Knit.GetService("InventoryService"):GetInventoryData(player)
     local toolData = Knit.GetService("InventoryService"):GetToolData(player)
+    local escapeTask = Knit.GetService("TaskService"):GetEscapeTask()
+    local escapeTime = Knit.GetService("TaskService"):GetEscapeTime()
+
     return {
+        Inventory = inventoryData,
         ToolData = toolData,
+        EscapeTask = escapeTask,
+        EscapeTime = escapeTime,
     }
 end
 

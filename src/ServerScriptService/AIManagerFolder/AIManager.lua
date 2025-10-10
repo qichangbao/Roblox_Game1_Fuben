@@ -8,8 +8,24 @@ function AIManager.new(npc, position, monsterInfo)
     self.NPC = npc
     self.target = nil
     self.monsterInfo = monsterInfo
+
+    local Humanoid = self.NPC:FindFirstChildOfClass("Humanoid")
+    if Humanoid then
+        -- 监听死亡状态
+        Humanoid.Died:Connect(function()
+            self:SetState("Dead")
+        end)
+
+        local humanoidRootPart = self.NPC:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            humanoidRootPart.CollisionGroup = "Monster"
+            
+            position = Vector3.new(position.X, position.Y + Humanoid.HipHeight + humanoidRootPart.Size.Y / 2, position.Z)
+        end
+    end
     
     self:InitializeAttributes(monsterInfo, position)
+    self.NPC:PivotTo(CFrame.new(position))
 
     self.CurrentState = nil
     self.States = {
@@ -21,19 +37,13 @@ function AIManager.new(npc, position, monsterInfo)
     }
 
     self.currentTrack = nil
-
-    local Humanoid = self.NPC:FindFirstChildOfClass("Humanoid")
-    if Humanoid then
-        -- 监听死亡状态
-        Humanoid.Died:Connect(function()
-            self:SetState("Dead")
-        end)
-    end
     self.connection = game:GetService("RunService").Heartbeat:Connect(function(dt)
         if self.CurrentState then
             self.CurrentState:Update(dt)
         end
     end)
+
+    self:SetState('Idle')
 
     return self
 end
@@ -59,11 +69,9 @@ function AIManager:SetState(newState)
     end
     
     self.CurrentState = self.States[newState]
-    self.CurrentState:Enter()
-end
-
-function AIManager:Start()
-    self:SetState('Idle')
+    if self.CurrentState then
+        self.CurrentState:Enter()
+    end
 end
 
 function AIManager:Destroy()

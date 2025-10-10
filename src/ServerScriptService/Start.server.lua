@@ -85,3 +85,8 @@ serverStartCheckEvent.OnServerEvent:Connect(function(player)
 	-- 向客户端发送服务器启动状态
 	serverStartCheckEvent:FireClient(player, isServerStarted)
 end)
+
+local PhysicsService = game:GetService("PhysicsService")
+PhysicsService:RegisterCollisionGroup("Player")
+PhysicsService:RegisterCollisionGroup("Monster")
+PhysicsService:CollisionGroupSetCollidable("Player", "Monster", false)

@@ -164,11 +164,13 @@ function InventoryService:UpdateToolData(player, data)
             local currentItemId = currentTool:GetAttribute("ItemId")
             local toolInData = false
             
-            -- 检查当前工具是否在新的data中
-            for _, itemData in pairs(data) do
-                if itemData.ItemId == currentItemId then
-                    toolInData = true
-                    break
+            if data then
+                -- 检查当前工具是否在新的data中
+                for _, itemData in pairs(data) do
+                    if itemData.ItemId == currentItemId then
+                        toolInData = true
+                        break
+                    end
                 end
             end
             
@@ -204,6 +206,13 @@ function InventoryService:UpdateBagData(player, data)
     self.Client.SendBagData:Fire(player, self.BagData[player.UserId])
 end
 
+function InventoryService:GetInventoryData(player)
+    if not player or not player.UserId then
+        return {}
+    end
+    return self.Inventory[player.UserId] or {}
+end
+
 -- 获取玩家背包数据
 -- @param player Player 玩家对象
 -- @return table 背包数据，如果不存在则返回空表
@@ -218,7 +227,7 @@ end
 -- @param player Player 玩家对象
 -- @return table 工具栏数据，如果不存在则返回空表
 function InventoryService:GetToolData(player)
-    if not player or not player.UserId or not self.ToolData[player.UserId]then
+    if not player or not player.UserId then
         return {}
     end
     return self.ToolData[player.UserId] or {}
@@ -418,6 +427,8 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
     -- 直接设置Tool的Grip属性来控制握持方向
     if itemInfo.Index ~= 4 then
         tool.Grip = CFrame.Angles(0, 0, math.rad(90))  -- 只旋转，不偏移位置
+    else
+        tool.Grip = CFrame.Angles(0, 0, math.rad(180))  -- 只旋转，不偏移位置
     end
     
     -- 连接工具装备事件，重置状态

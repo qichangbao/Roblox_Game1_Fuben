@@ -39,11 +39,11 @@ local RunService = game:GetService("RunService")
 -- 初始化Knit框架
 local Knit = require(ReplicatedStorage:WaitForChild('Packages'):WaitForChild('Knit'):waitForChild('Knit'))
 Knit.AddControllers(script.Parent:WaitForChild('ControllersFolder'))
-local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+-- local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
-local playerGui = Interface.safeWaitPart(game.Players.LocalPlayer, "PlayerGui")
-local loadingUI = Interface.safeWaitPart(playerGui, "LoadingUI")
-loadingUI.Enabled = true
+-- local playerGui = Interface.safeWaitPart(game.Players.LocalPlayer, "PlayerGui")
+-- local loadingUI = Interface.safeWaitPart(playerGui, "LoadingUI")
+-- loadingUI.Enabled = true
 
 _G.ClientData = require(game.Players.LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("ClientData"))
 
@@ -166,16 +166,17 @@ local function updatePositionDisplay(positionLabel)
 			connection:Disconnect()
 		end
 
-		local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+		local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+		local humanoid = character:FindFirstChild("Humanoid")
 
 		-- 创建位置更新循环
 		connection = RunService.Heartbeat:Connect(function()
-			if humanoidRootPart and humanoidRootPart.Parent then
+			if humanoidRootPart and humanoidRootPart.Parent and humanoid then
 				local position = humanoidRootPart.Position
 				positionLabel.Text = string.format(
-					"X: %.1f\nY: %.1f\nZ: %.1f",
+					"X: %.2f\nY: %.2f\nZ: %.2f",
 					position.X,
-					position.Y - 3,
+					position.Y - humanoid.HipHeight - humanoidRootPart.Size.Y / 2,
 					position.Z
 				)
 			end

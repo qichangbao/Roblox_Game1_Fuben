@@ -57,10 +57,8 @@ function MonsterService:CreateMonster(monsterId, position)
     local monster = part:Clone()
     monster.Parent = workspace
     monster.Name = monsterInfo.Model .."_" .. tick()
-    monster:PivotTo(CFrame.new(position, monster.HumanoidRootPart.CFrame.LookVector))
 
-    local aiManager = AIManager.new(monster, position, monsterInfo)
-    aiManager:Start()
+    AIManager.new(monster, position, monsterInfo)
 end
 
 function MonsterService:GetKillMonsters(player)

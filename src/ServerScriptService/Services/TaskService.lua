@@ -39,7 +39,6 @@ end
 
 function TaskService:InitEscapeTask(escapeTask)
     self.EscapeTask = escapeTask
-    self:UpdateEscapeTask(0)
     self.IsInit = true
 end
 
@@ -49,6 +48,10 @@ end
 
 function TaskService:SetEscapeTask(gold)
     self.EscapeTask = gold
+end
+
+function TaskService:GetEscapeTask()
+    return self.EscapeTask
 end
 
 function TaskService:UpdateEscapeTask(curEscapeTask)
@@ -62,6 +65,10 @@ end
 
 function TaskService:SetEscapeTime(time)
     self.EscapeTime = time
+end
+
+function TaskService:GetEscapeTime()
+    return self.EscapeTime
 end
 
 function TaskService:UpdateEscapeTime(curEscapeTime)

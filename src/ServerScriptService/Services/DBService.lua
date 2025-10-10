@@ -7,6 +7,11 @@ local _dataTemplate = {
 	Gold = 0,	-- 金币
 	PlayerInventory = {},	-- 背包数据
 	PlayerToolData = {},	-- 工具栏数据
+	DuanWeiData = {				-- 段位数据
+		duanWei = 1,			-- 段位等级 (1-7)
+		level = 1,				-- 当前段位的级别
+		star = 0				-- 当前级别的星级
+	},
 }
 
 local ProfileStore = ProfileService.GetProfileStore(

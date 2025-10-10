@@ -16,8 +16,6 @@ function ChaseState.new(AIManager, animation)
 end
 
 function ChaseState:moveTo(humanoid, targetPoint, targetPart)
-	local targetReached = false
-
     -- 如果连接仍然连接，则断开连接
     if self.connection then
         self.connection:Disconnect()
@@ -26,7 +24,6 @@ function ChaseState:moveTo(humanoid, targetPoint, targetPart)
 
 	-- 监听 humanoid 达到目标
 	self.connection = humanoid.MoveToFinished:Connect(function(reached)
-		targetReached = true
 		self.connection:Disconnect()
 		self.connection = nil
 	    print((reached and "目标已到达！") or "未能到达目标！")
@@ -34,29 +31,6 @@ function ChaseState:moveTo(humanoid, targetPoint, targetPart)
 
 	-- 开始行走
 	humanoid:MoveTo(targetPoint, targetPart)
-
-	-- 在新线程中执行，以免使函数阻塞
-	task.spawn(function()
-		while not targetReached do
-			-- humanoid 仍然存在吗？
-			if not (humanoid and humanoid.Parent) then
-				break
-			end
-			-- 目标是否发生了变化？
-			if humanoid.WalkToPoint ~= targetPoint then
-				break
-			end
-			-- 刷新超时
-			humanoid:MoveTo(targetPoint)
-			task.wait(6)
-		end
-
-		-- 如果连接仍然连接，则断开连接
-		if self.connection then
-			self.connection:Disconnect()
-			self.connection = nil
-		end
-	end)
 end
 
 function ChaseState:Enter()
@@ -83,6 +57,12 @@ function ChaseState:Enter()
         -- end)
         self:moveTo(Humanoid, targetPos, self.AIManager.target.HumanoidRootPart)
         self.AIManager:PlayAnimation(self.animation, true)
+
+        if self.AIManager.monsterInfo.MonsterId == 30001 then
+            local ui = game:GetService("SoundService"):WaitForChild("GAME")
+            local sound = ui:WaitForChild("Langhuxi")
+            sound:Play()
+        end
         return
     else
         self.AIManager:SetState("Idle")
@@ -208,11 +188,6 @@ function ChaseState:CheckDistance()
 end
 
 function ChaseState:Exit()
-    local Humanoid = self.AIManager.NPC:FindFirstChild('Humanoid')
-    if Humanoid and Humanoid.RootPart then
-        Humanoid.WalkToPoint = Humanoid.RootPart.Position
-        Humanoid.WalkToPart = nil
-    end
     if self.connection then
         self.connection:Disconnect()
         self.connection = nil

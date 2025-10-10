@@ -9,6 +9,13 @@ function AttackState.new(AIManager, animation)
     return self
 end
 
+function AttackState:Enter()
+    self.timer = self.AIManager.monsterInfo.AttackSpeed
+    self.isFirst = true
+    -- 更新位置和方向（确保怪物正面朝向目标）
+    self:ChangeDirection()
+end
+
 function AttackState:ChangeDirection()
     if not self.AIManager.target then
         return
@@ -28,17 +35,6 @@ function AttackState:ChangeDirection()
     local newPos = self.AIManager.NPC.HumanoidRootPart.Position
     local lookDirection = (targetPosition - newPos).Unit
     self.AIManager.NPC.HumanoidRootPart.CFrame = CFrame.lookAt(newPos, newPos + lookDirection)
-end
-
-function AttackState:Enter()
-    self.timer = self.AIManager.monsterInfo.AttackSpeed
-    self.isFirst = true
-    local HumanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
-    if HumanoidRootPart then
-        HumanoidRootPart.Anchored = true
-    end
-    -- 更新位置和方向（确保怪物正面朝向目标）
-    self:ChangeDirection()
 end
 
 function AttackState:Update(dt)
@@ -68,6 +64,12 @@ function AttackState:Update(dt)
 
     task.wait(1)
 
+    if self.AIManager.monsterInfo.MonsterId == 30001 then
+        local ui = game:GetService("SoundService"):WaitForChild("GAME")
+        local sound = ui:WaitForChild("Langgongji")
+        sound:Play()
+    end
+
     local currentPos = HumanoidRootPart.CFrame.Position
     local attackRange = self.AIManager.monsterInfo.AttackRange
     local params = OverlapParams.new()
@@ -93,10 +95,6 @@ end
 
 function AttackState:Exit()
     self.AIManager.target = nil
-    local HumanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
-    if HumanoidRootPart then
-        HumanoidRootPart.Anchored = false
-    end
 end
 
 return AttackState
