@@ -1,5 +1,10 @@
 local GameConfig = {}
 
+GameConfig.HumanoidType = {
+    Player = 1, -- 玩家
+    Monster = 2, -- 怪物
+}
+
 -- 物品类型
 GameConfig.ItemType = {
     Explore = 1,    -- 探索类
@@ -20,6 +25,17 @@ GameConfig.ItemTypeFolder = {
     [GameConfig.ItemType.Mound] = "土堆",
 }
 
+GameConfig.NpcUIType = {
+    Store = 1, -- 商店
+    Sell = 2, -- 出售
+}
+
+GameConfig.Difficulty = {
+    Easy = 1,           -- 简单
+    Difficulty = 2,     -- 困难
+    HellDifficulty = 3, -- 地狱
+}
+
 GameConfig.LandName = "恐龙岛"
 GameConfig.TeleportPartNames = {"撤离点"}-- 触发传送的model名称
 GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
@@ -31,7 +47,7 @@ GameConfig.AdditionalBackpackId = 6 -- 额外的背包ID
 GameConfig.MaxTurnInItemNum = 18    -- 最大可提交物品数量
 GameConfig.DefaultEscapeTask = 10000  -- 默认的撤离任务
 GameConfig.DefaultEscapeTime = 600   -- 默认的撤离时间
-GameConfig.ChestMaxNum = 4          -- 宝箱最大数量
+GameConfig.ChestMaxNum = 40          -- 宝箱最大数量
 
 -- 物品的扩展属性，用于服务器客户端同步一些动态数据
 GameConfig.GetItemAttribute = function(item)

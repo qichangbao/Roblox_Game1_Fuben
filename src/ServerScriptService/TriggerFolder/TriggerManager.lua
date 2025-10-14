@@ -1,14 +1,15 @@
-local TriggerFolder = script.Parent
-local ConfigTriggers = require(TriggerFolder:WaitForChild("ConfigTriggers"))
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TriggerConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("TriggerConfig"))
 
+local TriggerFolder = script.Parent
 local ConditionFolder = TriggerFolder:WaitForChild("ConditionFolder")
-local PositionCondition = require(ConditionFolder:WaitForChild("PositionCondition"))
-local SailingDistanceCondition = require(ConditionFolder:WaitForChild("SailingDistanceCondition"))
+local ItemPickUpCondition = require(ConditionFolder:WaitForChild("ItemPickUpCondition"))
+local ItemDropCondition = require(ConditionFolder:WaitForChild("ItemDropCondition"))
 
 local ActionFolder = TriggerFolder:WaitForChild("ActionFolder")
-local CreateChestAction = require(ActionFolder:WaitForChild("CreateChestAction"))
-local WaveAction = require(ActionFolder:WaitForChild("WaveAction"))
+local ChangeMonsterAttributeAction = require(ActionFolder:WaitForChild("ChangeMonsterAttributeAction"))
 local CreateMonsterAction = require(ActionFolder:WaitForChild("CreateMonsterAction"))
+local ShowUIAction = require(ActionFolder:WaitForChild("ShowUIAction"))
 
 local TriggerManager = {}
 
@@ -29,14 +30,14 @@ end
 -- 加载条件
 function TriggerManager:Init()
     -- 遍历所有触发器配置
-    for _, triggerConfig in ipairs(ConfigTriggers) do
+    for _, triggerConfig in ipairs(TriggerConfig) do
         local condition
         
         -- 根据触发器类型创建相应的触发器实例
-        if triggerConfig.ConditionType == "Position" then
-            condition = PositionCondition.new(triggerConfig)
-        elseif triggerConfig.ConditionType == "SailingDistance" then
-            condition = SailingDistanceCondition.new(triggerConfig)
+        if triggerConfig.ConditionType == "ItemPickUp" then
+            condition = ItemPickUpCondition.new(triggerConfig)
+        elseif triggerConfig.ConditionType == "ItemDrop" then
+            condition = ItemDropCondition.new(triggerConfig)
         else
             warn("未知的触发器类型:", triggerConfig.ConditionType)
             continue
@@ -50,15 +51,6 @@ function TriggerManager:Init()
         
         -- 连接触发器事件
         condition:Connect(function(data)
-            if triggerConfig.ConditionType == "Position" then
-                print("位置触发器被触发!", data.Player.Name, "在位置", data.Position)
-            elseif triggerConfig.ConditionType == "SailingDistance" then
-                print("玩家航行距离触发器被触发!", data.Player.Name)
-            else
-                warn("未知的触发器类型:", triggerConfig.ConditionType)
-                return
-            end
-            
             -- 执行关联动作
             if action then
                 action:Execute(data)
@@ -78,18 +70,36 @@ end
 -- 加载动作
 function TriggerManager:InitAction(actionConfig, condition)
     local action
-    if actionConfig.ActionType == "CreateChest" then
-        action = CreateChestAction.new(actionConfig, condition)
-    elseif actionConfig.ActionType == "Wave" then
-        action = WaveAction.new(actionConfig, condition)
+    if actionConfig.ActionType == "ChangeMonsterAttribute" then
+        action = ChangeMonsterAttributeAction.new(actionConfig, condition)
     elseif actionConfig.ActionType == "CreateMonster" then
         action = CreateMonsterAction.new(actionConfig, condition)
+    elseif actionConfig.ActionType == "ShowUI" then
+        action = ShowUIAction.new(actionConfig, condition)
     else
         warn("未知的动作类型:", actionConfig.ActionType)
         return nil
     end
 
     return action
+end
+
+function TriggerManager:PickUpItem(player, itemId)
+    for _, condition in ipairs(_allConditions) do
+        if condition.config.ConditionType == "ItemPickUp" and condition.itemId == itemId then
+            condition.isSatisfy = true
+            condition:MonitorPlayer(player)
+        end
+    end
+end
+
+function TriggerManager:DropItem(player, itemId)
+    for _, condition in ipairs(_allConditions) do
+        if condition.config.ConditionType == "ItemDrop" and condition.itemId == itemId then
+            condition.isSatisfy = true
+            condition:MonitorPlayer(player)
+        end
+    end
 end
 
 game.Players.PlayerAdded:Connect(function(player)

@@ -6,15 +6,15 @@ local IdleState = {}
 IdleState.__index = IdleState
 
 -- 空闲状态
-function IdleState.new(AIManager, animation)
+function IdleState.new(AIManager)
     local self = setmetatable({}, IdleState)
     self.AIManager = AIManager
-    self.animation = animation
     return self
 end
 
 function IdleState:Enter()
-    self.AIManager:PlayAnimation(self.animation, true)
+    self.AIManager:PlayAnimation("idle", true, Enum.AnimationPriority.Idle)
+    self.AIManager:PlaySound("idle")
 
     self.timer = math.random(5, 15)
 end
@@ -29,7 +29,7 @@ function IdleState:Update(dt)
     self.timer = self.timer - dt
 
     local npcPos = HumanoidRootPart.CFrame.Position
-    local visionRange = self.AIManager.monsterInfo.VisionRange
+    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
     for _, v in ipairs(Players:GetPlayers()) do
         local character = v.character
         if character then

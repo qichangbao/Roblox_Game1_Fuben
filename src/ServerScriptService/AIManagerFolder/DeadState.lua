@@ -8,16 +8,16 @@ local DeadState = {}
 DeadState.__index = DeadState
 
 -- 死亡状态
-function DeadState.new(AIManager, animation)
+function DeadState.new(AIManager)
     local self = setmetatable({}, DeadState)
     self.AIManager = AIManager
-    self.animation = animation
     return self
 end
 
 function DeadState:Enter()
     -- 播放死亡动画并分析
-     self.AIManager:PlayAnimation(self.animation, false)
+     self.AIManager:PlayAnimation("dead", false, Enum.AnimationPriority.Action2)
+     self.AIManager:PlaySound("dead")
 
     local HumanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
     if HumanoidRootPart then
@@ -25,8 +25,7 @@ function DeadState:Enter()
     end
     
     -- 触发物品掉落
-    local monsterInfo = self.AIManager.monsterInfo
-    local config = MonsterConfig:GetByMonsterId(monsterInfo.MonsterId)
+    local config = MonsterConfig:GetByMonsterId(self.AIManager.monsterInfo.MonsterId)
     if config then
         -- 获取NPC当前位置
         local npcPosition = self.AIManager.NPC:GetPivot().Position

@@ -10,7 +10,6 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 local ServerDataService = Knit.CreateService {
 	Name = "ServerDataService",
 	Client = {
-        ShowTip = Knit.CreateSignal(),
 	},
 }
 
@@ -29,14 +28,34 @@ function ServerDataService:KnitStart()
                 humanoid.AutoJumpEnabled = false
             end
             
-            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-            if humanoidRootPart then
-                humanoidRootPart.CollisionGroup = "Player"
+            -- 递归遍历角色下的所有Part并设置CollisionGroup
+            local function setCollisionGroupForAllParts(parent)
+                for _, child in ipairs(parent:GetChildren()) do
+                    if child:IsA("BasePart") then
+                        child.CollisionGroup = "Player"
+                    end
+                    -- 递归处理子对象
+                    setCollisionGroupForAllParts(child)
+                end
             end
+            
+            -- 为角色下的所有Part设置CollisionGroup
+            setCollisionGroupForAllParts(character)
+            
+            -- 监听新添加的Part（如装备、配件等）
+            character.ChildAdded:Connect(function(child)
+                if child:IsA("BasePart") then
+                    child.CollisionGroup = "Player"
+                elseif child:IsA("Model") or child:IsA("Folder") then
+                    -- 如果是模型或文件夹，递归设置其中的Part
+                    setCollisionGroupForAllParts(child)
+                end
+            end)
         end)
         
         player:LoadCharacter()
         player:SetAttribute("JoinTime", tick())
+        player:SetAttribute("HumanoidType", GameConfig.HumanoidType.Player)
     end
 
     local function playerRemoved(player)
@@ -73,6 +92,7 @@ function ServerDataService:GetInitData(player)
 
     local hasEscapeTask = false
     local hasEscapeTime = false
+    local difficulty = GameConfig.Difficulty.Easy
     -- 获取传送数据
     local joinData = player:GetJoinData()
     if joinData and joinData.TeleportData then
@@ -86,6 +106,7 @@ function ServerDataService:GetInitData(player)
             end
         end
 
+        difficulty = localTeleportData.Difficulty or GameConfig.Difficulty.Easy
         local TaskService = Knit.GetService("TaskService")
         if not TaskService:GetIsInit() then
             if localTeleportData.EscapeTask then
@@ -129,6 +150,7 @@ function ServerDataService:GetInitData(player)
         ToolData = toolData,
         EscapeTask = escapeTask,
         EscapeTime = escapeTime,
+        Difficulty = difficulty,
     }
 end
 
@@ -137,10 +159,6 @@ end
 -- @return table 玩家数据
 function ServerDataService.Client:GetInitData(player)
     return self.Server:GetInitData(player)
-end
-
-function ServerDataService:ShowTip(player, tip)
-    self.Client.ShowTip:Fire(player, tip)
 end
 
 return ServerDataService

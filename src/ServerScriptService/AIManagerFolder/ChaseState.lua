@@ -1,5 +1,4 @@
 local Players = game:GetService("Players")
-local PathfindingMove = require(script.Parent:WaitForChild("PathfindingMoveModule"))
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
@@ -7,10 +6,9 @@ local ChaseState = {}
 ChaseState.__index = ChaseState
 
 -- 追赶状态
-function ChaseState.new(AIManager, animation)
+function ChaseState.new(AIManager)
     local self = setmetatable({}, ChaseState)
     self.AIManager = AIManager
-    self.animation = animation
     self.connection = nil
     return self
 end
@@ -26,7 +24,24 @@ function ChaseState:moveTo(humanoid, targetPoint, targetPart)
 	self.connection = humanoid.MoveToFinished:Connect(function(reached)
 		self.connection:Disconnect()
 		self.connection = nil
+
 	    print((reached and "目标已到达！") or "未能到达目标！")
+        if not reached then
+            local Humanoid = self.AIManager.NPC:FindFirstChild('Humanoid')
+            if not Humanoid then
+                self.AIManager:SetState("Idle")
+                return
+            end
+            
+            if self.AIManager.target and self.AIManager.target.HumanoidRootPart then
+                local targetPos = self.AIManager.target.HumanoidRootPart.Position
+                self:moveTo(Humanoid, targetPos, self.AIManager.target.HumanoidRootPart)
+                return
+            end
+
+            self.AIManager:SetState("Idle")
+            return
+        end
 	end)
 
 	-- 开始行走
@@ -51,18 +66,9 @@ function ChaseState:Enter()
         end
 
         local targetPos = self.AIManager.target.HumanoidRootPart.Position
-        -- self.connection = PathfindingMove.MoveTo(self.AIManager.NPC, targetPos, function(reached)
-        --     -- self.AIManager:SetState("Idle")
-        --     -- return
-        -- end)
         self:moveTo(Humanoid, targetPos, self.AIManager.target.HumanoidRootPart)
-        self.AIManager:PlayAnimation(self.animation, true)
-
-        if self.AIManager.monsterInfo.MonsterId == 30001 then
-            local ui = game:GetService("SoundService"):WaitForChild("GAME")
-            local sound = ui:WaitForChild("Langhuxi")
-            sound:Play()
-        end
+        self.AIManager:PlayAnimation("walk", true, Enum.AnimationPriority.Movement)
+        self.AIManager:PlaySound("chase")
         return
     else
         self.AIManager:SetState("Idle")
@@ -110,13 +116,6 @@ function ChaseState:Update(dt)
         return
     end
 
-    -- 目标在水里，则放弃追踪
-    if Interface.isPointInTerrainWater(targetHumanoidRootPart.Position) then
-        self.AIManager.target = nil
-        self.AIManager:SetState("Idle")
-        return
-    end
-
     targetPosition = targetHumanoidRootPart.CFrame.Position
     if not targetPosition then
         self.AIManager.target = nil
@@ -133,7 +132,7 @@ function ChaseState:FindNearestModel()
         return
     end
     local npcPos = HumanoidRootPart.CFrame.Position
-    local visionRange = self.AIManager.monsterInfo.VisionRange
+    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
     local minDistance = math.huge
 
     for _, v in ipairs(Players:GetPlayers()) do
@@ -162,17 +161,20 @@ function ChaseState:CheckDistance()
     local targetHumanoidRootPart = target:FindFirstChild('HumanoidRootPart')
     local targetHumanoid = target:FindFirstChild('Humanoid')
     if targetHumanoidRootPart and targetHumanoid and targetHumanoid.Health > 0 then
-        if not Interface.isPointInTerrainWater(targetHumanoidRootPart.Position) then
-            distanceToPlayer = (targetHumanoidRootPart.CFrame.Position - currentPos).Magnitude
+        if Interface.isPointInTerrainWater(targetHumanoidRootPart.Position) then
+            self.AIManager.target = nil
+            self.AIManager:SetState("Idle")
+            return
         end
+        distanceToPlayer = (targetHumanoidRootPart.CFrame.Position - currentPos).Magnitude
     else
         self.AIManager.target = nil
         self.AIManager:SetState("Idle")
         return
     end
     
-    local attackRange = self.AIManager.monsterInfo.AttackRange
-    local visionRange = self.AIManager.monsterInfo.VisionRange
+    local attackRange = self.AIManager.NPC:GetAttribute("AttackRange")
+    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
     local params = OverlapParams.new()
     params.FilterType = Enum.RaycastFilterType.Include
     params.FilterDescendantsInstances = {target}
@@ -191,6 +193,12 @@ function ChaseState:Exit()
     if self.connection then
         self.connection:Disconnect()
         self.connection = nil
+    end
+
+    local Humanoid = self.AIManager.NPC:FindFirstChild('Humanoid')
+    if Humanoid and Humanoid.RootPart then
+        Humanoid.WalkToPoint = Humanoid.RootPart.Position
+        Humanoid.WalkToPart = nil
     end
 end
 

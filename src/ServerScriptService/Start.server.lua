@@ -54,8 +54,7 @@ game:GetService("RunService").Heartbeat:Connect(function(dt)
     _lastUpdateTime = currentTime
 end)
 
--- local TriggerManager = require(ServerScriptService:WaitForChild("TriggerFolder"):WaitForChild("TriggerManager"))
--- TriggerManager.new()
+_G.TriggerManager = require(ServerScriptService:WaitForChild("TriggerFolder"):WaitForChild("TriggerManager")).new()
 
 -- 全局禁用自动重生
 game.Players.CharacterAutoLoads = false

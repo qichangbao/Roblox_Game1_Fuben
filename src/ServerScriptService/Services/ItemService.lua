@@ -18,12 +18,22 @@ end
 
 local ItemService = Knit.CreateService {
     Name = "ItemService",
-    Client = {},
+    Client = {
+    },
 
     ChestNum = 0,
     Items = {},
 }
 
+-- 创建炫彩宝箱特效
+function ItemService:CreateXuanCaiChestEffect(position)
+    local effect = ServerStorage:WaitForChild("Effect"):WaitForChild("XuanCaiChestEffect"):Clone()
+    effect.Name = "XuanCaiChestEffect"
+    effect.Parent = workspace
+    effect:PivotTo(CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)))
+end
+
+-- 创建物品
 function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     if itemId == 0 then
         return
@@ -50,14 +60,9 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     item.Name = itemInfo.Item .. tick()
     item.Parent = workspace
     if item:IsA("BasePart") then
-        position = Vector3.new(position.X, position.Y + item.Size.Y / 2, position.Z)
-        item.Position = position
+        item.Position = Vector3.new(position.X, position.Y + item.Size.Y / 2, position.Z)
     elseif item:IsA("Model") then
-        if math.floor(position.X) == 559 then
-            local ll = 0
-        end
-        position = Vector3.new(position.X, position.Y + item.PrimaryPart.Size.Y / 2, position.Z)
-        item:PivotTo(CFrame.new(position))
+        item:PivotTo(CFrame.new(Vector3.new(position.X, position.Y + item.PrimaryPart.Size.Y / 2, position.Z)))
     end
     item:SetAttribute("ItemId", itemId)
     if attribute then
@@ -78,7 +83,13 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     proximityPrompt.Parent = item
 
     -- 基本属性配置
-    proximityPrompt.ActionText = "Pick"
+    if itemInfo.Type == GameConfig.ItemType.Chest then
+        proximityPrompt.ActionText = "Open"
+    elseif itemInfo.Type == GameConfig.ItemType.Mound then
+        proximityPrompt.ActionText = "Dig with a shovel"
+    else
+        proximityPrompt.ActionText = "Pick"
+    end
     proximityPrompt.ObjectText = itemInfo.DisplayName
     proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E -- 键盘按键
     proximityPrompt.GamepadKeyCode = Enum.KeyCode.ButtonX -- 手柄按键
@@ -88,35 +99,32 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
 
     -- 当玩家触发提示时
     proximityPrompt.Triggered:Connect(function(player)
-        print(player.Name .. " 触发了提示")
         -- 执行物品捡取逻辑
         self:HandleItemPickup(player, item, itemInfo)
     end)
 
     -- 当玩家开始按住时（仅当 HoldDuration > 0 时有效）
     proximityPrompt.PromptButtonHoldBegan:Connect(function(player)
-        print(player.Name .. " 开始按住按钮")
     end)
 
     -- 当玩家停止按住时
     proximityPrompt.PromptButtonHoldEnded:Connect(function(player)
-        print(player.Name .. " 停止按住按钮")
     end)
 
     if isAnchored then
-        -- task.delay(0.5, function()
-        --     if item:IsA("BasePart") then
-        --         -- 设置Part的锚固为false
-        --         item.Anchored = true
-        --     elseif item:IsA("Model") then
-        --         -- 遍历Model中的所有Part，设置锚固为false
-        --         for _, descendant in pairs(item:GetDescendants()) do
-        --             if descendant:IsA("BasePart") then
-        --                 descendant.Anchored = true
-        --             end
-        --         end
-        --     end
-        -- end)
+        task.delay(0.5, function()
+            if item:IsA("BasePart") then
+                -- 设置Part的锚固为false
+                item.Anchored = true
+            elseif item:IsA("Model") then
+                -- 遍历Model中的所有Part，设置锚固为false
+                for _, descendant in pairs(item:GetDescendants()) do
+                    if descendant:IsA("BasePart") then
+                        descendant.Anchored = true
+                    end
+                end
+            end
+        end)
     end
 
     return item
@@ -128,13 +136,6 @@ function ItemService:RemoveItem(item)
     end
 end
 
---[[
-    处理物品捡取逻辑
-    @param player 玩家对象
-    @param item 物品实例
-    @param itemName 物品名称
-    @param itemInfo 物品配置信息
-]]
 -- 处理玩家拾取物品的逻辑
 -- @param player: 拾取物品的玩家
 -- @param item: 要拾取的物品实例
@@ -167,10 +168,14 @@ function ItemService:HandleItemPickup(player, item, itemInfo)
         return
     end
 
+    --  mound 类物品不能拾取
+    if itemInfo.Type == GameConfig.ItemType.Mound then
+        return
+    end
+
     -- 尝试将物品添加到玩家背包
     local success, errorMessage = Knit.GetService("InventoryService"):GiveToolToPlayer(player, item)
     if success then
-        -- 成功添加到背包，销毁世界中的物品
         item:Destroy()
     else
         -- 添加失败，显示错误信息
@@ -178,12 +183,31 @@ function ItemService:HandleItemPickup(player, item, itemInfo)
     end
 end
 
+-- 根据计划数据创建物品
+-- @param planData: 计划数据
+-- @param position: 物品位置
+-- @param isAnchored: 是否固定物品
 function ItemService:CreateItemByPlan(planData, position, isAnchored)
     if planData.CanisterId ~= 0 then    -- 宝箱类物品，调用ChestService处理奖励
         local random = math.random(1, 10000)
         if random <= planData.ChestProbability and self.ChestNum < GameConfig.ChestMaxNum then
             self.ChestNum += 1
-            return self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute(), isAnchored)
+            local item = self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute(), isAnchored)
+            if planData.CanisterId == 503 then
+                if type(planData.ItemId) == "table" then
+                    for i, itemIdTemp in pairs(planData.ItemId) do
+                        if itemIdTemp == 1035 then
+                            self:CreateXuanCaiChestEffect(item:GetPivot().Position)
+                            break
+                        end
+                    end
+                else
+                    if planData.ItemId == 1035 then
+                        self:CreateXuanCaiChestEffect(item:GetPivot().Position)
+                    end
+                end
+            end
+            return item
         end
     else                                -- 普通物品
         if type(planData.ItemId) ~= "table" then
@@ -203,33 +227,39 @@ function ItemService:CreateItemByPlan(planData, position, isAnchored)
 end
 
 function ItemService:initItems()
-    task.spawn(function()
-        local pos = PosConfig:GetAll()
-        -- 随机打乱数组
-        local posArray = Interface.randomTable(pos)
-        for _, posData in pairs(posArray) do
-            local planData = PlanConfig:GetByPlanId(posData.PlanId)
-            if not planData then
-                continue
-            end
-
-            local item = self:CreateItemByPlan(planData, posData.Position, false)
-            if item then
-                table.insert(self.Items, item)
-            end
+    local posHasItem = {}
+    local pos = PosConfig:GetAll()
+    -- 随机打乱数组
+    local posArray = Interface.randomTable(pos)
+    for _, posData in pairs(posArray) do
+        local posKey = Vector3.new(math.floor(posData.Position.X), math.floor(posData.Position.Y), math.floor(posData.Position.Z))
+        if posHasItem[posKey] then
+            print("位置已存在物品", posKey)
+            continue
         end
 
-        for _, item in pairs(self.Items) do
-            if item:IsA("BasePart") then
-                -- 设置Part的锚固为false
-                item.Anchored = true
-            elseif item:IsA("Model") then
-                if item.PrimaryPart then
-                    item.PrimaryPart.Anchored = true
-                end
+        local planData = PlanConfig:GetByPlanId(posData.PlanId)
+        if not planData then
+            continue
+        end
+
+        local item = self:CreateItemByPlan(planData, posData.Position, false)
+        if item then
+            table.insert(self.Items, item)
+            posHasItem[posKey] = true
+        end
+    end
+
+    for _, item in pairs(self.Items) do
+        if item:IsA("BasePart") then
+            -- 设置Part的锚固为false
+            item.Anchored = true
+        elseif item:IsA("Model") then
+            if item.PrimaryPart then
+                item.PrimaryPart.Anchored = true
             end
         end
-    end)
+    end
 end
 
 function ItemService:KnitInit()
@@ -238,7 +268,7 @@ end
 function ItemService:KnitStart()
     self:initItems()
     -- task.spawn(function()
-    --     local itemTemp = self:CreateItem(501, Vector3.new(559.6, -0.7, 154.7), GameConfig.GetItemAttribute(), false)
+    --     local itemTemp = self:CreateItem(1035, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
     --     if itemTemp then
     --         table.insert(self.Items, itemTemp)
     --     end

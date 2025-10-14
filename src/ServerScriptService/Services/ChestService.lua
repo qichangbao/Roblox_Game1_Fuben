@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local PlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PlanConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
@@ -20,14 +21,26 @@ function ChestService:OpenChest(player, item, itemInfo)
         return false
     end
 
+    local XuanCaiChestEffect = workspace:FindFirstChild("XuanCaiChestEffect")
+    if XuanCaiChestEffect then
+        XuanCaiChestEffect:Destroy()
+    end
+
     -- 播放开箱子动画
     self:PlayChestOpenAnimation(item)
 
     local position = item:GetPivot().Position
-    for i, itemId in pairs(plan.ItemId) do
+    if type(plan.ItemId) == "table" then
+        for i, itemId in pairs(plan.ItemId) do
+            local random = math.random(1, 10000)
+            if random <= plan.Probability[i] then
+                Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
+            end
+        end
+    else
         local random = math.random(1, 10000)
-        if random <= plan.Probability[i] then
-            Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
+        if random <= plan.Probability then
+            Knit.GetService("ItemService"):CreateItem(plan.ItemId, position, GameConfig.GetItemAttribute(), true)
         end
     end
     

@@ -71,7 +71,6 @@ function PathfindingMove.MoveTo(npc, targetPosition, callback)
             task.wait(0.05)
         end
 
-        -- 如果高度差较大，将目标点Y轴上移，辅助登台阶
         local targetPos = wp.Position
         humanoidTemp:MoveTo(targetPos)
 

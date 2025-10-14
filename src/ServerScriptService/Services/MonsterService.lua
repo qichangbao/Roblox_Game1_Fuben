@@ -2,20 +2,21 @@
 -- 使用Knit框架管理服务器数据
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local MonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterConfig"))
 local AIManager = require(script.Parent.Parent:WaitForChild("AIManagerFolder"):WaitForChild("AIManager"))
 local MonsterPosConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterPosConfig"))
 local MonsterPlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterPlanConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
 local MonsterService = Knit.CreateService {
 	Name = "MonsterService",
 	Client = {
 	},
 
-    KillMonsters = {}
+    Monsters = {},
+    KillMonsters = {},
 }
 
 function MonsterService:PlayerAdded(player)
@@ -57,8 +58,32 @@ function MonsterService:CreateMonster(monsterId, position)
     local monster = part:Clone()
     monster.Parent = workspace
     monster.Name = monsterInfo.Model .."_" .. tick()
+    table.insert(self.Monsters, monster)
+    monster:SetAttribute("HumanoidType", GameConfig.HumanoidType.Monster)
 
     AIManager.new(monster, position, monsterInfo)
+end
+
+-- 移除怪物
+function MonsterService:MonsterRemoved(monster)
+    for i, v in ipairs(self.Monsters) do
+        if v == monster then
+            table.remove(self.Monsters, i)
+            break
+        end
+    end
+end
+
+-- 改变所有怪物的属性
+function MonsterService:ChangeAllMonsterAttribute(attribute, value)
+    for _, monster in pairs(self.Monsters) do
+        local initValue = monster:GetAttribute("Init" .. attribute)
+        if value then
+            monster:SetAttribute(attribute, initValue + value)
+        else
+            monster:SetAttribute(attribute, initValue)
+        end
+    end
 end
 
 function MonsterService:GetKillMonsters(player)
@@ -99,7 +124,7 @@ end
 
 function MonsterService:KnitInit()
     self:initMonsters()
-    --self:CreateMonster(30001, Vector3.new(353, -1.5, -240))
+    --self:CreateMonster(30001, Vector3.new(353, -0.7, -240))
     --self:CreateMonster(30002, Vector3.new(353, -1.5, -220))
     --self:CreateMonster(30003, Vector3.new(353, -1.5, -220))
 end

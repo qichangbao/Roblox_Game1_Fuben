@@ -176,6 +176,8 @@ local function faild(player)
         local groundPosition = Interface.getGroundPosition(playerPosition, ignoreList)
         for _, itemData in ipairs(allItems) do
             task.spawn(function()
+                -- 触发物品丢弃条件
+                _G.TriggerManager:DropItem(player, itemData.ItemId)
                 Knit.GetService("ItemService"):CreateItem(itemData.ItemId, groundPosition, nil, true)
                 task.wait(0.3)
             end)
@@ -212,6 +214,7 @@ function SettleService:Settle(player, needCheckPos, isForceLose)
             faild(player)
         end
     else
+        isSuccess = false
         faild(player)
     end
 

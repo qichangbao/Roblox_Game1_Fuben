@@ -10,6 +10,7 @@ function ConditionBase.new(config)
     self.isGoodCondition = config.IsGoodCondition
     self.lastConditionTime = {}
     self.conditionCount = {}
+    self.isSatisfy = false
     self.bindableEvent = Instance.new("BindableEvent")
     return self
 end
@@ -52,19 +53,15 @@ end
 
 function ConditionBase:Fire(data)
     self.lastConditionTime[data.Player.UserId] = tick()
-    local playerLucky = data.Player:GetAttribute("Lucky") or 0
     local curRandomChance = self.randomChance
-    if self.isGoodCondition == true then
-        curRandomChance = math.min(curRandomChance + playerLucky * 100, 100)
-    elseif self.isGoodCondition == false then
-        curRandomChance = math.max(curRandomChance - playerLucky * 100, 0)
-    end
     if curRandomChance <= 100 then
         local randomValue = math.random(1, 100)
         if randomValue <= curRandomChance then
             print("条件触发")
             self.conditionCount[data.Player.UserId] = self.conditionCount[data.Player.UserId] or 0 + 1
             self.bindableEvent:Fire(data)
+            
+            self.isSatisfy = false
             return
         else
             print("条件触发，但随机数不够")

@@ -1,16 +1,15 @@
 local Players = game:GetService("Players")
-local PathfindingMove = require(script.Parent:WaitForChild("PathfindingMoveModule"))
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+local PathfindingMove = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("PathfindingMove"))
 
 local PatrolState = {}
 PatrolState.__index = PatrolState
 
 -- 巡逻状态（使用智能移动，支持台阶爬升）
-function PatrolState.new(AIManager, animation)
+function PatrolState.new(AIManager)
     local self = setmetatable({}, PatrolState)
     self.AIManager = AIManager
-    self.animation = animation
     self.connection = nil
     self.patrolRadius = self.AIManager.monsterInfo.PatrolRadius
     self.maxDisForSpawn = self.AIManager.monsterInfo.MaxDisForSpawn
@@ -53,9 +52,7 @@ function PatrolState:isPositionSafe(position)
     local checkSize = Vector3.new(itemCheckRadius * 2, 4, itemCheckRadius * 2)
     local checkCFrame = CFrame.new(position + Vector3.new(0, 1, 0))
     
-    -- 使用GetPartBoundsInBox替代已弃用的GetPartBoundsInRegion
     local partsInRegion = workspace:GetPartBoundsInBox(checkCFrame, checkSize)
-    
     for _, part in ipairs(partsInRegion) do
         -- 检测是否是物品（通过检查父级是否有ItemId属性或特定名称模式）
         local parent = part.Parent
@@ -128,7 +125,8 @@ function PatrolState:Enter()
         self.AIManager:SetState("Idle")
         return
     end)
-    self.AIManager:PlayAnimation(self.animation, true)
+    self.AIManager:PlayAnimation("walk", true, Enum.AnimationPriority.Movement)
+    self.AIManager:PlaySound("walk")
 end
 
 -- 每帧更新
@@ -141,7 +139,7 @@ function PatrolState:Update(dt)
 
     local npcPos = HumanoidRootPart.CFrame.Position
     -- 如果有玩家进入视野范围，切换到追逐状态
-    local visionRange = self.AIManager.monsterInfo.VisionRange
+    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
     for _, v in ipairs(Players:GetPlayers()) do
         local character = v.character
         if character then

@@ -109,9 +109,6 @@ end
     @return boolean 如果是手机设备返回true，否则返回false
 ]]
 function Interface.isMobile()
-    if game:GetService("RunService"):IsStudio() then
-        return true
-    end
     -- 必须有触摸屏
     if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled and
            not UserInputService.MouseEnabled then

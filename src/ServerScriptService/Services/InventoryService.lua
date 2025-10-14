@@ -15,6 +15,7 @@ local InventoryService = Knit.CreateService {
         SendToolData = Knit.CreateSignal(),
         SendBagData = Knit.CreateSignal(),
         EquipAdditionalBackpack = Knit.CreateSignal(),
+        PlayPickUpSound = Knit.CreateSignal(),
 	},
 
 	Inventory = {},     -- 背包数据
@@ -233,6 +234,16 @@ function InventoryService:GetToolData(player)
     return self.ToolData[player.UserId] or {}
 end
 
+-- 创建物品捡取特效
+function InventoryService:CreatePickUpEffect(position)
+    local effect = ServerStorage:WaitForChild("Effect"):WaitForChild("PickUpEffect"):Clone()
+    effect.Parent = workspace
+    effect:PivotTo(CFrame.new(position))
+    
+    -- 使用Debris服务在3秒后自动回收特效
+    game:GetService("Debris"):AddItem(effect, 5)
+end
+
 function InventoryService:GiveToolToPlayer(player, item)
     local toolData = self.ToolData[player.UserId]
     if not toolData then
@@ -288,6 +299,13 @@ function InventoryService:GiveToolToPlayer(player, item)
     else
         self:UpdateToolData(player, toolData)
     end
+    
+    -- 触发物品拾取条件
+    _G.TriggerManager:PickUpItem(player, itemId)
+    -- 成功添加到背包，销毁世界中的物品
+    self:CreatePickUpEffect(item:GetPivot().Position)
+    self.Client.PlayPickUpSound:Fire(player, itemInfo)
+    Knit.GetService("ClientUIService"):PickUpItem(player, itemInfo.Index)
     return true, "物品添加成功"
 end
 
@@ -780,6 +798,8 @@ function InventoryService:DiscardTool(player, slot)
             
             -- 逐个丢出物品，每个间隔0.5秒
             for i, itemDataTemp in ipairs(itemsToThrow) do
+                -- 触发物品丢弃条件
+                _G.TriggerManager:DropItem(player, itemDataTemp.itemInfo.Index)
                 CreateItemToFloor(character, itemDataTemp.itemInfo, itemDataTemp.attribute)
                 
                 -- 如果不是最后一个物品，等待0.3秒
@@ -792,6 +812,8 @@ function InventoryService:DiscardTool(player, slot)
     
     -- 把物品丢出来
     task.spawn(function()
+        -- 触发物品丢弃条件
+        _G.TriggerManager:DropItem(player, itemId)
         CreateItemToFloor(character, itemInfo, attribute)
     end)
 end
@@ -936,6 +958,7 @@ function InventoryService:TurnInCollect(player)
         if isBagChanged then
             self:UpdateBagData(player, self.BagData[player.UserId])
         end
+        Knit.GetService("ClientUIService"):Submit(player, gold)
     else
         print(string.format("玩家 %s 没有可上交的搜集物品", player.Name))
     end
