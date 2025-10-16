@@ -9,47 +9,71 @@ local function playSound1()
     local child = Interface.safeWaitPart(SoundFolder, "Firetree")
     local child1 = Interface.safeWaitPart(child, "Fire1")
     local child2 = Interface.safeWaitPart(child1, "FireSound")
+    if not child2.IsLoaded then
+        child2.Loaded:Wait()
+    end
     child2:Play()
 end
 local function playSound2()
     local child = Interface.safeWaitPart(SoundFolder, "SageEvo")
     local child1 = Interface.safeWaitPart(child, "Frog")
     local child2 = Interface.safeWaitPart(child1, "FrogSound")
+    if not child2.IsLoaded then
+        child2.Loaded:Wait()
+    end
     child2:Play()
 end
 local function playSound3()
     local child = Interface.safeWaitPart(SoundFolder, "HuoShan")
     local child1 = Interface.safeWaitPart(child, "Part1")
     local child2 = Interface.safeWaitPart(child1, "FireSound")
+    if not child2.IsLoaded then
+        child2.Loaded:Wait()
+    end
     child2:Play()
 end
 local function playSound4()
     local child = Interface.safeWaitPart(SoundFolder, "Torch1")
     local child1 = Interface.safeWaitPart(child, "Light")
     local child2 = Interface.safeWaitPart(child1, "FireSound")
+    if not child2.IsLoaded then
+        child2.Loaded:Wait()
+    end
     child2:Play()
 end
 local function playSound5()
     local child = Interface.safeWaitPart(SoundFolder, "Torch2")
     local child1 = Interface.safeWaitPart(child, "Light")
     local child2 = Interface.safeWaitPart(child1, "FireSound")
+    if not child2.IsLoaded then
+        child2.Loaded:Wait()
+    end
     child2:Play()
 end
 local function playSound6()
     local child = Interface.safeWaitPart(SoundFolder, "Torch3")
     local child1 = Interface.safeWaitPart(child, "Part")
     local child2 = Interface.safeWaitPart(child1, "FireSound")
+    if not child2.IsLoaded then
+        child2.Loaded:Wait()
+    end
     child2:Play()
 end
 local function playSound7()
     local child = Interface.safeWaitPart(SoundFolder, "Torch4")
     local child1 = Interface.safeWaitPart(child, "Fire")
     local child2 = Interface.safeWaitPart(child1, "FireSound")
+    if not child2.IsLoaded then
+        child2.Loaded:Wait()
+    end
     child2:Play()
 end
 local function playSound8()
     local child = Interface.safeWaitPart(SoundFolder, "Torch5")
     local child2 = Interface.safeWaitPart(child, "FireSound")
+    if not child2.IsLoaded then
+        child2.Loaded:Wait()
+    end
     child2:Play()
 end
 
@@ -64,6 +88,9 @@ playSound8()
 
 local gameSound = Interface.safeWaitPart(game:GetService("SoundService"), "GAME")
 local BackMusic = Interface.safeWaitPart(gameSound, "BackMusic1")
+if not BackMusic.IsLoaded then
+    BackMusic.Loaded:Wait()
+end
 BackMusic.Looped = true
 BackMusic:Play()
 

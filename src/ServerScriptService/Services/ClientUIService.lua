@@ -18,7 +18,7 @@ function ClientUIService:PickUpItem(player, itemId)
 end
 
 function ClientUIService:Submit(player, gold)
-    self.Client.ShowTip:FireAll({Type = 21, Text = string.format("%s submitted an item worth %d", player.Name, gold)})
+    self.Client.ShowTip:FireAll({Type = 1, Text = string.format("%s submitted an item worth %d", player.Name, gold)})
 end
 
 function ClientUIService:ShowUI(player, ui)

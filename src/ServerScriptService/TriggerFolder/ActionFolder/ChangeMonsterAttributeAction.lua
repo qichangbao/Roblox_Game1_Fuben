@@ -8,17 +8,18 @@ ChangeMonsterAttributeAction.__index = ChangeMonsterAttributeAction
 
 function ChangeMonsterAttributeAction.new(config, condition)
     local self = setmetatable(ActionBase.new(config, condition), ChangeMonsterAttributeAction)
+    self.duration = self.config.Duration
     return self
 end
 
 function ChangeMonsterAttributeAction:Execute(data)
     ActionBase.Execute(self)
-    print("执行ChangeMonsterAttributeAction")
     
-    if self.config.AttributeName and self.config.AttributeValue > 0 then
-	    Knit.GetService("MonsterService"):ChangeAllMonsterAttribute(self.config.AttributeName, self.config.AttributeValue)
-    else
-	    Knit.GetService("MonsterService"):ChangeAllMonsterAttribute(self.config.AttributeName)
+    Knit.GetService("MonsterService"):ChangeAllMonsterAttribute(self.config.AttributeName, self.config.AttributeValue)
+    if self.duration and self.duration > 0 then
+        task.delay(self.duration, function()
+            Knit.GetService("MonsterService"):ChangeAllMonsterAttribute(self.config.AttributeName)
+        end)
     end
 end
 

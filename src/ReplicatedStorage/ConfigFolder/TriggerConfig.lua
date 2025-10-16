@@ -10,6 +10,7 @@ return {
             ActionType = "ChangeMonsterAttribute",
             AttributeName = "VisionRange",
             AttributeValue = 70,
+            Duration = -1,
         }
     },
     -- 单独的物品丢弃触发器
@@ -22,7 +23,6 @@ return {
         Action = {
             ActionType = "ChangeMonsterAttribute",
             AttributeName = "VisionRange",
-            AttributeValue = -1,
         }
     },
     -- 单独的物品捡取触发器

@@ -16,7 +16,7 @@ function MoundService:OpenMound(player, item)
     end
     
     local curItemId = item:GetAttribute("ItemId")
-    if curItemId ~= 504 then
+    if curItemId ~= 601 then
         return false
     end
 
@@ -27,7 +27,7 @@ function MoundService:OpenMound(player, item)
 
     local position = item:GetPivot().Position
     Knit.GetService("ItemService"):RemoveItem(item)
-    Knit.GetService("ItemService"):CreateItem(505, position)
+    Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
 
     local plan = PlanConfig:GetByCanisterId(itemInfo.Index)
     if not plan then

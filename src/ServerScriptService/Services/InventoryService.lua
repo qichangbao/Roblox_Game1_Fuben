@@ -519,7 +519,11 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
 
             if itemInfo.Type == GameConfig.ItemType.Weapon then    -- 进攻类
                 local PlayerAnimationHnadler = require(ReplicatedStorage:WaitForChild("Animation"):WaitForChild("PlayerAnimationHnadler"))
-                PlayerAnimationHnadler.playSwingAnimation(character)
+                if itemInfo.Index == 4 then
+                    PlayerAnimationHnadler.playDigAnimation(character)
+                else
+                    PlayerAnimationHnadler.playSwingAnimation(character)
+                end
             end
         end
     end)

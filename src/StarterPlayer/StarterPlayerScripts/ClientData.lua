@@ -31,7 +31,7 @@ end
 local function init()
     local KnitInitClient = require(script.Parent:WaitForChild("KnitInitClient"))
     KnitInitClient.AddListener(function()
-        Knit.GetService("ServerDataService").GetInitData():andThen(function(data)
+        Knit.GetService("PlayerService").GetInitData():andThen(function(data)
             setInitData(data)
         end)
 

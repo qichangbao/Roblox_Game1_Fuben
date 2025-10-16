@@ -1,4 +1,4 @@
--- ServerDataService 服务
+-- PlayerService 服务
 -- 使用Knit框架管理服务器数据
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7,18 +7,18 @@ local Players = game:GetService("Players")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
-local ServerDataService = Knit.CreateService {
-	Name = "ServerDataService",
+local PlayerService = Knit.CreateService {
+	Name = "PlayerService",
 	Client = {
 	},
 }
 
-function ServerDataService:KnitInit()
+function PlayerService:KnitInit()
 end
 
 -- 服务启动时的初始化
 -- @return void
-function ServerDataService:KnitStart()
+function PlayerService:KnitStart()
     local function playerAdd(player)
         print("PlayerAdded    ", player.Name)
         
@@ -26,6 +26,10 @@ function ServerDataService:KnitStart()
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             if humanoid then
                 humanoid.AutoJumpEnabled = false
+                player:SetAttribute("InitHealth", humanoid.Health)
+                player:SetAttribute("InitWalkSpeed", humanoid.WalkSpeed)
+                player:SetAttribute("InitJumpPower", humanoid.JumpPower)
+                player:SetAttribute("InitMaxHealth", humanoid.MaxHealth)
             end
             
             -- 递归遍历角色下的所有Part并设置CollisionGroup
@@ -81,7 +85,7 @@ function ServerDataService:KnitStart()
 	end)
 end
 
-function ServerDataService:GetInitData(player)
+function PlayerService:GetInitData(player)
     Knit.GetService("DBService"):PlayerAdded(player)
     Knit.GetService("SettleService"):PlayerAdded(player)
     Knit.GetService("MonsterService"):PlayerAdded(player)
@@ -157,8 +161,40 @@ end
 -- 客户端远程方法：获取玩家数据
 -- @param player Player 请求数据的玩家
 -- @return table 玩家数据
-function ServerDataService.Client:GetInitData(player)
+function PlayerService.Client:GetInitData(player)
     return self.Server:GetInitData(player)
 end
 
-return ServerDataService
+function PlayerService:ChangePlayerAttribute(player, attributeName, attributeValue)
+    if not player or not player.Character then
+        return
+    end
+    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        return
+    end
+
+    if attributeValue then
+        if attributeName == "Health" then
+            humanoid.Health = attributeValue
+        elseif attributeName == "WalkSpeed" then
+            humanoid.WalkSpeed = attributeValue
+        elseif attributeName == "MaxHealth" then
+            humanoid.MaxHealth = attributeValue
+        elseif attributeName == "JumpPower" then
+            humanoid.JumpPower = attributeValue
+        end
+    else
+        if attributeName == "Health" then
+            humanoid.Health = player:GetAttribute("InitHealth")
+        elseif attributeName == "WalkSpeed" then
+            humanoid.WalkSpeed = player:GetAttribute("InitWalkSpeed")
+        elseif attributeName == "MaxHealth" then
+            humanoid.MaxHealth = player:GetAttribute("InitMaxHealth")
+        elseif attributeName == "JumpPower" then
+            humanoid.JumpPower = player:GetAttribute("InitJumpPower")
+        end
+    end
+end
+
+return PlayerService

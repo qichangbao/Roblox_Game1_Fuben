@@ -8,6 +8,7 @@ local ItemDropCondition = require(ConditionFolder:WaitForChild("ItemDropConditio
 
 local ActionFolder = TriggerFolder:WaitForChild("ActionFolder")
 local ChangeMonsterAttributeAction = require(ActionFolder:WaitForChild("ChangeMonsterAttributeAction"))
+local ChangePlayerAttributeAction = require(ActionFolder:WaitForChild("ChangePlayerAttributeAction"))
 local CreateMonsterAction = require(ActionFolder:WaitForChild("CreateMonsterAction"))
 local ShowUIAction = require(ActionFolder:WaitForChild("ShowUIAction"))
 
@@ -72,6 +73,8 @@ function TriggerManager:InitAction(actionConfig, condition)
     local action
     if actionConfig.ActionType == "ChangeMonsterAttribute" then
         action = ChangeMonsterAttributeAction.new(actionConfig, condition)
+    elseif actionConfig.ActionType == "ChangePlayerAttribute" then
+        action = ChangePlayerAttributeAction.new(actionConfig, condition)
     elseif actionConfig.ActionType == "CreateMonster" then
         action = CreateMonsterAction.new(actionConfig, condition)
     elseif actionConfig.ActionType == "ShowUI" then

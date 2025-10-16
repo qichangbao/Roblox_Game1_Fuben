@@ -33,8 +33,7 @@ function ItemService:CreateXuanCaiChestEffect(position)
     effect:PivotTo(CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)))
 end
 
--- 创建物品
-function ItemService:CreateItem(itemId, position, attribute, isAnchored)
+function ItemService:CreateItemNoProximityPrompt(itemId, position, attribute, isAnchored)
     if itemId == 0 then
         return
     end
@@ -77,7 +76,32 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     highlight.OutlineTransparency = 0.85
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
     highlight.DepthMode = Enum.HighlightDepthMode.Occluded
-    
+
+    if isAnchored then
+        task.delay(0.5, function()
+            if item:IsA("BasePart") then
+                -- 设置Part的锚固为false
+                item.Anchored = true
+            elseif item:IsA("Model") then
+                -- 遍历Model中的所有Part，设置锚固为false
+                for _, descendant in pairs(item:GetDescendants()) do
+                    if descendant:IsA("BasePart") then
+                        descendant.Anchored = true
+                    end
+                end
+            end
+        end)
+    end
+
+    return item, itemInfo
+end
+
+-- 创建物品
+function ItemService:CreateItem(itemId, position, attribute, isAnchored)
+    local item, itemInfo = self:CreateItemNoProximityPrompt(itemId, position, attribute, isAnchored)
+    if not item or not itemInfo then
+        return
+    end
     -- 创建 ProximityPrompt 实例
     local proximityPrompt = Instance.new("ProximityPrompt")
     proximityPrompt.Parent = item
@@ -110,22 +134,6 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     -- 当玩家停止按住时
     proximityPrompt.PromptButtonHoldEnded:Connect(function(player)
     end)
-
-    if isAnchored then
-        task.delay(0.5, function()
-            if item:IsA("BasePart") then
-                -- 设置Part的锚固为false
-                item.Anchored = true
-            elseif item:IsA("Model") then
-                -- 遍历Model中的所有Part，设置锚固为false
-                for _, descendant in pairs(item:GetDescendants()) do
-                    if descendant:IsA("BasePart") then
-                        descendant.Anchored = true
-                    end
-                end
-            end
-        end)
-    end
 
     return item
 end
@@ -266,26 +274,26 @@ function ItemService:KnitInit()
 end
 
 function ItemService:KnitStart()
-    self:initItems()
-    -- task.spawn(function()
-    --     local itemTemp = self:CreateItem(1035, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
-    --     if itemTemp then
-    --         table.insert(self.Items, itemTemp)
-    --     end
+    --self:initItems()
+    task.spawn(function()
+        local itemTemp = self:CreateItem(1001, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+        if itemTemp then
+            table.insert(self.Items, itemTemp)
+        end
 
-    --     task.delay(5, function()
-    --         for _, item in pairs(self.Items) do
-    --             if item:IsA("BasePart") then
-    --                 -- 设置Part的锚固为false
-    --                 item.Anchored = true
-    --             elseif item:IsA("Model") then
-    --                 if item.PrimaryPart then
-    --                     item.PrimaryPart.Anchored = true
-    --                 end
-    --             end
-    --         end
-    --     end)
-    -- end)
+        task.delay(5, function()
+            for _, item in pairs(self.Items) do
+                if item:IsA("BasePart") then
+                    -- 设置Part的锚固为false
+                    item.Anchored = true
+                elseif item:IsA("Model") then
+                    if item.PrimaryPart then
+                        item.PrimaryPart.Anchored = true
+                    end
+                end
+            end
+        end)
+    end)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute(), false)
