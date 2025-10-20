@@ -21,7 +21,11 @@ function ClientUIService:Submit(player, gold)
     self.Client.ShowTip:FireAll({Type = 1, Text = string.format("%s submitted an item worth %d", player.Name, gold)})
 end
 
-function ClientUIService:ShowUI(player, ui)
+function ClientUIService:ShowUISingle(player, ui)
+    self.Client.ShowUI:Fire(player, ui)
+end
+
+function ClientUIService:ShowUIAll(ui)
     self.Client.ShowUI:FireAll(ui)
 end
 

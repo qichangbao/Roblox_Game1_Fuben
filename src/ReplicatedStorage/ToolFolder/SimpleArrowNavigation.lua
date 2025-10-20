@@ -15,7 +15,6 @@ local SimpleArrowNavigation = {}
 -- 当前活跃的箭头
 local activeArrows = {}
 local arrowConnections = {}
-local arrowTweens = {} -- 存储箭头的动画对象
 
 -- 实时更新相关变量
 local currentTarget = nil -- 当前目标位置
@@ -40,33 +39,15 @@ local function createArrow(position, direction)
 	local arrowModel = ModelFolder:WaitForChild("Arrow"):Clone()
 	arrowModel.Name = "NavigationArrow"
 	
-	-- 计算箭头朝向（考虑预制模型的默认朝向）
+	-- 计算箭头朝向（修复朝向反转问题）
 	local lookDirection = direction.Unit
 	
-	-- 调试信息
-	print("箭头位置:", arrowPosition)
-	print("目标方向:", lookDirection)
-	
-	-- 尝试不同的朝向计算，预制模型可能默认朝向不同
+	-- 修复箭头朝向：绕Y轴旋转180度让箭头指向正确方向
 	local arrowCFrame = CFrame.lookAt(arrowPosition, arrowPosition + lookDirection)
-	
-	-- 调试：尝试不同的旋转来找到正确的朝向
-	-- 选项1：不旋转（默认）
-	-- 选项2：绕Y轴旋转180度
-	--arrowCFrame = arrowCFrame * CFrame.Angles(0, math.rad(180), 0)
-	-- 选项3：绕X轴旋转180度
-	arrowCFrame = arrowCFrame * CFrame.Angles(math.rad(-90), 0, math.rad(180))
-	-- 选项4：绕Y轴旋转90度
-	--arrowCFrame = arrowCFrame * CFrame.Angles(0, math.rad(90), 0)
-	-- 选项5：绕Y轴旋转-90度
-	-- arrowCFrame = arrowCFrame * CFrame.Angles(0, math.rad(-90), 0)
-	
-	print("最终箭头CFrame:", arrowCFrame)
+	arrowCFrame = arrowCFrame * CFrame.Angles(0, math.rad(-300), 0)
 	
 	-- 设置整个模型的位置和朝向
-	if arrowModel.PrimaryPart then
-		arrowModel:SetPrimaryPartCFrame(arrowCFrame)
-	end
+	arrowModel:PivotTo(arrowCFrame)
 	
 	-- 确保所有部件都是锚定的（预制模型应该已经正确设置）
 	for _, part in pairs(arrowModel:GetChildren()) do
@@ -76,48 +57,37 @@ local function createArrow(position, direction)
 		end
 	end
 	
-	-- 添加向前移动动画，增强指向效果
-	local moveDistance = 1.5 -- 向前移动的距离
-	local tweenTargets = {}
-	
-	-- 向前移动动画（整个模型一起动）
-	if arrowModel.PrimaryPart then
-		-- 使用PrimaryPart作为基准，但通过MoveTo移动整个模型
-		local originalCFrame = arrowModel.PrimaryPart.CFrame
-		local targetCFrame = originalCFrame + CFrame.new(0, 0, moveDistance)
-		
-		local moveInfo = TweenInfo.new(
-			1.5, -- 持续时间
-			Enum.EasingStyle.Sine,
-			Enum.EasingDirection.InOut,
-			-1, -- 无限重复
-			true -- 反向播放
-		)
-		
-		-- 创建一个虚拟对象来驱动整个模型的移动
-		local moveDriver = Instance.new("CFrameValue")
-		moveDriver.Value = originalCFrame
-		
-		local moveTween = TweenService:Create(moveDriver, moveInfo, {Value = targetCFrame})
-		
-		-- 连接动画更新事件，移动整个模型
-		local connection = moveDriver.Changed:Connect(function(newCFrame)
-			if arrowModel.PrimaryPart then
-				arrowModel:SetPrimaryPartCFrame(newCFrame)
-			end
-		end)
-		
-		moveTween:Play()
-		tweenTargets[#tweenTargets + 1] = moveTween
-		tweenTargets[#tweenTargets + 1] = connection -- 存储连接以便清理
-		tweenTargets[#tweenTargets + 1] = moveDriver -- 存储驱动对象以便清理
-	end
-	
-	-- 存储动画对象以便后续清理
-	arrowTweens[arrowModel] = tweenTargets
-	
 	arrowModel.Parent = Workspace
 	return arrowModel
+end
+
+--[[
+	为所有箭头添加静态渐隐效果
+	第一个箭头最不透明，后面的箭头逐渐变透明
+]]
+local function addFadeOutEffect()
+	local totalArrows = #activeArrows
+	if totalArrows == 0 then return end
+	
+	-- 设置透明度范围：从0（完全不透明）到0.8（较透明）
+	local minTransparency = 0
+	local maxTransparency = 0.9
+	
+	for i, arrow in ipairs(activeArrows) do
+		if arrow and arrow.Parent then
+			-- 计算当前箭头的透明度
+			-- 第一个箭头透明度最低，最后一个箭头透明度最高
+			local transparencyRatio = (i - 1) / math.max(totalArrows - 1, 1)
+			local targetTransparency = minTransparency + (maxTransparency - minTransparency) * transparencyRatio
+			
+			-- 获取箭头中的所有BasePart并设置透明度
+			for _, child in pairs(arrow:GetDescendants()) do
+				if child:IsA("BasePart") then
+					child.Transparency = targetTransparency
+				end
+			end
+		end
+	end
 end
 
 --[[
@@ -204,6 +174,8 @@ function SimpleArrowNavigation.ShowPath(targetPosition, startPosition)
 		table.insert(activeArrows, arrow)
 	end
 	
+	-- 添加静态渐隐效果
+	addFadeOutEffect()
 	
 	print("箭头导航路径已创建，共", #activeArrows, "个箭头")
 	return true
@@ -215,26 +187,6 @@ end
 function SimpleArrowNavigation.ClearPath()
 	for _, arrow in ipairs(activeArrows) do
 		if arrow and arrow.Parent then
-			-- 停止动画和清理资源
-		local tweens = arrowTweens[arrow]
-		if tweens then
-			for _, item in ipairs(tweens) do
-				if item then
-					-- 检查是否是Tween对象
-					if typeof(item) == "Instance" and item:IsA("Tween") then
-						item:Cancel()
-					-- 检查是否是连接对象
-					elseif typeof(item) == "RBXScriptConnection" then
-						item:Disconnect()
-					-- 检查是否是驱动对象
-					elseif typeof(item) == "Instance" then
-						item:Destroy()
-					end
-				end
-			end
-			arrowTweens[arrow] = nil
-		end
-			
 			-- 删除箭头
 			arrow:Destroy()
 		end
@@ -313,24 +265,6 @@ local function updateArrowPath()
 		local arrow = activeArrows[i]
 		-- 清理箭头
 		if arrow and arrow.Parent then
-			local tweens = arrowTweens[arrow]
-			if tweens then
-				for _, item in ipairs(tweens) do
-					if item then
-						-- 检查是否是Tween对象
-						if typeof(item) == "Instance" and item:IsA("Tween") then
-							item:Cancel()
-						-- 检查是否是连接对象
-						elseif typeof(item) == "RBXScriptConnection" then
-							item:Disconnect()
-						-- 检查是否是驱动对象
-						elseif typeof(item) == "Instance" then
-							item:Destroy()
-						end
-					end
-				end
-				arrowTweens[arrow] = nil
-			end
 			arrow:Destroy()
 		end
 		table.remove(activeArrows, i)
@@ -348,6 +282,9 @@ local function updateArrowPath()
 			local arrow = createArrow(currentWaypoint, direction)
 			table.insert(activeArrows, arrow)
 		end
+		
+		-- 添加静态渐隐效果
+		addFadeOutEffect()
 		
 		print("箭头路径已更新，当前箭头数量:", #activeArrows)
 	end

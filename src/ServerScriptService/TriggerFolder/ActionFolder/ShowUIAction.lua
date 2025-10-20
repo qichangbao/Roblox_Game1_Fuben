@@ -17,7 +17,7 @@ function ShowUIAction:Execute(data)
 
     print("执行ShowUIAction")
     -- 显示UI
-    Knit.GetService("ClientUIService"):ShowUI(self.UI)
+    Knit.GetService("ClientUIService"):ShowUIAll(self.UI)
 end
 
 return ShowUIAction

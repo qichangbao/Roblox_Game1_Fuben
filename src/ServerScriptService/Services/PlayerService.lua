@@ -3,14 +3,16 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local AbilityConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("AbilityConfig"))
 
 local PlayerService = Knit.CreateService {
 	Name = "PlayerService",
 	Client = {
 	},
+
+    AbilityData = {},
 }
 
 function PlayerService:KnitInit()
@@ -26,10 +28,14 @@ function PlayerService:KnitStart()
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             if humanoid then
                 humanoid.AutoJumpEnabled = false
+                humanoid.UseJumpPower = true
                 player:SetAttribute("InitHealth", humanoid.Health)
                 player:SetAttribute("InitWalkSpeed", humanoid.WalkSpeed)
                 player:SetAttribute("InitJumpPower", humanoid.JumpPower)
                 player:SetAttribute("InitMaxHealth", humanoid.MaxHealth)
+                player:SetAttribute("InitAttack", 1)
+                
+                self:InitPlayerAbility(player, self.AbilityData[player.UserId])
             end
             
             -- 递归遍历角色下的所有Part并设置CollisionGroup
@@ -93,6 +99,7 @@ function PlayerService:GetInitData(player)
     Knit.GetService("LevelService"):playerAdd(player, duanWeiData)
     local inventory = nil
     local tool = nil
+    local ability = nil
 
     local hasEscapeTask = false
     local hasEscapeTime = false
@@ -108,6 +115,7 @@ function PlayerService:GetInitData(player)
                 tool = playerData.ToolData
                 Knit.GetService("InventoryService"):playerAdd(player, inventory, tool)
             end
+            ability = playerData.AbilityData
         end
 
         difficulty = localTeleportData.Difficulty or GameConfig.Difficulty.Easy
@@ -134,6 +142,11 @@ function PlayerService:GetInitData(player)
         inventory = Knit.GetService("DBService"):Get(player.UserId, "PlayerInventory")
         tool = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
         Knit.GetService("InventoryService"):playerAdd(player, inventory, tool)
+    end
+
+    if ability then
+        self.AbilityData[player.UserId] = ability
+        self:InitPlayerAbility(player, ability)
     end
     
     if not hasEscapeTask then
@@ -165,6 +178,52 @@ function PlayerService.Client:GetInitData(player)
     return self.Server:GetInitData(player)
 end
 
+-- 初始化玩家能力
+-- @param player Player 玩家
+-- @param ability table 能力数据
+function PlayerService:InitPlayerAbility(player, ability)
+    if not ability then
+        return
+    end
+    for abilityId, abilityData in pairs(ability) do
+        local level = abilityData.Level
+        if not level or level <= 0 then
+            continue
+        end
+        local abilityInfo = AbilityConfig:GetByAbilityId(abilityId)
+        if abilityInfo then
+            local value = 1
+            if type(abilityInfo.Value) == "table" then
+                value = (1 + abilityInfo.Value[level] / 100)
+            else
+                value = abilityInfo.Value
+            end
+            if abilityInfo.Type == 1 then
+                local initWalkSpeed = player:GetAttribute("InitWalkSpeed")
+                if initWalkSpeed then
+                    self:ChangePlayerAttribute(player, "WalkSpeed", initWalkSpeed * value)
+                end
+            elseif abilityInfo.Type == 2 then
+                local initMaxHealth = player:GetAttribute("InitMaxHealth")
+                if initMaxHealth then
+                    self:ChangePlayerAttribute(player, "MaxHealth", initMaxHealth * value)
+                    self:ChangePlayerAttribute(player, "Health", initMaxHealth * value)
+                end
+            elseif abilityInfo.Type == 3 then
+                local initJumpPower = player:GetAttribute("InitJumpPower")
+                if initJumpPower then
+                    self:ChangePlayerAttribute(player, "JumpPower", initJumpPower * value)
+                end
+            elseif abilityInfo.Type == GameConfig.AbilityType.Attack then
+                local initAttack = player:GetAttribute("InitAttack")
+                if initAttack then
+                    self:ChangePlayerAttribute(player, "Attack", initAttack * value)
+                end
+            end
+        end
+    end
+end
+
 function PlayerService:ChangePlayerAttribute(player, attributeName, attributeValue)
     if not player or not player.Character then
         return
@@ -193,6 +252,8 @@ function PlayerService:ChangePlayerAttribute(player, attributeName, attributeVal
             humanoid.MaxHealth = player:GetAttribute("InitMaxHealth")
         elseif attributeName == "JumpPower" then
             humanoid.JumpPower = player:GetAttribute("InitJumpPower")
+        elseif attributeName == "Attack" then
+            humanoid:SetAttribute("Attack", player:GetAttribute("InitAttack"))
         end
     end
 end

@@ -134,13 +134,13 @@ end
     @param monsterInfo table 怪物信息，包含各种动画ID
 ]]
 function AIManager:PreloadAnimations(monsterInfo)
-    local animationController = self.NPC:FindFirstChildOfClass("Humanoid")
-    if not animationController then
+    local Humanoid = self.NPC:FindFirstChildOfClass("Humanoid")
+    if not Humanoid then
         warn("未找到Humanoid，无法预加载动画")
         return
     end
     
-    local animator = animationController:FindFirstChildOfClass("Animator")
+    local animator = Humanoid:FindFirstChildOfClass("Animator")
     if not animator then
         warn("未找到Animator，无法预加载动画")
         return

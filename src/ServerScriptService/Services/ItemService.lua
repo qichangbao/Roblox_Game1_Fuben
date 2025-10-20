@@ -110,7 +110,13 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     if itemInfo.Type == GameConfig.ItemType.Chest then
         proximityPrompt.ActionText = "Open"
     elseif itemInfo.Type == GameConfig.ItemType.Mound then
-        proximityPrompt.ActionText = "Dig with a shovel"
+        if itemInfo.Index == 601 then
+            proximityPrompt.ActionText = "Dig with a shovel"
+        else
+            proximityPrompt.ActionText = "Mining with a Ore"
+        end
+    elseif itemInfo.Type == GameConfig.ItemType.Buff then
+        proximityPrompt.ActionText = "Eat"
     else
         proximityPrompt.ActionText = "Pick"
     end
@@ -123,8 +129,31 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
 
     -- 当玩家触发提示时
     proximityPrompt.Triggered:Connect(function(player)
+        if itemInfo.Type == GameConfig.ItemType.Chest then
+            -- 宝箱类物品，调用ChestService处理奖励
+            Knit.GetService("ChestService"):OpenChest(player, item, itemInfo)
+            return
+        end
+
+        --  mound和Buff 类物品不能拾取
+        if itemInfo.Type == GameConfig.ItemType.Mound then
+            return
+        end
+
+        if itemInfo.Type == GameConfig.ItemType.Buff then
+            local script = item:FindFirstChild("ModuleScript")
+            if script then
+                local module = require(script)
+                if module and module.Triggered then
+                    module:Triggered(player, itemInfo)
+                end
+            end
+            item:Destroy()
+            return
+        end
+
         -- 执行物品捡取逻辑
-        self:HandleItemPickup(player, item, itemInfo)
+        self:HandleItemPickup(player, item)
     end)
 
     -- 当玩家开始按住时（仅当 HoldDuration > 0 时有效）
@@ -148,7 +177,7 @@ end
 -- @param player: 拾取物品的玩家
 -- @param item: 要拾取的物品实例
 -- @param itemInfo: 物品配置信息
-function ItemService:HandleItemPickup(player, item, itemInfo)
+function ItemService:HandleItemPickup(player, item)
     if not player or not item then
         warn("HandleItemPickup: 参数不完整")
         return
@@ -169,17 +198,6 @@ function ItemService:HandleItemPickup(player, item, itemInfo)
     if not item.Parent then
         return
     end
-    
-    if itemInfo.Type == GameConfig.ItemType.Chest then
-        -- 宝箱类物品，调用ChestService处理奖励
-        Knit.GetService("ChestService"):OpenChest(player, item, itemInfo)
-        return
-    end
-
-    --  mound 类物品不能拾取
-    if itemInfo.Type == GameConfig.ItemType.Mound then
-        return
-    end
 
     -- 尝试将物品添加到玩家背包
     local success, errorMessage = Knit.GetService("InventoryService"):GiveToolToPlayer(player, item)
@@ -198,7 +216,18 @@ end
 function ItemService:CreateItemByPlan(planData, position, isAnchored)
     if planData.CanisterId ~= 0 then    -- 宝箱类物品，调用ChestService处理奖励
         local random = math.random(1, 10000)
-        if random <= planData.ChestProbability and self.ChestNum < GameConfig.ChestMaxNum then
+        local isCreate = false
+        if type(planData.ChestProbability) == "table" then
+            if random <= planData.ChestProbability[1] and self.ChestNum < GameConfig.ChestMaxNum then
+                isCreate = true
+            end
+        else
+            if random <= planData.ChestProbability and self.ChestNum < GameConfig.ChestMaxNum then
+                isCreate = true
+            end
+        end
+
+        if isCreate then
             self.ChestNum += 1
             local item = self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute(), isAnchored)
             if planData.CanisterId == 503 then
@@ -276,7 +305,7 @@ end
 function ItemService:KnitStart()
     --self:initItems()
     task.spawn(function()
-        local itemTemp = self:CreateItem(1001, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+        local itemTemp = self:CreateItem(603, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
         if itemTemp then
             table.insert(self.Items, itemTemp)
         end
@@ -304,6 +333,15 @@ function ItemService:KnitStart()
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+
+    -- local world = Interface.safeWaitPart(workspace, GameConfig.LandName)
+    -- local Special = Interface.safeWaitPart(world, "Special")
+    -- local worldStoneTablet = Interface.safeWaitPart(Special, "StoneTablet")
+    -- local StoneTablet = ServerStorage:WaitForChild("StoneTablet")
+    -- local folder = StoneTablet:WaitForChild(GameConfig.LandName)
+    -- local tablet = folder:WaitForChild("碑"):Clone()
+    -- tablet.Parent = worldStoneTablet
+    -- require(tablet:WaitForChild("ModuleScript"))
 end
 
 return ItemService
