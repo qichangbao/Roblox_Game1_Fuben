@@ -21,7 +21,6 @@ local ItemService = Knit.CreateService {
     Client = {
     },
 
-    ChestNum = 0,
     Items = {},
 }
 
@@ -130,8 +129,8 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     -- 当玩家触发提示时
     proximityPrompt.Triggered:Connect(function(player)
         if itemInfo.Type == GameConfig.ItemType.Chest then
-            -- 宝箱类物品，调用ChestService处理奖励
-            Knit.GetService("ChestService"):OpenChest(player, item, itemInfo)
+            -- 宝箱类物品，调用SpecialItemService处理奖励
+            Knit.GetService("SpecialItemService"):OpenChest(player, item, itemInfo)
             return
         end
 
@@ -202,6 +201,7 @@ function ItemService:HandleItemPickup(player, item)
     -- 尝试将物品添加到玩家背包
     local success, errorMessage = Knit.GetService("InventoryService"):GiveToolToPlayer(player, item)
     if success then
+        self.Items[item] = nil
         item:Destroy()
     else
         -- 添加失败，显示错误信息
@@ -218,17 +218,16 @@ function ItemService:CreateItemByPlan(planData, position, isAnchored)
         local random = math.random(1, 10000)
         local isCreate = false
         if type(planData.ChestProbability) == "table" then
-            if random <= planData.ChestProbability[1] and self.ChestNum < GameConfig.ChestMaxNum then
+            if random <= planData.ChestProbability[1] then
                 isCreate = true
             end
         else
-            if random <= planData.ChestProbability and self.ChestNum < GameConfig.ChestMaxNum then
+            if random <= planData.ChestProbability then
                 isCreate = true
             end
         end
 
         if isCreate then
-            self.ChestNum += 1
             local item = self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute(), isAnchored)
             if planData.CanisterId == 503 then
                 if type(planData.ItemId) == "table" then
@@ -244,19 +243,30 @@ function ItemService:CreateItemByPlan(planData, position, isAnchored)
                     end
                 end
             end
+            if item then
+                table.insert(self.Items, item)
+            end
             return item
         end
     else                                -- 普通物品
         if type(planData.ItemId) ~= "table" then
             local random = math.random(1, 10000)
             if random <= planData.Probability then
-                return self:CreateItem(planData.ItemId, position, GameConfig.GetItemAttribute(), isAnchored)
+                local item = self:CreateItem(planData.ItemId, position, GameConfig.GetItemAttribute(), isAnchored)
+                if item then
+                    table.insert(self.Items, item)
+                end
+                return item
             end
         else
             for index, itemId in pairs(planData.ItemId) do
                 local random = math.random(1, 10000)
                 if random <= planData.Probability[index] then
-                    return self:CreateItem(itemId, position, GameConfig.GetItemAttribute(), isAnchored)
+                    local item = self:CreateItem(itemId, position, GameConfig.GetItemAttribute(), isAnchored)
+                    if item then
+                        table.insert(self.Items, item)
+                    end
+                    return item
                 end
             end
         end
@@ -282,7 +292,6 @@ function ItemService:initItems()
 
         local item = self:CreateItemByPlan(planData, posData.Position, false)
         if item then
-            table.insert(self.Items, item)
             posHasItem[posKey] = true
         end
     end
@@ -299,30 +308,90 @@ function ItemService:initItems()
     end
 end
 
+-- 查找最近的物品
+-- @param player: 玩家
+-- @return item: 最近的物品
+function ItemService:FindNearestItem(player)
+    if not player or not player.Character then
+        return nil
+    end
+    
+    local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        return nil
+    end
+    
+    local playerPosition = humanoidRootPart.Position
+    local nearestItem = nil
+    local nearestDistance = math.huge
+    
+    -- 遍历所有物品，找到最近的一个
+    for _, item in pairs(self.Items) do
+        if item and item.Parent then -- 确保物品仍然存在
+            local itemId = item:GetAttribute("ItemId")
+            if not itemId then
+                continue
+            end
+            
+            local itemInfo = ItemConfig:GetByIndex(itemId)
+            if not itemInfo or itemInfo.Type ~= GameConfig.ItemType.Collect then
+                continue
+            end
+            
+            local itemPosition = nil
+            
+            -- 获取物品位置
+            if item:IsA("BasePart") then
+                itemPosition = item.Position
+            elseif item:IsA("Model") then
+                itemPosition = item:GetPivot().Position
+            end
+            
+            -- 计算距离
+            if itemPosition then
+                local distance = (playerPosition - itemPosition).Magnitude
+                if distance < nearestDistance then
+                    nearestDistance = distance
+                    nearestItem = item
+                end
+            end
+        end
+    end
+    
+    return nearestItem
+end
+
+-- 查找最近的物品
+-- @param player: 玩家
+-- @return item: 最近的物品
+function ItemService.Client:FindNearestItem(player)
+    return self.Server:FindNearestItem(player)
+end
+
 function ItemService:KnitInit()
 end
 
 function ItemService:KnitStart()
-    --self:initItems()
-    task.spawn(function()
-        local itemTemp = self:CreateItem(603, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
-        if itemTemp then
-            table.insert(self.Items, itemTemp)
-        end
+    self:initItems()
+    -- task.spawn(function()
+    --     local itemTemp = self:CreateItem(603, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+    --     if itemTemp then
+    --         table.insert(self.Items, itemTemp)
+    --     end
 
-        task.delay(5, function()
-            for _, item in pairs(self.Items) do
-                if item:IsA("BasePart") then
-                    -- 设置Part的锚固为false
-                    item.Anchored = true
-                elseif item:IsA("Model") then
-                    if item.PrimaryPart then
-                        item.PrimaryPart.Anchored = true
-                    end
-                end
-            end
-        end)
-    end)
+    --     task.delay(5, function()
+    --         for _, item in pairs(self.Items) do
+    --             if item:IsA("BasePart") then
+    --                 -- 设置Part的锚固为false
+    --                 item.Anchored = true
+    --             elseif item:IsA("Model") then
+    --                 if item.PrimaryPart then
+    --                     item.PrimaryPart.Anchored = true
+    --                 end
+    --             end
+    --         end
+    --     end)
+    -- end)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute(), false)

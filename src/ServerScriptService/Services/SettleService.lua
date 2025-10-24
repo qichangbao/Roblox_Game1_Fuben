@@ -21,19 +21,9 @@ end
 
 function SettleService:PlayerAdded(player)
     self.SettleData[player.UserId] = {}
-
-    if player.Character then
-        local Humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-        if Humanoid then
-            -- 监听死亡状态
-            Humanoid.Died:Connect(function()
-                self:Settle(player, false, true)
-            end)
-        end
-    end
 end
 
-function SettleService:PlayerRemoving(player)
+function SettleService:playerRemoved(player)
     self.SettleData[player.UserId] = nil
     -- 如果玩家不是正常退出，则判定为撤离失败，掉落身上所有物品
     if not Knit.GetService("TeleportService"):isPlayerTeleport(player) and not game:GetService("RunService"):IsStudio() then

@@ -104,7 +104,7 @@ function DBService:PlayerAdded(player)
 	self:GiveStats(player)
 end
 
-function DBService:PlayerRemoving(player)
+function DBService:playerRemoved(player)
 	local userId = player.UserId
 
 	if self.Profiles[userId] then

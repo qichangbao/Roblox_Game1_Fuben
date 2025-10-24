@@ -75,6 +75,24 @@ function InventoryService:playerAdd(player, inventory, toolData)
 
     self.EscapeItems[player.UserId] = {}
     self.TurnInNum[player.UserId] = 0
+
+    if game:GetService("RunService"):IsStudio() then
+        player.Chatted:Connect(function(message)
+            local lowerMessage = string.lower(message)
+            
+            -- 解析 "add item [itemId]" 命令
+            local addMatch = string.match(lowerMessage, "^add item (%d+)$")
+            if addMatch then
+                local itemId = tonumber(addMatch)
+                if itemId then
+                    Knit.GetService("ItemService"):CreateItem(itemId, player.Character:GetPivot().Position)
+                    return true
+                end
+            end
+        
+            return false
+        end)
+    end
 end
 
 function InventoryService:playerRemoved(player)
@@ -444,9 +462,9 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
 
     -- 直接设置Tool的Grip属性来控制握持方向
     if itemInfo.Index == 4 then
-        tool.Grip = CFrame.Angles(0, 0, math.rad(180))  -- 只旋转，不偏移位置
+        tool.Grip = CFrame.Angles(0, math.rad(180), 0)  -- 只旋转，不偏移位置
     elseif itemInfo.Index == 8 then
-        tool.Grip = CFrame.Angles(0, math.rad(90), 0)  -- 只旋转，不偏移位置
+        tool.Grip = CFrame.new(0, -0.6, 0) * CFrame.Angles(0, math.rad(90), 0)  -- y轴偏移0.6并旋转
     else
         tool.Grip = CFrame.Angles(0, 0, math.rad(90))  -- 只旋转，不偏移位置
     end
@@ -520,11 +538,12 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
             end
 
             if itemInfo.Type == GameConfig.ItemType.Weapon then    -- 进攻类
-                local PlayerAnimationHnadler = require(ReplicatedStorage:WaitForChild("Animation"):WaitForChild("PlayerAnimationHnadler"))
                 if itemInfo.Index == 4 then
-                    PlayerAnimationHnadler.playDigAnimation(character)
+					Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD)
+                elseif itemInfo.Index == 8 then
+					Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack2", itemInfo.CD)
                 else
-                    PlayerAnimationHnadler.playSwingAnimation(character)
+					Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
                 end
             end
         end
@@ -703,7 +722,10 @@ function InventoryService:EquipToolByKey(player, slot)
     return 0
 end
 
-local function CreateItemToFloor(character, itemInfo, attribute)
+function InventoryService:CreateItemToFloor(character, itemInfo, attribute)
+    if not character then
+        return
+    end
     -- 获取玩家位置
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then
@@ -745,12 +767,12 @@ end
 function InventoryService:DiscardTool(player, slot)
     local character = player.Character
     if not character then
-        return
+        return false
     end
     
     local toolData = self.ToolData[player.UserId]
     if not toolData then
-        return
+        return false
     end
     
     local slotNumber = tonumber(slot)
@@ -758,13 +780,13 @@ function InventoryService:DiscardTool(player, slot)
     local itemId = itemData.ItemId
     local attribute = itemData.Attribute
     if not itemData or itemId == 0 then
-        return
+        return false
     end
     
     -- 获取物品配置信息
     local itemInfo = ItemConfig:GetByIndex(itemId)
     if not itemInfo then
-        return
+        return false
     end
 
     -- 从工具栏数据中移除
@@ -806,7 +828,7 @@ function InventoryService:DiscardTool(player, slot)
             for i, itemDataTemp in ipairs(itemsToThrow) do
                 -- 触发物品丢弃条件
                 _G.TriggerManager:DropItem(player, itemDataTemp.itemInfo.Index)
-                CreateItemToFloor(character, itemDataTemp.itemInfo, itemDataTemp.attribute)
+                self:CreateItemToFloor(character, itemDataTemp.itemInfo, itemDataTemp.attribute)
                 
                 -- 如果不是最后一个物品，等待0.3秒
                 if i < #itemsToThrow then
@@ -820,19 +842,20 @@ function InventoryService:DiscardTool(player, slot)
     task.spawn(function()
         -- 触发物品丢弃条件
         _G.TriggerManager:DropItem(player, itemId)
-        CreateItemToFloor(character, itemInfo, attribute)
+        self:CreateItemToFloor(character, itemInfo, attribute)
     end)
+    return true
 end
 
 function InventoryService:DiscardBag(player, slot)
     local character = player.Character
     if not character then
-        return
+        return false
     end
 
     local bagData = self.BagData[player.UserId]
     if not bagData then
-        return
+        return false
     end
 
     local slotNumber = tonumber(slot)
@@ -840,20 +863,22 @@ function InventoryService:DiscardBag(player, slot)
     local itemId = itemData.ItemId
     local attribute = itemData.Attribute
     if not itemData or itemId == 0 then
-        return
+        return false
     end
 
     -- 获取物品配置信息
     local itemInfo = ItemConfig:GetByIndex(itemId)
     if not itemInfo then
-        return
+        return false
     end
     
     bagData[slotNumber] = {
         ItemId = 0,
         Attribute = GameConfig.GetItemAttribute()
     }
-    CreateItemToFloor(character, itemInfo, attribute)
+    self:CreateItemToFloor(character, itemInfo, attribute)
+
+    return true
 end
 
 -- 丢弃工具

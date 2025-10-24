@@ -5,7 +5,6 @@
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PathfindingService = game:GetService("PathfindingService")
-local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local ModelFolder = ReplicatedStorage:WaitForChild("ModelFolder")
@@ -44,7 +43,7 @@ local function createArrow(position, direction)
 	
 	-- 修复箭头朝向：绕Y轴旋转180度让箭头指向正确方向
 	local arrowCFrame = CFrame.lookAt(arrowPosition, arrowPosition + lookDirection)
-	arrowCFrame = arrowCFrame * CFrame.Angles(0, math.rad(-300), 0)
+	--arrowCFrame = arrowCFrame * CFrame.Angles(math.rad(150), 0, math.rad(90))
 	
 	-- 设置整个模型的位置和朝向
 	arrowModel:PivotTo(arrowCFrame)
@@ -176,8 +175,6 @@ function SimpleArrowNavigation.ShowPath(targetPosition, startPosition)
 	
 	-- 添加静态渐隐效果
 	addFadeOutEffect()
-	
-	print("箭头导航路径已创建，共", #activeArrows, "个箭头")
 	return true
 end
 
@@ -211,8 +208,6 @@ function SimpleArrowNavigation.ClearPath()
 	currentTarget = nil
 	lastPlayerPosition = nil
 	lastUpdateTime = 0
-	
-	print("箭头导航路径已清理")
 end
 
 --[[
@@ -285,8 +280,6 @@ local function updateArrowPath()
 		
 		-- 添加静态渐隐效果
 		addFadeOutEffect()
-		
-		print("箭头路径已更新，当前箭头数量:", #activeArrows)
 	end
 end
 
@@ -308,8 +301,6 @@ function SimpleArrowNavigation.StartRealTimeUpdate(targetPosition, interval)
 	
 	-- 启动实时更新循环
 	updateConnection = RunService.Heartbeat:Connect(updateArrowPath)
-	
-	print("实时更新已启动，更新间隔:", updateInterval, "秒")
 end
 
 --[[
@@ -322,7 +313,6 @@ function SimpleArrowNavigation.StopRealTimeUpdate()
 	end
 	currentTarget = nil
 	lastPlayerPosition = nil
-	print("实时更新已停止")
 end
 
 --[[
@@ -332,7 +322,7 @@ end
 	@return boolean 是否接近目标
 ]]
 function SimpleArrowNavigation.IsNearTarget(targetPosition, threshold)
-	threshold = threshold or 5
+	threshold = threshold or 10
 	
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer

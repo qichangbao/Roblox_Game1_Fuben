@@ -86,12 +86,12 @@ playSound6()
 playSound7()
 playSound8()
 
-local gameSound = Interface.safeWaitPart(game:GetService("SoundService"), "GAME")
-local BackMusic = Interface.safeWaitPart(gameSound, "BackMusic1")
-if not BackMusic.IsLoaded then
-    BackMusic.Loaded:Wait()
+local Sound = Interface.safeWaitPart(game:GetService("SoundService"), "UI")
+local music = Interface.safeWaitPart(Sound, "BackMusic1")
+if not music.IsLoaded then
+    music.Loaded:Wait()
 end
-BackMusic.Looped = true
-BackMusic:Play()
+music.Looped = true
+music:Play()
 
 return Module

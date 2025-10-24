@@ -93,6 +93,10 @@ function AIManager:SetState(newState)
     if self.CurrentState then
         self.CurrentState:Exit()
     end
+
+    if not self.States or type(self.States) ~= "table" then
+        return
+    end
     
     self.CurrentState = self.States[newState]
     if self.CurrentState then

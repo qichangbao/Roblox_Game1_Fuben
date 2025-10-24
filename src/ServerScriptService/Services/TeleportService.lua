@@ -60,8 +60,7 @@ end
 -- @param player Player 要传送的玩家
 -- @return void
 function TeleportServiceModule:teleportToReserveServer(player, showUI)
-    local SettleService = Knit.GetService("SettleService")
-    local teleportData = SettleService:GetSettleData(player)
+    local teleportData = Knit.GetService("SettleService"):GetSettleData(player)
     if not teleportData then
         logMessage("ERROR", "玩家数据不存在", player)
         return false

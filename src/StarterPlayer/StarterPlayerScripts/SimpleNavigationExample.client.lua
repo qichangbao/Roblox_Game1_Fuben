@@ -181,4 +181,4 @@ local function main()
 end
 
 -- 启动系统
-main()
+--main()

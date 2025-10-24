@@ -21,7 +21,7 @@ end
 function LevelService:KnitStart()
 end
 
-function LevelService:playerAdd(player, levelData)
+function LevelService:PlayerAdded(player, levelData)
     self.DuanWeiData[player.UserId] = {}
     self.DuanWeiData[player.UserId].duanWei = levelData.duanWei or 1
     self.DuanWeiData[player.UserId].level = levelData.level or 1
