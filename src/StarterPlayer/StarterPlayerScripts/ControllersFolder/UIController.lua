@@ -7,6 +7,8 @@ local UIController = Knit.CreateController {
 
     ShowTip = Signal.new(),
     ShowMessageBoxUI = Signal.new(),
+    HideMessageBoxUI = Signal.new(),
+	ResetMessageBoxUI = Signal.new(),
 	ChangeGoldUI = Signal.new(),
     ShowDragUI = Signal.new(),
     MoveDragUI = Signal.new(),
@@ -21,8 +23,10 @@ local UIController = Knit.CreateController {
     OpenSubmitUI = Signal.new(),
     OpenTaskUI = Signal.new(),
     ShowStartGameUI = Signal.new(),
-    ShowDangerUI = Signal.new(),
+    ShowNoticeUI = Signal.new(),
     ShowItemAttributeUI = Signal.new(),
+    ShowDragonOrbLostUI = Signal.new(),
+    ShowCG = Signal.new(),
 }
 
 function UIController:KnitInit()

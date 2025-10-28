@@ -23,7 +23,7 @@ function MonsterService:PlayerAdded(player)
     self.KillMonsters[player.userId] = {}
 end
 
-function MonsterService:playerRemoved(player)
+function MonsterService:PlayerRemoved(player)
     self.KillMonsters[player.userId] = nil
 end
 
@@ -34,9 +34,24 @@ function MonsterService:KillMonster(player, monster)
 
     local monsterId = monster:GetAttribute("MonsterId")
     table.insert(self.KillMonsters[player.userId], monsterId)
+
+    local monsterInfo = MonsterConfig:GetByMonsterId(monsterId)
+    if not monsterInfo then
+        warn("Monster not found: " .. monsterId)
+        return
+    end
+    Knit.GetService("ClientUIService"):ShowTipAll(string.format("%s Killed the monster %s", player.Name, monsterInfo.DisplayName))
 end
 
+--local index = 0
 function MonsterService:CreateMonster(monsterId, position)
+    -- if monsterId ~= 30002 then
+    --     return
+    -- end
+    -- if index >= 1 then
+    --     return
+    -- end
+    -- index += 1
     local monsterInfo = MonsterConfig:GetByMonsterId(monsterId)
     if not monsterInfo then
         warn("Monster not found: " .. monsterId)
@@ -75,13 +90,32 @@ function MonsterService:MonsterRemoved(monster)
 end
 
 -- 改变所有怪物的属性
-function MonsterService:ChangeAllMonsterAttribute(attribute, value)
+function MonsterService:ChangeAllMonsterAttribute(value)
     for _, monster in pairs(self.Monsters) do
-        local initValue = monster:GetAttribute("Init" .. attribute)
+        local humanoid = monster:FindFirstChild("Humanoid")
+        if not humanoid then
+            continue
+        end
+
+        local initVisionRange = monster:GetAttribute("InitVisionRange")
+        local initAttackSpeed = monster:GetAttribute("InitAttackSpeed")
+        local initAttack = monster:GetAttribute("InitAttack")
+        local initWalkSpeed = monster:GetAttribute("InitWalkSpeed")
+        local initMaxHealth = monster:GetAttribute("InitMaxHealth")
         if value then
-            monster:SetAttribute(attribute, initValue + value)
+            monster:SetAttribute("VisionRange", initVisionRange * (1 + value))
+            monster:SetAttribute("InitAttack", initAttack * (1 + value))
+            monster:SetAttribute("AttackSpeed", initAttackSpeed * (1 - value))
+            humanoid.WalkSpeed = initWalkSpeed * (1 + value)
+            humanoid.MaxHealth = humanoid.MaxHealth * (1 + value)
+            humanoid.Health = humanoid.MaxHealth
         else
-            monster:SetAttribute(attribute, initValue)
+            monster:SetAttribute("VisionRange", initVisionRange)
+            monster:SetAttribute("InitAttack", initAttack)
+            monster:SetAttribute("AttackSpeed", initAttackSpeed)
+            humanoid.WalkSpeed = initWalkSpeed
+            humanoid.MaxHealth = initMaxHealth
+            humanoid.Health = humanoid.MaxHealth
         end
     end
 end
@@ -124,7 +158,7 @@ end
 
 function MonsterService:KnitInit()
     self:initMonsters()
-    --self:CreateMonster(30001, Vector3.new(353, -0.7, -240))
+    --self:CreateMonster(30002, Vector3.new(353, -0.7, -240))
     --self:CreateMonster(30002, Vector3.new(353, -1.5, -220))
     --self:CreateMonster(30003, Vector3.new(353, -1.5, -220))
 end

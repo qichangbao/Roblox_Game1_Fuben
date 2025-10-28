@@ -82,6 +82,8 @@ function AIManager:InitializeAttributes(monsterInfo, position)
     self.NPC:SetAttribute("AttackSpeed", monsterInfo.AttackSpeed)
     self.NPC:SetAttribute("InitAttack", monsterInfo.Attack)
     self.NPC:SetAttribute("Attack", monsterInfo.Attack)
+    self.NPC:SetAttribute("InitWalkSpeed", monsterInfo.MoveSpeed)
+    self.NPC:SetAttribute("InitMaxHealth", monsterInfo.HP)
     
     local humanoid = self.NPC:FindFirstChildOfClass("Humanoid")
     humanoid.WalkSpeed = monsterInfo.MoveSpeed
@@ -92,6 +94,7 @@ end
 function AIManager:SetState(newState)
     if self.CurrentState then
         self.CurrentState:Exit()
+        self:StopSound()
     end
 
     if not self.States or type(self.States) ~= "table" then
@@ -216,7 +219,7 @@ end
     @param animName string 动画名称 (idle, run, attack, death等)
     @param isLoop boolean 是否循环播放
 ]]
-function AIManager:PlayAnimation(animName, isLoop, priority)
+function AIManager:PlayAnimation(animName, isLoop, playTimeScale)
     -- 停止当前动画
     self:StopAnimation()
     
@@ -227,17 +230,23 @@ function AIManager:PlayAnimation(animName, isLoop, priority)
         return
     end
     
+    -- 设置循环
+    track.Looped = isLoop or false
+    
     -- 播放动画
     track:Play()
-    track.Looped = isLoop or false
+    
+    -- 在播放后设置速度（对外部动画更有效）
+    local speedMultiplier = playTimeScale or 1
+    if speedMultiplier ~= 1 then
+        track:AdjustSpeed(speedMultiplier)
+    end
+    
     self.currentTrack = track
 end
 
 function AIManager:PlaySound(soundName, loop)
-    if self.currentSound then
-        self.currentSound:Stop()
-        self.currentSound = nil
-    end
+    self:StopSound()
 
     if not self.sounds[soundName] then
         return
@@ -251,6 +260,13 @@ function AIManager:PlaySound(soundName, loop)
     end
     sound:Play()
     self.currentSound = sound
+end
+
+function AIManager:StopSound()
+    if self.currentSound then
+        self.currentSound:Stop()
+        self.currentSound = nil
+    end
 end
 
 return AIManager

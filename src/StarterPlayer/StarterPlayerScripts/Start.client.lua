@@ -82,11 +82,6 @@ isServerStartOverEvent.OnClientEvent:Connect(function(isStarted)
     end
 end)
 
-Knit.Start():andThen(function()
-    -- 开始检查服务器启动状态
-    checkServerStartStatus()
-end):catch(warn)
-
 -- ========== 玩家位置显示系统 ==========
 
 --[[
@@ -212,3 +207,9 @@ end
 local StarterGui = game:GetService("StarterGui")
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+
+-- 启动Knit框架并初始化系统
+Knit.Start():andThen(function()
+    -- 开始检查服务器启动状态
+    checkServerStartStatus()
+end):catch(warn)

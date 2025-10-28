@@ -4,7 +4,7 @@ local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Kn
 local ReviveData = {
     {Type = 1, Value = 1000, Description = "Revive for 1000 Gold"},
     {Type = 1, Value = 3000, Description = "Revive for 3000 Gold"},
-    {Type = 2, Value = 99, Description = "Revive for 99 Robux"},
+    {Type = 2, Value = 69, Description = "Revive for 69 Robux"},
 }
 
 local ReviveService = Knit.CreateService({
@@ -15,7 +15,7 @@ local ReviveService = Knit.CreateService({
     PlayerReviveCount = {},
 })
 
-function ReviveService:playerAdd(player)
+function ReviveService:PlayerAdded(player)
     self.PlayerReviveCount[player.UserId] = 0
     -- 监听玩家角色生成
     local function onCharacterAdded(character)
@@ -32,6 +32,7 @@ function ReviveService:playerAdd(player)
             local reviveCount = self.PlayerReviveCount[player.UserId]
             local reviveData = ReviveData[reviveCount + 1]
             if not reviveData then
+                Knit.GetService("SettleService"):Settle(player, false, true)
                 return
             end
 
@@ -40,6 +41,7 @@ function ReviveService:playerAdd(player)
                 Content = string.format(reviveData.Description, reviveData.Value),
                 ButtonText1 = "Revive",
                 ButtonText2 = "Leave",
+                Button2Time = 20,
             })
         end)
     end
@@ -53,7 +55,7 @@ function ReviveService:playerAdd(player)
     player.CharacterAdded:Connect(onCharacterAdded)
 end
 
-function ReviveService:playerRemoved(player)
+function ReviveService:PlayerRemoved(player)
     self.PlayerReviveCount[player.UserId] = nil
 end
 
@@ -64,8 +66,9 @@ function ReviveService:RevivePlayer(player)
             Type = 2,
             Content = "Revive times exhausted",
             ButtonText1 = "Leave",
+            Button2Time = 20,
         })
-        return false
+        return 0
     end
     
     local success = false
@@ -74,15 +77,18 @@ function ReviveService:RevivePlayer(player)
         success = self:BuyReviveByGold(player, reviveData.Value)
     elseif reviveData.Type == 2 then
         Knit.GetService("PurchaseService"):BuyRevive(player)
+        return 1
     end
     
     if not success then
-        return false
+        return 0
     end
     
+    local frame = player.Character:GetPivot()
     player:LoadCharacter()
+    player.Character:PivotTo(CFrame.new(frame.Position))
     self.PlayerReviveCount[player.UserId] += 1
-    return true
+    return 2
 end
 
 function ReviveService.Client:RevivePlayer(player)
@@ -101,8 +107,16 @@ end
 
 -- 购买复活
 function ReviveService:BuyReviveByRob(player)
+    local frame = player.Character:GetPivot()
     player:LoadCharacter()
+    player.Character:PivotTo(frame)
     self.PlayerReviveCount[player.UserId] += 1
+    Knit.GetService("ClientUIService"):HideSingleUI(player, "MessageBoxUI")
+end
+
+-- 取消购买复活
+function ReviveService:CannelReviveByRobux(player)
+    Knit.GetService("ClientUIService"):ResetSingleUI(player, "MessageBoxUI")
 end
 
 function ReviveService:KnitInit()

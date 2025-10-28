@@ -40,10 +40,17 @@ function PathfindingMove.MoveTo(npc, targetPosition, callback)
     end
 
     local tempWaypoints = {}
-    for _, wp in ipairs(waypoints) do
+    local wayNum = #waypoints
+    for i, wp in ipairs(waypoints) do
         -- 检查路径点是否需要跳跃
         if wp.Label == "Water" then
             break
+        elseif wp.Action == Enum.PathWaypointAction.Jump then
+            if i < wayNum then
+                if waypoints[i + 1].Label == "Water" then
+                    break
+                end
+            end
         end
         table.insert(tempWaypoints, wp)
     end

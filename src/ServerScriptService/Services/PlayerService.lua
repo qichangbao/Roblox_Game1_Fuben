@@ -15,9 +15,10 @@ local PlayerService = Knit.CreateService {
 
     AbilityData = {},
     AnimationTracks = {},
-    CurrentTweens = {},
-    IsAnimating = {},
 }
+-- 配置参数
+local FALL_HEIGHT_THRESHOLD = 20 -- 下落高度阈值（单位：stud）
+local _playerFallData = {}
 
 function PlayerService:KnitInit()
 end
@@ -25,109 +26,8 @@ end
 -- 服务启动时的初始化
 -- @return void
 function PlayerService:KnitStart()
-    local function playerAdd(player)
+    local function PlayerAdded(player)
         print("PlayerAdded    ", player.Name)
-
-        if game:GetService("RunService"):IsStudio() then
-            player.Chatted:Connect(function(message)
-                local lowerMessage = string.lower(message)
-                local character = player.Character
-                local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                
-                -- 解析 "heal [amount]" 命令 - 加血
-                local healMatch = string.match(lowerMessage, "^health (%d+)$")
-                if healMatch then
-                    local amount = tonumber(healMatch)
-                    if amount and humanoid then
-                        self:addHp(player, amount)
-                        print(string.format("玩家 %s 恢复了 %d 点生命值，当前生命值: %d/%d", 
-                            player.Name, amount, humanoid.Health, humanoid.MaxHealth))
-                        return true
-                    end
-                end
-                
-                -- 解析 "heal" 命令 - 满血
-                if lowerMessage == "health" then
-                    if humanoid then
-                        humanoid.Health = humanoid.MaxHealth
-                        print(string.format("玩家 %s 生命值已恢复满血: %d/%d", 
-                            player.Name, humanoid.Health, humanoid.MaxHealth))
-                        return true
-                    end
-                end
-                
-                -- 解析 "damage [amount]" 命令 - 减血
-                local damageMatch = string.match(lowerMessage, "^damage (%d+)$")
-                if damageMatch then
-                    local amount = tonumber(damageMatch)
-                    if amount and humanoid then
-                        humanoid:TakeDamage(amount)
-                        print(string.format("玩家 %s 受到了 %d 点伤害，当前生命值: %d/%d", 
-                            player.Name, amount, humanoid.Health, humanoid.MaxHealth))
-                        return true
-                    end
-                end
-                
-                -- 解析 "speed [value]" 命令 - 设置移动速度
-                local speedMatch = string.match(lowerMessage, "^speed (%d+)$")
-                if speedMatch then
-                    local speed = tonumber(speedMatch)
-                    if speed and humanoid then
-                        humanoid.WalkSpeed = speed
-                        print(string.format("玩家 %s 移动速度设置为: %d", player.Name, speed))
-                        return true
-                    end
-                end
-                
-                -- 解析 "speed reset" 命令 - 重置移动速度
-                if lowerMessage == "speed reset" then
-                    if humanoid then
-                        local initSpeed = player:GetAttribute("InitWalkSpeed") or 16
-                        humanoid.WalkSpeed = initSpeed
-                        print(string.format("玩家 %s 移动速度已重置为: %d", player.Name, initSpeed))
-                        return true
-                    end
-                end
-                
-                -- 解析 "jump [value]" 命令 - 设置跳跃力
-                local jumpMatch = string.match(lowerMessage, "^jump (%d+)$")
-                if jumpMatch then
-                    local jumpPower = tonumber(jumpMatch)
-                    if jumpPower and humanoid then
-                        humanoid.JumpPower = jumpPower
-                        print(string.format("玩家 %s 跳跃力设置为: %d", player.Name, jumpPower))
-                        return true
-                    end
-                end
-                
-                -- 解析 "jump reset" 命令 - 重置跳跃力
-                if lowerMessage == "jump reset" then
-                    if humanoid then
-                        local initJump = player:GetAttribute("InitJumpPower") or 50
-                        humanoid.JumpPower = initJump
-                        print(string.format("玩家 %s 跳跃力已重置为: %d", player.Name, initJump))
-                        return true
-                    end
-                end
-                
-                -- 解析 "help" 命令 - 显示帮助信息
-                if lowerMessage == "help" or lowerMessage == "debug help" then
-                    print("=== 调试命令帮助 ===")
-                    print("health [amount] - 恢复指定生命值")
-                    print("health - 恢复满血")
-                    print("damage [amount] - 造成指定伤害")
-                    print("speed [value] - 设置移动速度")
-                    print("speed reset - 重置移动速度")
-                    print("jump [value] - 设置跳跃力")
-                    print("jump reset - 重置跳跃力")
-                    print("help - 显示此帮助信息")
-                    return true
-                end
-            
-                return false
-            end)
-        end
-        
         player.CharacterAdded:Connect(function(character)
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             if humanoid then
@@ -142,8 +42,6 @@ function PlayerService:KnitStart()
                 self:InitPlayerAbility(player, self.AbilityData[player.UserId])
 
                 self.AnimationTracks[player.UserId] = {}
-                self.CurrentTweens[player.UserId] = {}
-                self.IsAnimating[player.UserId] = false
                 local animator = humanoid:FindFirstChildOfClass("Animator")
                 if animator then
                     -- 定义动画映射表
@@ -187,6 +85,39 @@ function PlayerService:KnitStart()
                     music2.Loaded:Wait()
                 end
                 music2.Parent = character
+
+                humanoid.StateChanged:Connect(function(oldState, newState)
+                    if not player.Character then return end
+                    local data = _playerFallData[player.UserId]
+                    if not data then return end
+                    local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+                    if not humanoidRootPart then return end
+	                local currentY = humanoidRootPart.Position.Y
+                    if newState == Enum.HumanoidStateType.Freefall then
+                        data.fallStartY = currentY
+                        data.maxFallHeight = currentY
+                    elseif oldState == Enum.HumanoidStateType.Freefall
+                    and (newState == Enum.HumanoidStateType.Landed or newState == Enum.HumanoidStateType.Running) then
+                        -- 玩家刚刚落地，计算下落高度
+                        local fallHeight = data.fallStartY - currentY
+                        if fallHeight > FALL_HEIGHT_THRESHOLD then
+                            humanoid:TakeDamage(10)
+                        elseif fallHeight > FALL_HEIGHT_THRESHOLD + 5 then
+                            humanoid:TakeDamage(30)
+                        elseif fallHeight > FALL_HEIGHT_THRESHOLD + 10 then
+                            humanoid:TakeDamage(60)
+                        elseif fallHeight > FALL_HEIGHT_THRESHOLD + 15 then
+                            humanoid:TakeDamage(100)
+                        end
+                        
+                        -- 重置下落状态
+                        data.isFalling = false
+                        data.fallStartY = nil
+                        data.maxFallHeight = 0
+                        
+                        data.lastYPosition = currentY
+                    end
+                end)
             end
             
             -- 递归遍历角色下的所有Part并设置CollisionGroup
@@ -219,34 +150,34 @@ function PlayerService:KnitStart()
         player:SetAttribute("HumanoidType", GameConfig.HumanoidType.Player)
     end
 
-    local function playerRemoved(player)
+    local function PlayerRemoved(player)
         self.AnimationTracks[player.UserId] = nil
         self.AbilityData[player.UserId] = nil
-        self.CurrentTweens[player.UserId] = nil
-        self.IsAnimating[player.UserId] = nil
+        _playerFallData[player.UserId] = nil
 
-        Knit.GetService("SettleService"):playerRemoved(player)
-        Knit.GetService("InventoryService"):playerRemoved(player)
-        Knit.GetService("DBService"):playerRemoved(player)
-        Knit.GetService("MonsterService"):playerRemoved(player)
-        Knit.GetService("LevelService"):playerRemoved(player)
-        Knit.GetService("TaskService"):playerRemoved(player)
-        Knit.GetService("ReviveService"):playerRemoved(player)
-        Knit.GetService("GoldService"):playerRemoved(player)
+        Knit.GetService("SettleService"):PlayerRemoved(player)
+        Knit.GetService("InventoryService"):PlayerRemoved(player)
+        Knit.GetService("DBService"):PlayerRemoved(player)
+        Knit.GetService("MonsterService"):PlayerRemoved(player)
+        Knit.GetService("LevelService"):PlayerRemoved(player)
+        Knit.GetService("TaskService"):PlayerRemoved(player)
+        Knit.GetService("ReviveService"):PlayerRemoved(player)
+        Knit.GetService("GoldService"):PlayerRemoved(player)
+        Knit.GetService("GMService"):PlayerRemoved(player)
     end
 
     for _, player in pairs(Players:GetPlayers()) do
-        playerAdd(player)
+        PlayerAdded(player)
     end
 	
 	-- 监听玩家加入事件
 	Players.PlayerAdded:Connect(function(player)
-        playerAdd(player)
+        PlayerAdded(player)
 	end)
 
 	-- 监听玩家离开事件
 	Players.PlayerRemoving:Connect(function(player)
-        playerRemoved(player)
+        PlayerRemoved(player)
 	end)
 end
 
@@ -257,8 +188,16 @@ function PlayerService:GetInitData(player)
     local duanWeiData = Knit.GetService("DBService"):Get(player.UserId, "DuanWeiData")
     Knit.GetService("LevelService"):PlayerAdded(player, duanWeiData)
     Knit.GetService("TaskService"):PlayerAdded(player)
-    Knit.GetService("ReviveService"):playerAdd(player)
+    Knit.GetService("ReviveService"):PlayerAdded(player)
+    Knit.GetService("GMService"):PlayerAdded(player)
         
+    _playerFallData[player.UserId] = {
+		lastYPosition = nil,
+		fallStartY = nil,
+		maxFallHeight = 0,
+    }
+
+    local islandName = nil
     local inventory = nil
     local tool = nil
     local ability = nil
@@ -272,12 +211,13 @@ function PlayerService:GetInitData(player)
     local joinData = player:GetJoinData()
     if joinData and joinData.TeleportData then
         local localTeleportData = joinData.TeleportData
+        islandName = localTeleportData.IslandName
         if localTeleportData.PlayerData then
             local playerData = localTeleportData.PlayerData[tostring(player.UserId)]
             if playerData and playerData.InventoryData and playerData.ToolData then
                 inventory = playerData.InventoryData
                 tool = playerData.ToolData
-                Knit.GetService("InventoryService"):playerAdd(player, inventory, tool)
+                Knit.GetService("InventoryService"):PlayerAdded(player, inventory, tool)
             end
             ability = playerData.AbilityData
             isFirstLoginFuben = localTeleportData.PlayerData.IsFirstLoginFuben
@@ -304,10 +244,15 @@ function PlayerService:GetInitData(player)
         print(string.format("玩家 %s 没有传送数据", player.Name))
     end
 
+    if not islandName then
+        islandName = GameConfig.LandName
+    end
+    Knit.GetService("IslandService"):SetIslandName(islandName)
+
     if not inventory and not tool then
         inventory = Knit.GetService("DBService"):Get(player.UserId, "PlayerInventory")
         tool = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
-        Knit.GetService("InventoryService"):playerAdd(player, inventory, tool)
+        Knit.GetService("InventoryService"):PlayerAdded(player, inventory, tool)
     end
 
     if not ability then
@@ -331,7 +276,7 @@ function PlayerService:GetInitData(player)
     if not gold then
         gold = Knit.GetService("DBService"):Get(player.UserId, "Gold")
     end
-    Knit.GetService("GoldService"):playerAdd(player, gold)
+    Knit.GetService("GoldService"):PlayerAdded(player, gold)
 
     local inventoryData = Knit.GetService("InventoryService"):GetInventoryData(player)
     local toolData = Knit.GetService("InventoryService"):GetToolData(player)
@@ -462,7 +407,7 @@ function PlayerService:addHp(player, hp)
     end
     local effect = AddHPEffect:Clone()
     effect.Parent = player.Character
-    effect:PivotTo(CFrame.new(humanoidRootPart.Position))
+    effect:PivotTo(CFrame.new(humanoidRootPart.Position.X, humanoidRootPart.Position.Y - humanoid.HipHeight, humanoidRootPart.Position.Z))
     -- 使用Debris服务在3秒后自动销毁特效
     game:GetService("Debris"):AddItem(effect, 3)
 end
@@ -476,6 +421,7 @@ function PlayerService:PlaySwingAnimation(player, cd)
     end
     
     local animationTrack = self.AnimationTracks[player.UserId]["swing"]
+    animationTrack:Play()
     
     -- 获取动画的总时长
     local animationLength = animationTrack.Length
@@ -484,7 +430,6 @@ function PlayerService:PlaySwingAnimation(player, cd)
     -- 目标：让动画在cd秒内播放完成
     local playbackSpeed = cd / animationLength
     animationTrack:AdjustSpeed(playbackSpeed)
-    animationTrack:Play()
 end
 
 -- 播放挖掘动画函数（从下往上）
@@ -496,6 +441,7 @@ function PlayerService:PlayDigAnimation(player, cd)
     end
     
     local animationTrack = self.AnimationTracks[player.UserId]["dig"]
+    animationTrack:Play()
     
     -- 获取动画的总时长
     local animationLength = animationTrack.Length
@@ -504,7 +450,6 @@ function PlayerService:PlayDigAnimation(player, cd)
     -- 目标：让动画在cd秒内播放完成
     local playbackSpeed = cd / animationLength
     animationTrack:AdjustSpeed(playbackSpeed)
-    animationTrack:Play()
 end
 
 function PlayerService:playAnimation(player, animationName, soundName, cd)

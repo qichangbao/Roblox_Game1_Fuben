@@ -31,7 +31,7 @@ function LevelService:PlayerAdded(player, levelData)
     self.DuanWeiData[player.UserId].star = tonumber(self.DuanWeiData[player.UserId].star)
 end
 
-function LevelService:playerRemoved(player)
+function LevelService:PlayerRemoved(player)
     self.DuanWeiData[player.UserId] = nil
 end
 

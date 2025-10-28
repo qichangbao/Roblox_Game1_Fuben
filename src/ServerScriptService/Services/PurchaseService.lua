@@ -80,9 +80,21 @@ function PurchaseService:CleanupPendingPurchases(maxAge)
     end
 end
 
+-- Function to handle purchase prompt completion (including cancellations)
+local function onPromptPurchaseFinished(userId, productId, wasPurchased)
+    if not wasPurchased then
+        local player = Players:GetPlayerByUserId(userId)
+        if player then
+            Knit.GetService("ReviveService"):CannelReviveByRobux(player)
+        end
+    end
+end
+
 function PurchaseService:KnitInit()
     -- 设置购买处理回调
     MarketplaceService.ProcessReceipt = processReceipt
+    MarketplaceService.PromptProductPurchaseFinished:Connect(onPromptPurchaseFinished)
+    MarketplaceService.PromptPurchaseFinished:Connect(onPromptPurchaseFinished)
 end
 
 function PurchaseService:KnitStart()

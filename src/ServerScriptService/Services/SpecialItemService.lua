@@ -38,9 +38,16 @@ function SpecialItemService:OpenMound(player, item)
         return false
     end
 
+    local totalProbability = 0
+    for _, probability in pairs(plan.Probability) do
+        totalProbability += probability
+    end
+
+    local random = math.random(1, math.max(totalProbability, 10000))
+    local curProbability = 0
     for i, itemId in pairs(plan.ItemId) do
-        local random = math.random(1, 10000)
-        if random <= plan.Probability[i] then
+        curProbability += plan.Probability[i]
+        if random <= curProbability then
             Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
             break
         end
@@ -67,6 +74,7 @@ function SpecialItemService:OpenOre(player, item)
 
     local position = item:GetPivot().Position
     Knit.GetService("ItemService"):RemoveItem(item)
+    Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
     self:PlaySound(player, "OpenOre")
     
     local plan = PlanConfig:GetByCanisterId(itemInfo.Index)
@@ -75,9 +83,16 @@ function SpecialItemService:OpenOre(player, item)
     end
 
     if type(plan.ItemId) == "table" then
+        local totalProbability = 0
+        for _, probability in pairs(plan.Probability) do
+            totalProbability += probability
+        end
+
+        local random = math.random(1, math.max(totalProbability, 10000))
+        local curProbability = 0
         for i, itemId in pairs(plan.ItemId) do
-            local random = math.random(1, 10000)
-            if random <= plan.Probability[i] then
+            curProbability += plan.Probability[i]
+            if random <= curProbability then
                 Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
                 break
             end
@@ -188,9 +203,16 @@ function SpecialItemService:OpenChest(player, item, itemInfo)
 
     local position = item:GetPivot().Position
     if type(plan.ItemId) == "table" then
+        local totalProbability = 0
+        for _, probability in pairs(plan.Probability) do
+            totalProbability += probability
+        end
+
+        local random = math.random(1, math.max(totalProbability, 10000))
+        local curProbability = 0
         for i, itemId in pairs(plan.ItemId) do
-            local random = math.random(1, 10000)
-            if random <= plan.Probability[i] then
+            curProbability += plan.Probability[i]
+            if random <= curProbability then
                 Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
                 break
             end

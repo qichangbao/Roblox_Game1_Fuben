@@ -49,7 +49,7 @@ function TaskService:PlayerAdded(player)
     end
 end
 
-function TaskService:playerRemoved(player)
+function TaskService:PlayerRemoved(player)
     self.TaskData[player.UserId] = nil
 end
 
@@ -150,8 +150,8 @@ function TaskService:ComplateTask(player, taskId)
     end
     
     -- 检查是否满足任务条件
-    local needItemList = task.NeedItemList
-    local needNumList = task.NeedNumList
+    local needItemList = {task.NeedItem}
+    local needNumList = {task.NeedNum}
     for i, v in ipairs(needItemList) do
         local itemId = v
         local num = needNumList[i]
@@ -184,8 +184,6 @@ function TaskService:ComplateTask(player, taskId)
              }
             itemsToRemove[itemId] = itemsToRemove[itemId] - 1
             bagDataChanged = true
-            
-            print("从背包移除物品:", itemId, "剩余需要移除:", itemsToRemove[itemId])
         end
     end
     
@@ -202,20 +200,16 @@ function TaskService:ComplateTask(player, taskId)
              }
             itemsToRemove[itemId] = itemsToRemove[itemId] - 1
             toolDataChanged = true
-            
-            print("从工具栏移除物品:", itemId, "剩余需要移除:", itemsToRemove[itemId])
         end
     end
     
     -- 批量更新客户端数据（只在有变更时才发送）
     if toolDataChanged then
         inventoryService:UpdateToolData(player, toolData)
-        print("工具栏数据已批量更新")
     end
     
     if bagDataChanged then
         inventoryService:UpdateBagData(player, bagData)
-        print("背包数据已批量更新")
     end
     
     -- 验证是否所有物品都已移除
@@ -228,8 +222,6 @@ function TaskService:ComplateTask(player, taskId)
     end
     
     if allRemoved then
-        print("任务", taskId, "所需物品已全部移除")
-        
         -- 发送奖励物品
         self:GiveRewardItem(player, task)
     end
@@ -261,7 +253,7 @@ function TaskService:GiveRewardItem(player, task)
     
     local rewardItemId = task.RewardItem
     if not rewardItemId or rewardItemId == 0 then
-        print("任务", task.QuestId, "没有配置奖励物品")
+        warn("任务", task.QuestId, "没有配置奖励物品")
         return
     end
     

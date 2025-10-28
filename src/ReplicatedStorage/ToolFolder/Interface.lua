@@ -1,6 +1,7 @@
 local Interface = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local UserInputService = game:GetService("UserInputService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
@@ -277,9 +278,12 @@ function Interface.isPlayerOnBoat(player)
         return false
     end
     
+    local landName = Knit.GetService("IslandService"):GetIslandName()
+    local land = Interface.safeWaitPart(workspace, landName)
+    local special = Interface.safeWaitPart(land, "Special")
     -- 检查每个触发Model
     for _, modelName in ipairs(GameConfig.TeleportPartNames) do
-        local triggerModel = workspace:FindFirstChild(GameConfig.LandName):FindFirstChild("Special"):FindFirstChild(modelName)
+        local triggerModel = Interface.safeWaitPart(special, modelName)
         if triggerModel and triggerModel:IsA("Model") then
             return Interface.checkPlayerOnModel(player, triggerModel)
         end

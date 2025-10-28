@@ -104,14 +104,29 @@ local function init()
         end)
 
         Knit.GetService("ClientUIService").ShowUI:Connect(function(ui, data)
-            if ui == "DangerUI" then
-                Knit.GetController("UIController").ShowDangerUI:Fire(data)
+            if ui == "NoticeUI" then
+                Knit.GetController("UIController").ShowNoticeUI:Fire(data)
             elseif ui == "MessageBoxUI" then
                 Knit.GetController("UIController").ShowMessageBoxUI:Fire(data)
+            elseif ui == "DragonOrbLostUI" then
+                Knit.GetController("UIController").ShowDragonOrbLostUI:Fire(data)
+            end
+        end)
+
+        Knit.GetService("ClientUIService").HideUI:Connect(function(ui)
+            if ui == "MessageBoxUI" then
+                Knit.GetController("UIController").HideMessageBoxUI:Fire()
+            end
+        end)
+
+        Knit.GetService("ClientUIService").ResetUI:Connect(function(ui)
+            if ui == "MessageBoxUI" then
+                Knit.GetController("UIController").ResetMessageBoxUI:Fire()
             end
         end)
 
         Knit.GetService("SettleService").SendShowUI:Connect(function(data)
+            Knit.GetController("UIController").HideMessageBoxUI:Fire()
             Knit.GetController("UIController").ShowSettleUI:Fire(data)
         end)
 

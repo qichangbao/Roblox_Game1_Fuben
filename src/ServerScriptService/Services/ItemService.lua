@@ -22,6 +22,7 @@ local ItemService = Knit.CreateService {
     },
 
     Items = {},
+    TotalValue = 0,
 }
 
 -- 创建炫彩宝箱特效
@@ -68,14 +69,6 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, attribute, is
     end
     GameConfig.SetItemAttribute(item, attribute)
 
-    -- 创建外发光
-    local highlight = Instance.new("Highlight")
-    highlight.Parent = item
-    highlight.FillTransparency = 1
-    highlight.OutlineTransparency = 0.85
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.DepthMode = Enum.HighlightDepthMode.Occluded
-
     if isAnchored then
         task.delay(0.5, function()
             if item:IsA("BasePart") then
@@ -101,6 +94,15 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     if not item or not itemInfo then
         return
     end
+
+    -- 创建外发光
+    local highlight = Instance.new("Highlight")
+    highlight.Parent = item
+    highlight.FillTransparency = 1
+    highlight.OutlineTransparency = 0.85
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+
     -- 创建 ProximityPrompt 实例
     local proximityPrompt = Instance.new("ProximityPrompt")
     proximityPrompt.Parent = item
@@ -259,9 +261,16 @@ function ItemService:CreateItemByPlan(planData, position, isAnchored)
                 return item
             end
         else
+            local totalProbability = 0
+            for _, probability in pairs(planData.Probability) do
+                totalProbability += probability
+            end
+
+            local random = math.random(1, math.max(totalProbability, 10000))
+            local curProbability = 0
             for index, itemId in pairs(planData.ItemId) do
-                local random = math.random(1, 10000)
-                if random <= planData.Probability[index] then
+                curProbability += planData.Probability[index]
+                if random <= curProbability then
                     local item = self:CreateItem(itemId, position, GameConfig.GetItemAttribute(), isAnchored)
                     if item then
                         table.insert(self.Items, item)
@@ -368,13 +377,21 @@ function ItemService.Client:FindNearestItem(player)
     return self.Server:FindNearestItem(player)
 end
 
+function ItemService:GetItems()
+    return self.Items
+end
+
+function ItemService.Client:GetItems()
+    return self.Server:GetItems()
+end
+
 function ItemService:KnitInit()
 end
 
 function ItemService:KnitStart()
     self:initItems()
     -- task.spawn(function()
-    --     local itemTemp = self:CreateItem(603, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+    --     local itemTemp = self:CreateItem(503, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
     --     if itemTemp then
     --         table.insert(self.Items, itemTemp)
     --     end
@@ -403,11 +420,11 @@ function ItemService:KnitStart()
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
 
-    -- local world = Interface.safeWaitPart(workspace, GameConfig.LandName)
+    -- local world = Interface.safeWaitPart(workspace, Knit.GetService("IslandService"):GetIslandName())
     -- local Special = Interface.safeWaitPart(world, "Special")
     -- local worldStoneTablet = Interface.safeWaitPart(Special, "StoneTablet")
     -- local StoneTablet = ServerStorage:WaitForChild("StoneTablet")
-    -- local folder = StoneTablet:WaitForChild(GameConfig.LandName)
+    -- local folder = StoneTablet:WaitForChild(Knit.GetService("IslandService"):GetIslandName())
     -- local tablet = folder:WaitForChild("碑"):Clone()
     -- tablet.Parent = worldStoneTablet
     -- require(tablet:WaitForChild("ModuleScript"))

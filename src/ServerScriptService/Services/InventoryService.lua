@@ -34,7 +34,7 @@ function InventoryService:KnitStart()
 end
 
 
-function InventoryService:playerAdd(player, inventory, toolData)
+function InventoryService:PlayerAdded(player, inventory, toolData)
 	self.Inventory[player.UserId] = {}
 	for _, v in pairs(inventory) do
         local attribute = GameConfig.GetItemAttribute()
@@ -75,27 +75,9 @@ function InventoryService:playerAdd(player, inventory, toolData)
 
     self.EscapeItems[player.UserId] = {}
     self.TurnInNum[player.UserId] = 0
-
-    if game:GetService("RunService"):IsStudio() then
-        player.Chatted:Connect(function(message)
-            local lowerMessage = string.lower(message)
-            
-            -- 解析 "add item [itemId]" 命令
-            local addMatch = string.match(lowerMessage, "^add item (%d+)$")
-            if addMatch then
-                local itemId = tonumber(addMatch)
-                if itemId then
-                    Knit.GetService("ItemService"):CreateItem(itemId, player.Character:GetPivot().Position)
-                    return true
-                end
-            end
-        
-            return false
-        end)
-    end
 end
 
-function InventoryService:playerRemoved(player)
+function InventoryService:PlayerRemoved(player)
     self.Inventory[player.UserId] = nil
     self.ToolData[player.UserId] = nil
     self.BagData[player.UserId] = nil
@@ -318,6 +300,10 @@ function InventoryService:GiveToolToPlayer(player, item)
         self:UpdateToolData(player, toolData)
     end
     
+    -- 特殊物品，龙珠被捡
+    if itemId == 1035 then
+        Knit.GetService("TimeService"):LongZhuPickUp()
+    end
     -- 触发物品拾取条件
     _G.TriggerManager:PickUpItem(player, itemId)
     -- 成功添加到背包，销毁世界中的物品
@@ -989,7 +975,7 @@ function InventoryService:TurnInCollect(player)
         if isBagChanged then
             self:UpdateBagData(player, self.BagData[player.UserId])
         end
-        Knit.GetService("ClientUIService"):Submit(player, gold)
+        Knit.GetService("ClientUIService"):ShowTipAll(string.format("%s submitted items worth %d", player.Name, gold))
     else
         print(string.format("玩家 %s 没有可上交的搜集物品", player.Name))
     end
@@ -1006,9 +992,9 @@ function InventoryService:EquipAdditionalBackpack(player, equip)
 end
 
 function InventoryService:GetCurrentToolData(player, tool)
-    for _, v in pairs(self.ToolData[player.UserId]) do
+    for slot, v in pairs(self.ToolData[player.UserId]) do
         if v.ItemId == tool:GetAttribute("ItemId") and v.Attribute.CreateTime == tool:GetAttribute("CreateTime") then
-            return v
+            return slot, v
         end
     end
 end
@@ -1034,14 +1020,42 @@ function InventoryService:UseTool(player, tool, type, dt)
         return
     end
 
-    local currentToolData = self:GetCurrentToolData(player, tool)
+    local itemInfo = ItemConfig:GetByIndex(itemId)
+    if not itemInfo then
+        return
+    end
+
+    local toolData = self.ToolData[player.UserId]
+    local slotNumber, currentToolData = self:GetCurrentToolData(player, tool)
     if currentToolData then
+        local needDestroy = false
         if type == 1 then
             currentToolData.Attribute.UsedNum += 1
+            if currentToolData.Attribute.UsedNum >= itemInfo.TimeUsed then
+                needDestroy = true
+            end
         else
             currentToolData.Attribute.UsedTime += dt
+            if currentToolData.Attribute.UsedTime >= itemInfo.Duration then
+                needDestroy = true
+            end
         end
-        GameConfig.UpdateItemAttribute(tool, "UsedNum", currentToolData.Attribute.UsedNum)
+
+        if needDestroy then
+            -- 从工具栏数据中移除
+            toolData[slotNumber] = {
+                ItemId = 0,
+                Attribute = GameConfig.GetItemAttribute()
+            }
+            equippedTool:Destroy()
+            Knit.GetService("ClientUIService"):ShowUIAll("ShowTip", {Type = 1, Text  = string.format("%s depleted. Item destroyed", itemInfo.DisplayName)})
+        else
+            if type == 1 then
+                GameConfig.UpdateItemAttribute(tool, "UsedNum", currentToolData.Attribute.UsedNum)
+            else
+                GameConfig.UpdateItemAttribute(tool, "UsedTime", currentToolData.Attribute.UsedTime)
+            end
+        end
         self:SendToolData(player)
     end
 end

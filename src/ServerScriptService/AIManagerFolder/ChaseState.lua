@@ -67,8 +67,8 @@ function ChaseState:Enter()
 
         local targetPos = self.AIManager.target.HumanoidRootPart.Position
         self:moveTo(Humanoid, targetPos, self.AIManager.target.HumanoidRootPart)
-        self.AIManager:PlayAnimation("walk", true, Enum.AnimationPriority.Movement)
-        self.AIManager:PlaySound("chase")
+        self.AIManager:PlayAnimation("walk", true)
+        self.AIManager:PlaySound("walk", true)
         return
     else
         self.AIManager:SetState("Idle")

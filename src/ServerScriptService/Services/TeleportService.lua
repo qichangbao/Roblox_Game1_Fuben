@@ -19,8 +19,8 @@ local TeleportServiceModule = Knit.CreateService {
 }
 
 -- ReserveServer配置
---local TARGET_PLACE_ID = 105534130650004  -- 目标传送场景ID（TestBoat）
-local TARGET_PLACE_ID = 133323957345255
+--local TARGET_PLACE_ID = 105534130650004   -- 目标传送场景ID（正式服）
+local TARGET_PLACE_ID = 133323957345255     -- 目标传送场景ID（测试服）
 
 function TeleportServiceModule:KnitInit()
 end

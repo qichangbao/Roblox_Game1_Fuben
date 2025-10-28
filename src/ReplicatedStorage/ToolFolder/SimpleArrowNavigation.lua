@@ -113,7 +113,7 @@ local function getPathWaypoints(startPos, targetPos)
 	end)
 	
 	if not success or path.Status ~= Enum.PathStatus.Success then
-		warn("路径计算失败:", errorMessage or "未知错误")
+		print("路径计算失败:", errorMessage or "未知错误")
 		return nil
 	end
 	
@@ -249,6 +249,11 @@ local function updateArrowPath()
 	local playerPosition = getPlayerPosition()
 	if not playerPosition then return end
 	
+	-- 检查玩家是否已经接近目标，如果是则不更新路径
+	if SimpleArrowNavigation.IsNearTarget(currentTarget, 10) then
+		return
+	end
+	
 	-- 检查是否需要更新路径
 	if not shouldUpdatePath(playerPosition, lastPlayerPosition, 3) then return end
 	
@@ -342,10 +347,16 @@ end
 	@param threshold number 距离阈值（默认5）
 ]]
 function SimpleArrowNavigation.StartAutoCleanup(targetPosition, threshold)
-	threshold = threshold or 5
+	threshold = threshold or 10
 	
-	local connection = RunService.Heartbeat:Connect(function()
+	local connection
+	connection = RunService.Heartbeat:Connect(function()
 		if SimpleArrowNavigation.IsNearTarget(targetPosition, threshold) then
+			-- 立即断开自己的连接，防止重复触发
+			if connection then
+				connection:Disconnect()
+			end
+			
 			SimpleArrowNavigation.ClearPath()
 			print("已到达目标，自动清理箭头")
 		end

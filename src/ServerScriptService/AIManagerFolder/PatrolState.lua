@@ -125,8 +125,8 @@ function PatrolState:Enter()
         self.AIManager:SetState("Idle")
         return
     end)
-    self.AIManager:PlayAnimation("walk", true, Enum.AnimationPriority.Movement)
-    self.AIManager:PlaySound("walk")
+    self.AIManager:PlayAnimation("walk", true)
+    self.AIManager:PlaySound("walk", true)
 end
 
 -- 每帧更新

@@ -26,6 +26,12 @@ end
 local function onCharacterAdded(character)
     print("角色已加载，设置摄像机...")
     
+    -- 检查是否正在播放宝箱展示动画，如果是则不干扰
+    if _G.ChestShowcasePlaying then
+        print("宝箱展示动画正在播放，跳过摄像机重置")
+        return
+    end
+    
     resetCamera(character)
 end
 

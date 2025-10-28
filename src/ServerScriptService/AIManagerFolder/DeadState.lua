@@ -16,7 +16,7 @@ end
 
 function DeadState:Enter()
     -- 播放死亡动画并分析
-     self.AIManager:PlayAnimation("dead", false, Enum.AnimationPriority.Action2)
+     self.AIManager:PlayAnimation("dead", false)
      self.AIManager:PlaySound("dead")
 
     local HumanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")

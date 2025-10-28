@@ -45,7 +45,7 @@ function AttackState:ChangeDirection()
     self.AIManager.NPC.HumanoidRootPart.CFrame = newCFrame
 end
 
-function AttackState:Update(dt)
+function AttackState:CalculateDamage()
     local HumanoidRootPart = self.AIManager.NPC:FindFirstChild('HumanoidRootPart')
     if not HumanoidRootPart then
         print("HumanoidRootPart not found")
@@ -58,22 +58,7 @@ function AttackState:Update(dt)
         return
     end
 
-    self.timer = self.timer - dt
-    if not self.isFirst and self.timer > 0 then
-        return
-    end
-
-    self.isFirst = false
-    self.timer = self.AIManager.NPC:GetAttribute("AttackSpeed")
-    
-    -- 更新位置和方向（确保怪物正面朝向目标）
-    self:ChangeDirection()
-    self.AIManager:PlayAnimation("attack", false, Enum.AnimationPriority.Action)
-
-    task.wait(1)
-
     self.AIManager:PlaySound("attack")
-
     local currentPos = HumanoidRootPart.CFrame.Position
     local attackRange = self.AIManager.NPC:GetAttribute("AttackRange")
     local params = OverlapParams.new()
@@ -94,7 +79,42 @@ function AttackState:Update(dt)
     local humanoid = target:FindFirstChild("Humanoid")
     if humanoid and humanoid.Health > 0 then
         humanoid:TakeDamage(attack)
+        if humanoid.Health <= 0 then
+            self.AIManager:SetState("Idle")
+            return
+        end
     end
+end
+
+function AttackState:Update(dt)
+    local HumanoidRootPart = self.AIManager.NPC:FindFirstChild('HumanoidRootPart')
+    if not HumanoidRootPart then
+        print("HumanoidRootPart not found")
+        return
+    end
+
+    local target = self.AIManager.target
+    if not target then
+        self.AIManager:SetState("Idle")
+        return
+    end
+
+    self.timer = self.timer - dt
+    if not self.isFirst and self.timer > 0 then
+        return
+    end
+
+    self.isFirst = false
+    self.timer = self.AIManager.NPC:GetAttribute("AttackSpeed")
+    local initAttackSpeed = self.AIManager.NPC:GetAttribute("InitAttackSpeed")
+    
+    -- 更新位置和方向（确保怪物正面朝向目标）
+    self:ChangeDirection()
+    self.AIManager:PlayAnimation("attack", false, initAttackSpeed / self.timer)
+
+    task.delay(self.timer / 3, function()
+        self:CalculateDamage()
+    end)
 end
 
 function AttackState:Exit()

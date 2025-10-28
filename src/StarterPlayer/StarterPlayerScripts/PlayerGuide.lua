@@ -21,7 +21,7 @@ function Module:ShowGuide()
             return
         end
 
-        SimpleArrowNavigation.NavigateTo(itemPosition, nil, 5, true, 0.5)
+        SimpleArrowNavigation.NavigateTo(itemPosition, nil, 10, true, 0.5)
     end)
 end
 

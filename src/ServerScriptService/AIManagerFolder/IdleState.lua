@@ -13,7 +13,7 @@ function IdleState.new(AIManager)
 end
 
 function IdleState:Enter()
-    self.AIManager:PlayAnimation("idle", true, Enum.AnimationPriority.Idle)
+    self.AIManager:PlayAnimation("idle", true)
     self.AIManager:PlaySound("idle")
 
     self.timer = math.random(5, 15)

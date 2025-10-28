@@ -15,10 +15,10 @@ end
 function ChangeMonsterAttributeAction:Execute(data)
     ActionBase.Execute(self)
     
-    Knit.GetService("MonsterService"):ChangeAllMonsterAttribute(self.config.AttributeName, self.config.AttributeValue)
+    Knit.GetService("MonsterService"):ChangeAllMonsterAttribute(self.config.AttributeValue)
     if self.duration and self.duration > 0 then
         task.delay(self.duration, function()
-            Knit.GetService("MonsterService"):ChangeAllMonsterAttribute(self.config.AttributeName)
+            Knit.GetService("MonsterService"):ChangeAllMonsterAttribute()
         end)
     end
 end
