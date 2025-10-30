@@ -3,6 +3,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local AbilityConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("AbilityConfig"))
@@ -17,8 +18,13 @@ local PlayerService = Knit.CreateService {
     AnimationTracks = {},
 }
 -- 配置参数
-local FALL_HEIGHT_THRESHOLD = 20 -- 下落高度阈值（单位：stud）
+local FALL_HEIGHT_THRESHOLD = 15 -- 下落高度阈值（单位：stud）
+local WATER_DAMAGE = 10 -- 水中每秒掉血量
+local WATER_CHECK_INTERVAL = 1 -- 水中检测间隔（秒）
+
+-- 数据存储
 local _playerFallData = {}
+local _playerWaterData = {} -- 存储玩家水中状态数据 {userId = lastDamageTime}
 
 function PlayerService:KnitInit()
 end
@@ -86,38 +92,7 @@ function PlayerService:KnitStart()
                 end
                 music2.Parent = character
 
-                humanoid.StateChanged:Connect(function(oldState, newState)
-                    if not player.Character then return end
-                    local data = _playerFallData[player.UserId]
-                    if not data then return end
-                    local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
-                    if not humanoidRootPart then return end
-	                local currentY = humanoidRootPart.Position.Y
-                    if newState == Enum.HumanoidStateType.Freefall then
-                        data.fallStartY = currentY
-                        data.maxFallHeight = currentY
-                    elseif oldState == Enum.HumanoidStateType.Freefall
-                    and (newState == Enum.HumanoidStateType.Landed or newState == Enum.HumanoidStateType.Running) then
-                        -- 玩家刚刚落地，计算下落高度
-                        local fallHeight = data.fallStartY - currentY
-                        if fallHeight > FALL_HEIGHT_THRESHOLD then
-                            humanoid:TakeDamage(10)
-                        elseif fallHeight > FALL_HEIGHT_THRESHOLD + 5 then
-                            humanoid:TakeDamage(30)
-                        elseif fallHeight > FALL_HEIGHT_THRESHOLD + 10 then
-                            humanoid:TakeDamage(60)
-                        elseif fallHeight > FALL_HEIGHT_THRESHOLD + 15 then
-                            humanoid:TakeDamage(100)
-                        end
-                        
-                        -- 重置下落状态
-                        data.isFalling = false
-                        data.fallStartY = nil
-                        data.maxFallHeight = 0
-                        
-                        data.lastYPosition = currentY
-                    end
-                end)
+                -- 下落检测已移至全局心跳循环中，提高检测精度
             end
             
             -- 递归遍历角色下的所有Part并设置CollisionGroup
@@ -143,17 +118,30 @@ function PlayerService:KnitStart()
                     setCollisionGroupForAllParts(child)
                 end
             end)
+
+            -- 在 CharacterAdded 事件中添加
+            local forceField = Instance.new("ForceField")
+            forceField.Parent = character
+
+            -- 3秒后自动移除
+            game:GetService("Debris"):AddItem(forceField, 3)
         end)
         
         player:LoadCharacter()
         player:SetAttribute("JoinTime", tick())
         player:SetAttribute("HumanoidType", GameConfig.HumanoidType.Player)
+
+        -- 启动水中检测循环
+        self:StartWaterDamageLoop(player)
     end
 
     local function PlayerRemoved(player)
         self.AnimationTracks[player.UserId] = nil
         self.AbilityData[player.UserId] = nil
         _playerFallData[player.UserId] = nil
+        
+        -- 停止水中检测循环并清理数据
+        self:StopWaterDamageLoop(player)
 
         Knit.GetService("SettleService"):PlayerRemoved(player)
         Knit.GetService("InventoryService"):PlayerRemoved(player)
@@ -179,6 +167,9 @@ function PlayerService:KnitStart()
 	Players.PlayerRemoving:Connect(function(player)
         PlayerRemoved(player)
 	end)
+
+    -- 启动全局心跳检测
+    self:StartHeartBeat()
 end
 
 function PlayerService:GetInitData(player)
@@ -195,6 +186,9 @@ function PlayerService:GetInitData(player)
 		lastYPosition = nil,
 		fallStartY = nil,
 		maxFallHeight = 0,
+		isFalling = false,
+		fallStartTime = nil,
+		lastCheckTime = 0,
     }
 
     local islandName = nil
@@ -468,6 +462,119 @@ function PlayerService:playAnimation(player, animationName, soundName, cd)
     if music then
         music:Play()
     end
+end
+
+-- 启动全局检测循环（水中伤害 + 下落检测）
+function PlayerService:StartHeartBeat()
+    RunService.Heartbeat:Connect(function()
+        local currentTime = tick()
+        
+        -- 遍历所有需要检测的玩家（水中伤害）
+        for userId, lastDamageTime in pairs(_playerWaterData) do
+            local player = Players:GetPlayerByUserId(userId)
+            
+            -- 检查玩家是否还在游戏中
+            if not player or not player.Parent or not player.Character then
+                _playerWaterData[userId] = nil
+                continue
+            end
+            
+            -- 检查是否需要进行伤害检测（每秒一次）
+            if currentTime - lastDamageTime >= WATER_CHECK_INTERVAL then
+                if Interface.IsPlayerInWater(player.Character) then
+                    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                    if humanoid and humanoid.Health > 0 then
+                        humanoid:TakeDamage(WATER_DAMAGE)
+                        print(player.Name .. " 在水中受到 " .. WATER_DAMAGE .. " 点伤害")
+                    end
+                end
+                _playerWaterData[userId] = currentTime
+            end
+        end
+        
+        -- 遍历所有需要检测的玩家（下落检测）
+        for userId, fallData in pairs(_playerFallData) do
+            local player = Players:GetPlayerByUserId(userId)
+            
+            -- 检查玩家是否还在游戏中
+            if not player or not player.Parent or not player.Character then
+                _playerFallData[userId] = nil
+                continue
+            end
+            
+            local character = player.Character
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            
+            if not humanoid or not humanoidRootPart then
+                continue
+            end
+            
+            local currentY = humanoidRootPart.Position.Y
+            local humanoidState = humanoid:GetState()
+            
+            -- 检查是否开始下落
+            if humanoidState == Enum.HumanoidStateType.Freefall then
+                if not fallData.isFalling then
+                    -- 开始下落
+                    fallData.isFalling = true
+                    fallData.fallStartY = currentY
+                    fallData.fallStartTime = currentTime
+                    fallData.maxFallHeight = currentY
+                end
+                -- 更新最大下落高度
+                if currentY < fallData.maxFallHeight then
+                    fallData.maxFallHeight = currentY
+                end
+            elseif fallData.isFalling and (humanoidState == Enum.HumanoidStateType.Landed or humanoidState == Enum.HumanoidStateType.Running) then
+                -- 检查是否有无敌保护（ForceField）
+                if not character:FindFirstChild("ForceField") then
+                    local fallHeight = fallData.fallStartY - currentY
+                    if fallHeight > FALL_HEIGHT_THRESHOLD then
+                        local damage = 0
+                        if fallHeight > FALL_HEIGHT_THRESHOLD + 15 then
+                            damage = humanoid.MaxHealth
+                        elseif fallHeight > FALL_HEIGHT_THRESHOLD + 10 then
+                            damage = 60
+                        elseif fallHeight > FALL_HEIGHT_THRESHOLD + 5 then
+                            damage = 30
+                        else
+                            damage = 10
+                        end
+                        
+                        humanoid:TakeDamage(damage)
+                    end
+                    print(player.Name .. " 下落 " .. math.floor(fallHeight))
+                end
+                
+                -- 重置下落状态
+                fallData.isFalling = false
+                fallData.fallStartY = nil
+                fallData.fallStartTime = nil
+                fallData.maxFallHeight = 0
+            end
+            
+            -- 更新最后位置
+            fallData.lastYPosition = currentY
+            fallData.lastCheckTime = currentTime
+        end
+    end)
+end
+
+-- 为玩家启动水中检测
+function PlayerService:StartWaterDamageLoop(player)
+    if not player then return end
+    
+    local userId = player.UserId
+    _playerWaterData[userId] = 0 -- 初始化最后伤害时间
+end
+
+-- 为玩家停止水中检测
+function PlayerService:StopWaterDamageLoop(player)
+    if not player then return end
+    
+    local userId = player.UserId
+    _playerWaterData[userId] = nil
 end
 
 return PlayerService

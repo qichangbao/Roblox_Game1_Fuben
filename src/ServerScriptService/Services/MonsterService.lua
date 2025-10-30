@@ -2,6 +2,7 @@
 -- 使用Knit框架管理服务器数据
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local MonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterConfig"))
 local AIManager = require(script.Parent.Parent:WaitForChild("AIManagerFolder"):WaitForChild("AIManager"))
@@ -13,27 +14,29 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 local MonsterService = Knit.CreateService {
 	Name = "MonsterService",
 	Client = {
+        Chase = Knit.CreateSignal(),
 	},
 
     Monsters = {},
     KillMonsters = {},
+    ChaseMonsters = {},
 }
 
 function MonsterService:PlayerAdded(player)
-    self.KillMonsters[player.userId] = {}
+    self.KillMonsters[player.UserId] = {}
 end
 
 function MonsterService:PlayerRemoved(player)
-    self.KillMonsters[player.userId] = nil
+    self.KillMonsters[player.UserId] = nil
 end
 
 function MonsterService:KillMonster(player, monster)
-    if not self.KillMonsters[player.userId] then
+    if not self.KillMonsters[player.UserId] then
         return
     end
 
     local monsterId = monster:GetAttribute("MonsterId")
-    table.insert(self.KillMonsters[player.userId], monsterId)
+    table.insert(self.KillMonsters[player.UserId], monsterId)
 
     local monsterInfo = MonsterConfig:GetByMonsterId(monsterId)
     if not monsterInfo then
@@ -121,7 +124,45 @@ function MonsterService:ChangeAllMonsterAttribute(value)
 end
 
 function MonsterService:GetKillMonsters(player)
-    return self.KillMonsters[player.userId]
+    return self.KillMonsters[player.UserId]
+end
+
+-- 追逐玩家
+function MonsterService:Chase(playerOrCharacter, npc)
+    -- 兼容传入玩家或角色模型
+    local player = playerOrCharacter
+    if player and not player:IsA("Player") then
+        player = Players:GetPlayerFromCharacter(playerOrCharacter)
+    end
+    if not player then
+        return
+    end
+
+    if self.ChaseMonsters[npc.Name] and self.ChaseMonsters[npc.Name] ~= player.UserId then
+        self:ChaseCannel(npc)
+    end
+
+    self.ChaseMonsters[npc.Name] = player.UserId
+    -- 通知客户端显示/隐藏追逐标记
+    self.Client.Chase:Fire(player, npc, true)
+end
+
+-- 取消所有追逐
+function MonsterService:ChaseCannel(npc)
+    if not self.ChaseMonsters[npc.Name] then
+        return
+    end
+
+    local userId = self.ChaseMonsters[npc.Name]
+    if not userId then
+        return
+    end
+    local player = game.Players:GetPlayerByUserId(userId)
+    if not player then
+        return
+    end
+    self.Client.Chase:Fire(player, npc, false)
+    self.ChaseMonsters[npc.Name] = nil
 end
 
 function MonsterService:CreateMonsterByPlan(planData, position)
@@ -158,9 +199,9 @@ end
 
 function MonsterService:KnitInit()
     self:initMonsters()
-    --self:CreateMonster(30002, Vector3.new(353, -0.7, -240))
-    --self:CreateMonster(30002, Vector3.new(353, -1.5, -220))
-    --self:CreateMonster(30003, Vector3.new(353, -1.5, -220))
+    -- self:CreateMonster(30001, Vector3.new(353, -0.7, -240))
+    -- self:CreateMonster(30002, Vector3.new(353, -1.5, -220))
+    -- self:CreateMonster(30003, Vector3.new(353, -1.5, -220))
 end
 
 -- 服务启动时的初始化

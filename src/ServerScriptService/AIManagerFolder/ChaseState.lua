@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local ChaseState = {}
@@ -49,19 +50,21 @@ function ChaseState:moveTo(humanoid, targetPoint, targetPart)
 end
 
 function ChaseState:Enter()
-    self:FindNearestModel()
+    self.AIManager.target = self.AIManager:FindVisionRangeNearestTarget()
 
     local Humanoid = self.AIManager.NPC:FindFirstChild('Humanoid')
     if not Humanoid then
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
 
     if self.AIManager.target and self.AIManager.target.HumanoidRootPart then
         -- 目标在水里，则放弃追踪
-        if Interface.isPointInTerrainWater(self.AIManager.target.HumanoidRootPart.Position) then
+        if Interface.IsPlayerInWater(self.AIManager.target) then
             self.AIManager.target = nil
             self.AIManager:SetState("Idle")
+            Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
             return
         end
 
@@ -69,9 +72,11 @@ function ChaseState:Enter()
         self:moveTo(Humanoid, targetPos, self.AIManager.target.HumanoidRootPart)
         self.AIManager:PlayAnimation("walk", true)
         self.AIManager:PlaySound("walk", true)
+        Knit.GetService("MonsterService"):Chase(self.AIManager.target, self.AIManager.NPC)
         return
     else
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
 end
@@ -80,18 +85,21 @@ function ChaseState:Update(dt)
     local HumanoidRootPart = self.AIManager.NPC:FindFirstChild('HumanoidRootPart')
     if not HumanoidRootPart then
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
 
     local Humanoid = self.AIManager.NPC:FindFirstChild('Humanoid')
     if not Humanoid then
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
 
     local target = self.AIManager.target
     if not target then
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
     
@@ -100,6 +108,7 @@ function ChaseState:Update(dt)
     if not targetHumanoidRootPart then
         self.AIManager.target = nil
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
 
@@ -107,12 +116,14 @@ function ChaseState:Update(dt)
     if not targetHumanoid then
         self.AIManager.target = nil
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
 
     if targetHumanoid.Health <= 0 then
         self.AIManager.target = nil
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
 
@@ -120,38 +131,11 @@ function ChaseState:Update(dt)
     if not targetPosition then
         self.AIManager.target = nil
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
 
     self:CheckDistance()
-end
-
-function ChaseState:FindNearestModel()
-    local HumanoidRootPart = self.AIManager.NPC:FindFirstChild('HumanoidRootPart')
-    if not HumanoidRootPart then
-        return
-    end
-    local npcPos = HumanoidRootPart.CFrame.Position
-    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
-    local minDistance = math.huge
-
-    for _, v in ipairs(Players:GetPlayers()) do
-        local character = v.character
-        if character
-        and character.HumanoidRootPart
-        and character.Humanoid
-        and character.Humanoid.Health > 0 then
-            if not Interface.isPointInTerrainWater(character.HumanoidRootPart.Position) then
-                local dis = (character.HumanoidRootPart.Position - npcPos).Magnitude
-                if dis <= visionRange then
-                    if not minDistance or dis < minDistance then
-                        self.AIManager.target = character
-                        minDistance = dis
-                    end
-                end
-            end
-        end
-    end
 end
 
 function ChaseState:CheckDistance()
@@ -161,15 +145,17 @@ function ChaseState:CheckDistance()
     local targetHumanoidRootPart = target:FindFirstChild('HumanoidRootPart')
     local targetHumanoid = target:FindFirstChild('Humanoid')
     if targetHumanoidRootPart and targetHumanoid and targetHumanoid.Health > 0 then
-        if Interface.isPointInTerrainWater(targetHumanoidRootPart.Position) then
+        if Interface.IsPlayerInWater(target) then
             self.AIManager.target = nil
             self.AIManager:SetState("Idle")
+            Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
             return
         end
         distanceToPlayer = (targetHumanoidRootPart.CFrame.Position - currentPos).Magnitude
     else
         self.AIManager.target = nil
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
     
@@ -185,6 +171,7 @@ function ChaseState:CheckDistance()
     elseif distanceToPlayer > visionRange then
         self.AIManager.target = nil
         self.AIManager:SetState("Idle")
+        Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
         return
     end
 end

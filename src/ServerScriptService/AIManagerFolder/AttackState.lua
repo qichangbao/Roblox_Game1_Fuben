@@ -54,7 +54,7 @@ function AttackState:CalculateDamage()
 
     local target = self.AIManager.target
     if not target then
-        self.AIManager:SetState("Idle")
+        self.AIManager:SetState("Chase")
         return
     end
 
@@ -66,12 +66,18 @@ function AttackState:CalculateDamage()
     params.FilterDescendantsInstances = {self.AIManager.target}
     local parts = workspace:GetPartBoundsInRadius(currentPos, attackRange, params) or {}
     if #parts == 0 then
-        self.AIManager:SetState("Idle")
+        self.AIManager:SetState("Chase")
         return
     end
 
     if not target.HumanoidRootPart or not target.Humanoid or target.Humanoid.Health <= 0 then
-        self.AIManager:SetState("Idle")
+        self.AIManager:SetState("Chase")
+        return
+    end
+
+    -- 检查是否有无敌保护（ForceField）
+    if target:FindFirstChild("ForceField") then
+        self.AIManager:SetState("Chase")
         return
     end
     
@@ -80,7 +86,7 @@ function AttackState:CalculateDamage()
     if humanoid and humanoid.Health > 0 then
         humanoid:TakeDamage(attack)
         if humanoid.Health <= 0 then
-            self.AIManager:SetState("Idle")
+            self.AIManager:SetState("Chase")
             return
         end
     end
@@ -95,7 +101,7 @@ function AttackState:Update(dt)
 
     local target = self.AIManager.target
     if not target then
-        self.AIManager:SetState("Idle")
+        self.AIManager:SetState("Chase")
         return
     end
 

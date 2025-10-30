@@ -1,10 +1,10 @@
 --require(game:GetService('StarterPlayer'):WaitForChild("StarterPlayerScripts"):WaitForChild("ClientData"))
 
--- 禁用自动本地化功能，防止UI文本被自动翻译
-local GuiService = game:GetService("GuiService")
-pcall(function()
-    GuiService.AutoLocalize = false
-end)
+-- -- 禁用自动本地化功能，防止UI文本被自动翻译
+-- local GuiService = game:GetService("GuiService")
+-- pcall(function()
+--     GuiService.AutoLocalize = false
+-- end)
 
 -- -- 禁用滚轮缩放
 -- local contextActionService = game:GetService('ContextActionService')
@@ -213,3 +213,23 @@ Knit.Start():andThen(function()
     -- 开始检查服务器启动状态
     checkServerStartStatus()
 end):catch(warn)
+
+-- -- StarterPlayerScripts / 或 StarterCharacterScripts 中的本地脚本
+-- local Players = game:GetService("Players")
+-- local lp = Players.LocalPlayer
+
+-- local function onCharacterAdded(char)
+--     -- 1) 禁用并移除默认声音脚本
+--     local rcs = char:FindFirstChild("RbxCharacterSounds")
+--     if rcs then rcs.Disabled = true; rcs:Destroy() end
+
+--     -- 2) 兜底：静音已存在的跑步声音
+--     for _, s in ipairs(char:GetDescendants()) do
+--         if s:IsA("Sound") and (s.Name == "Running" or s.Name == "Footsteps") then
+--             s.Volume = 0
+--         end
+--     end
+-- end
+
+-- if lp.Character then onCharacterAdded(lp.Character) end
+-- lp.CharacterAdded:Connect(onCharacterAdded)

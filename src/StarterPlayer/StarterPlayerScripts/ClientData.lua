@@ -36,6 +36,19 @@ local function setInitData(data)
     require(script.Parent:WaitForChild("Sound"))
 end
 
+local function showMonsterChaseFlag(monster, isShow)
+    if not monster then return end
+    local chaseFlag = monster:FindFirstChild("ChaseFlag")
+    if not chaseFlag then return end
+
+    -- 根据 isShow 显示/隐藏模型
+    for _, obj in ipairs(chaseFlag:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.Transparency = isShow and 0 or 1
+        end
+    end
+end
+
 local function init()
     local KnitInitClient = require(script.Parent:WaitForChild("KnitInitClient"))
     KnitInitClient.AddListener(function()
@@ -145,6 +158,10 @@ local function init()
             local ui = game:GetService("SoundService"):WaitForChild("UI")
             local sound = ui:WaitForChild("Loading")
             sound:Play()
+        end)
+
+        Knit.GetService("MonsterService").Chase:Connect(function(npc, isShow)
+            showMonsterChaseFlag(npc, isShow)
         end)
     end)
 end

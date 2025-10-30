@@ -23,6 +23,9 @@ function DeadState:Enter()
     if HumanoidRootPart then
         HumanoidRootPart.Anchored = true
     end
+
+    -- 取消所有追逐
+    Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
     
     -- 触发物品掉落
     local config = MonsterConfig:GetByMonsterId(self.AIManager.monsterInfo.MonsterId)

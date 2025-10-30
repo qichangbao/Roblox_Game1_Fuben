@@ -1,6 +1,3 @@
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local IdleState = {}
 IdleState.__index = IdleState
@@ -28,23 +25,10 @@ function IdleState:Update(dt)
 
     self.timer = self.timer - dt
 
-    local npcPos = HumanoidRootPart.CFrame.Position
-    local visionRange = self.AIManager.NPC:GetAttribute("VisionRange")
-    for _, v in ipairs(Players:GetPlayers()) do
-        local character = v.character
-        if character then
-            local targetHumanoidRootPart = character:FindFirstChild('HumanoidRootPart')
-            local targetHumanoid = character:FindFirstChild('Humanoid')
-            if targetHumanoidRootPart and targetHumanoid and targetHumanoid.Health > 0 then
-                if not Interface.isPointInTerrainWater(targetHumanoidRootPart.Position) then
-                    local dis = (targetHumanoidRootPart.CFrame.Position - npcPos).Magnitude
-                    if dis <= visionRange then
-                        self.AIManager:SetState("Chase")
-                        return
-                    end
-                end
-            end
-        end
+    local target = self.AIManager:FindVisionRangeTarget()
+    if target then
+        self.AIManager:SetState("Chase")
+        return
     end
     
     if self.timer <= 0 then

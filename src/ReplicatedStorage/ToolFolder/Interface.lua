@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local UserInputService = game:GetService("UserInputService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local TweenService = game:GetService("TweenService")
 
 --[[
     深拷贝函数 - 递归复制表结构
@@ -227,6 +228,23 @@ function Interface.isPointInTerrainWater(point)
     return mat == Enum.Material.Water
 end
 
+-- 检测玩家是否在游泳
+function Interface.IsPlayerInWater(character)
+    if not character then return false end
+    
+    -- 检查是否有无敌保护（ForceField）- 使用更高效的 FindFirstChild
+    if character:FindFirstChild("ForceField") then
+        return false  -- 有无敌时不受水中伤害
+    end
+    
+    -- 使用 FindFirstChildOfClass 查找 Humanoid（因为可能有自定义名称的 Humanoid）
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    
+    -- 检查玩家是否在游泳状态
+    return humanoid:GetState() == Enum.HumanoidStateType.Swimming
+end
+
 -- 使用射线检测玩家是否真正站在Model上
 -- @param player Player 要检查的玩家
 -- @param triggerModel Model 要检测的Model
@@ -290,6 +308,57 @@ function Interface.isPlayerOnBoat(player)
     end
     
     return false
+end
+
+--[[
+    数字递增动画
+    @param label TextLabel 文本标签（可选，传入则自动更新文本）
+    @param to number 目标值
+    @return NumberValue 可监听Changed事件的数值容器
+    @return Tween 动画对象（可用于控制暂停/取消）
+]]
+function Interface.AnimateNumberIncrease(labelOrFrom, to)
+    local label = nil
+    local from = 0
+    local target = 0
+
+    if typeof(labelOrFrom) == "Instance" and labelOrFrom:IsA("TextLabel") then
+        label = labelOrFrom
+        from = tonumber(label.Text) or 0
+        target = tonumber(to) or from
+    else
+        from = tonumber(labelOrFrom) or 0
+        target = tonumber(to) or from
+    end
+
+    -- 使用NumberValue承载动画数值，便于外部监听数值变化
+    local num = Instance.new("NumberValue")
+    num.Name = "Interface_AnimateNumber"
+    num.Value = from
+
+    -- 根据数值差计算时长：保持统一速度，限定上下限
+    local delta = math.abs(target - from)
+    local duration = math.clamp(delta / 100, 0.3, 1)
+
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(num, tweenInfo, { Value = target })
+
+    -- 如果传入了TextLabel，则自动更新文本显示（取整）
+    if label then
+        num.Changed:Connect(function(v)
+            label.Text = tostring(math.floor(v))
+        end)
+    end
+
+    tween:Play()
+    -- 动画完成时，强制设置最终值，避免最后一帧未更新导致偏差
+    tween.Completed:Connect(function()
+        num.Value = target
+        if label then
+            label.Text = tostring(math.floor(target))
+        end
+    end)
+    return num, tween
 end
 
 return Interface

@@ -27,6 +27,7 @@ local UIController = Knit.CreateController {
     ShowItemAttributeUI = Signal.new(),
     ShowDragonOrbLostUI = Signal.new(),
     ShowCG = Signal.new(),
+    ShowFlyItemUI = Signal.new(),
 }
 
 function UIController:KnitInit()

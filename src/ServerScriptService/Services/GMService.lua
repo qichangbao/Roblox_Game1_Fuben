@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
-local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local GMService = Knit.CreateService({
     Name = 'GMService',
@@ -21,6 +21,20 @@ end
 function GMService:PlayerRemoved(player)
 end
 
+-- 解析包含多个物品ID的字符串，支持空格或逗号分隔
+-- @param idStr string 原始ID字符串（例如 "123 456,789"）
+-- @return table 返回数字ID数组（例如 {123,456,789}）
+function GMService:ParseItemIds(idStr)
+    local ids = {}
+    for num in string.gmatch(idStr or "", "%d+") do
+        local n = tonumber(num)
+        if n then
+            table.insert(ids, n)
+        end
+    end
+    return ids
+end
+
 function GMService:GMCommand(player)
     if game:GetService("RunService"):IsStudio() then
         player.Chatted:Connect(function(message)
@@ -33,7 +47,7 @@ function GMService:GMCommand(player)
             if healMatch then
                 local amount = tonumber(healMatch)
                 if amount and humanoid then
-                    Knit.GetService("PlayerService"):addHp(player, amount)
+                    self:addHp(player, amount)
                     print(string.format("玩家 %s 恢复了 %d 点生命值，当前生命值: %d/%d", 
                         player.Name, amount, humanoid.Health, humanoid.MaxHealth))
                     return true
@@ -104,16 +118,22 @@ function GMService:GMCommand(player)
                 end
             end
 
-			-- 解析 "add item [itemId]" 命令
-			local addMatch = string.match(lowerMessage, "^add item (%d+)$")
-			if addMatch then
-				local itemId = tonumber(addMatch)
-				if itemId then
-					self:AddItem(player, {
-						ItemId = itemId,
-						Attribute = GameConfig.GetItemAttribute(),
-					})
-					print("已为玩家 " .. player.Name .. " 添加物品 ID: " .. itemId)
+			-- 解析 "add item [id1 id2 ...]" 或 "add item [id1,id2,...]" 命令 - 支持多个ID
+			local addMultiMatch = string.match(lowerMessage, "^add item%s+([%d%s,]+)$")
+			if addMultiMatch then
+				local ids = self:ParseItemIds(addMultiMatch)
+				if #ids > 0 and player.Character then
+                    -- 获取NPC当前位置
+                    local npcPosition = player.Character:GetPivot().Position
+					for _, itemId in ipairs(ids) do
+                        -- 使用高级射线检测获取最佳地面位置
+                        local ignoreList = {player.Character} -- 忽略NPC本身
+                        local pos = Vector3.new(npcPosition.X + math.random(1, 3), npcPosition.Y, npcPosition.Z + math.random(1, 3))
+                        local groundPosition = Interface.getGroundPosition(pos, ignoreList)
+                        
+                        Knit.GetService("ItemService"):CreateItem(itemId, groundPosition, nil, true)
+					end
+					print(string.format("已为玩家 %s 添加物品 IDs: %s", player.Name, table.concat(ids, ", ")))
 					return true
 				end
 			end
@@ -125,7 +145,7 @@ function GMService:GMCommand(player)
 				if itemId then
 					local items = {}
 					items[itemId] = 1
-					self:RemoveItemsByNum(player, items)
+					Knit.GetService("InventoryService"):RemoveItemsByNum(player, items)
 					print("已为玩家 " .. player.Name .. " 移除物品 ID: " .. itemId)
 					return true
 				end
@@ -156,7 +176,7 @@ function GMService:GMCommand(player)
                 print("speed reset - 重置移动速度")
                 print("jump [value] - 设置跳跃力")
                 print("jump reset - 重置跳跃力")
-                print("add item [itemId] - 在玩家位置添加指定物品")
+                print("add item [id1 id2 ...] 或 [id1,id2,...] - 添加多个物品")
                 print("remove item [itemId] - 移除玩家指定物品")
                 print("add star - 为玩家添加一颗星")
                 print("dec star - 为玩家移除一颗星")
