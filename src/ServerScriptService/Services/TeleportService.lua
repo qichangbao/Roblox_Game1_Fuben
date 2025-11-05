@@ -111,7 +111,7 @@ function TeleportServiceModule:Escape(player, needCheckPos)
     
     if needCheckPos then
         -- 检查玩家是否在触发区域内
-        local isInTrigger = Interface.isPlayerOnBoat(player)
+        local isInTrigger = Interface.isPlayerOnBoat(player, Knit.GetService("IslandService"):GetIslandName())
         if isInTrigger then
             return self:teleportToReserveServer(player, true)
         end

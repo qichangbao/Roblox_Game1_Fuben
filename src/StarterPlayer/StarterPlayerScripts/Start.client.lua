@@ -102,8 +102,9 @@ local function createPositionDisplay()
 	-- 创建主框架
 	local frame = Instance.new("Frame")
 	frame.Name = "PositionFrame"
+	frame.AnchorPoint = Vector2.new(1, 0)
 	frame.Size = UDim2.new(0, 250, 0, 100)
-	frame.Position = UDim2.new(0, 10, 0, 10)
+	frame.Position = UDim2.new(1, -10, 0, 10)
 	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	frame.BackgroundTransparency = 0.3
 	frame.BorderSizePixel = 0
@@ -161,11 +162,10 @@ local function updatePositionDisplay(positionLabel)
 			connection:Disconnect()
 		end
 
-		local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-		local humanoid = character:FindFirstChild("Humanoid")
-
 		-- 创建位置更新循环
 		connection = RunService.Heartbeat:Connect(function()
+			local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+			local humanoid = character:FindFirstChild("Humanoid")
 			if humanoidRootPart and humanoidRootPart.Parent and humanoid then
 				local position = humanoidRootPart.Position
 				positionLabel.Text = string.format(

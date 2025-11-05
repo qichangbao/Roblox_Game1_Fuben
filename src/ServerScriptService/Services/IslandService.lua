@@ -17,6 +17,10 @@ function IslandService:GetIslandName()
     return self.IslandName
 end
 
+function IslandService.Client:GetIslandName()
+    return self.Server:GetIslandName()
+end
+
 function IslandService:KnitInit()
 end
 

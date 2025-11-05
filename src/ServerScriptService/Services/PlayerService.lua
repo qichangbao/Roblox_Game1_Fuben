@@ -18,7 +18,7 @@ local PlayerService = Knit.CreateService {
     AnimationTracks = {},
 }
 -- 配置参数
-local FALL_HEIGHT_THRESHOLD = 15 -- 下落高度阈值（单位：stud）
+local FALL_HEIGHT_THRESHOLD = 17 -- 下落高度阈值（单位：stud）
 local WATER_DAMAGE = 10 -- 水中每秒掉血量
 local WATER_CHECK_INTERVAL = 1 -- 水中检测间隔（秒）
 
@@ -78,21 +78,13 @@ function PlayerService:KnitStart()
                 end
 
                 local gameSound = Interface.safeWaitPart(game:GetService("SoundService"), "GAME")
-                local music1 = Interface.safeWaitPart(gameSound, "Attack1")
+                local music1 = Interface.safeWaitPart(gameSound, "Attack1"):Clone()
                 music1.Name = "Attack1"
-                if not music1.IsLoaded then
-                    music1.Loaded:Wait()
-                end
                 music1.Parent = character
 
-                local music2 = Interface.safeWaitPart(gameSound, "Attack2")
+                local music2 = Interface.safeWaitPart(gameSound, "Attack2"):Clone()
                 music2.Name = "Attack2"
-                if not music2.IsLoaded then
-                    music2.Loaded:Wait()
-                end
                 music2.Parent = character
-
-                -- 下落检测已移至全局心跳循环中，提高检测精度
             end
             
             -- 递归遍历角色下的所有Part并设置CollisionGroup
@@ -285,6 +277,7 @@ function PlayerService:GetInitData(player)
         Difficulty = difficulty,
         IsFirstLoginFuben = isFirstLoginFuben,
         Gold = gold,
+        IslandName = islandName,
     }
 end
 
@@ -484,7 +477,7 @@ function PlayerService:StartHeartBeat()
                 if Interface.IsPlayerInWater(player.Character) then
                     local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
                     if humanoid and humanoid.Health > 0 then
-                        humanoid:TakeDamage(WATER_DAMAGE)
+                        --humanoid:TakeDamage(WATER_DAMAGE)
                         print(player.Name .. " 在水中受到 " .. WATER_DAMAGE .. " 点伤害")
                     end
                 end

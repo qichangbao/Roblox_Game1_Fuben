@@ -1,16 +1,22 @@
 local AttackState = {}
 AttackState.__index = AttackState
 
--- 攻击状态
+-- 攻击状态构造函数
+-- @param AIManager AIManager AI管理器实例
+-- @return AttackState 攻击状态实例
 function AttackState.new(AIManager)
     local self = setmetatable({}, AttackState)
     self.AIManager = AIManager
+    self.damageTimer = 0 -- 用于计算伤害延时的计时器
+    self.shouldCalculateDamage = false -- 标记是否需要计算伤害
     return self
 end
 
 function AttackState:Enter()
     self.timer = self.AIManager.NPC:GetAttribute("AttackSpeed")
     self.isFirst = true
+    self.damageTimer = 0 -- 重置伤害计时器
+    self.shouldCalculateDamage = false -- 重置伤害计算标记
     -- 更新位置和方向（确保怪物正面朝向目标）
     self:ChangeDirection()
 end
@@ -105,6 +111,17 @@ function AttackState:Update(dt)
         return
     end
 
+    -- 处理伤害计算延时
+    if self.shouldCalculateDamage then
+        self.damageTimer = self.damageTimer + dt
+        local damageDelay = self.AIManager.NPC:GetAttribute("AttackSpeed") / 3
+        if self.damageTimer >= damageDelay then
+            self:CalculateDamage()
+            self.shouldCalculateDamage = false
+            self.damageTimer = 0
+        end
+    end
+
     self.timer = self.timer - dt
     if not self.isFirst and self.timer > 0 then
         return
@@ -116,15 +133,19 @@ function AttackState:Update(dt)
     
     -- 更新位置和方向（确保怪物正面朝向目标）
     self:ChangeDirection()
-    self.AIManager:PlayAnimation("attack", false, initAttackSpeed / self.timer)
+    self.AIManager:PlayAnimation("attack", false, initAttackSpeed / self.timer, self.timer)
 
-    task.delay(self.timer / 3, function()
-        self:CalculateDamage()
-    end)
+    -- 开始伤害计算延时
+    self.shouldCalculateDamage = true
+    self.damageTimer = 0
 end
 
+-- 退出攻击状态
+-- 清理目标引用和重置伤害计算状态
 function AttackState:Exit()
     self.AIManager.target = nil
+    self.shouldCalculateDamage = false -- 停止伤害计算
+    self.damageTimer = 0 -- 重置伤害计时器
 end
 
 return AttackState

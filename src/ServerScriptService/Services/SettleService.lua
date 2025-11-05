@@ -8,6 +8,7 @@ local SettleService = Knit.CreateService({
     Name = 'SettleService',
     Client = {
         SendShowUI = Knit.CreateSignal(),
+        SuccEvacuation = Knit.CreateSignal(),
     },
 
     SettleData = {},
@@ -130,6 +131,7 @@ local function succ(player)
         end
         bagData[i] = nil
     end
+
     return escapeItems, totalValue, totalTime
 end
 
@@ -193,7 +195,7 @@ function SettleService:Settle(player, needCheckPos, isForceLose)
     local killMonsters = Knit.GetService("MonsterService"):GetKillMonsters(player)
     if not isForceLose and isSuccess then
         -- 检查每个触发Model
-		local isOnBoat = Interface.isPlayerOnBoat(player)
+		local isOnBoat = Interface.isPlayerOnBoat(player, Knit.GetService("IslandService"):GetIslandName())
         if needCheckPos and not isOnBoat then
             return false
         end
@@ -229,6 +231,9 @@ function SettleService:Settle(player, needCheckPos, isForceLose)
     }
 
     self.Client.SendShowUI:Fire(player, self.SettleData[player.UserId])
+    if isSuccess then
+        self.Client.SuccEvacuation:FireAll(player.UserId)
+    end
     return true
 end
 

@@ -10,6 +10,16 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 local PlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PlanConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
+local ItemWorkspaceFolder = workspace:WaitForChild("Item")
+if not ItemWorkspaceFolder then
+    warn("ItemWorkspaceFolder folder not found")
+    return
+end
+local EffectWorkspaceFolder = workspace:WaitForChild("Effect")
+if not EffectWorkspaceFolder then
+    warn("EffectWorkspaceFolder folder not found")
+    return
+end
 local ItemFolder = ServerStorage:WaitForChild("Item")
 if not ItemFolder then
     warn("Item folder not found")
@@ -29,7 +39,7 @@ local ItemService = Knit.CreateService {
 function ItemService:CreateXuanCaiChestEffect(position)
     local effect = ServerStorage:WaitForChild("Effect"):WaitForChild("XuanCaiChestEffect"):Clone()
     effect.Name = "XuanCaiChestEffect"
-    effect.Parent = workspace
+    effect.Parent = EffectWorkspaceFolder
     effect:PivotTo(CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)))
 end
 
@@ -57,7 +67,7 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, attribute, is
     end
     local item = part:Clone()
     item.Name = itemInfo.Item .. tick()
-    item.Parent = workspace
+    item.Parent = ItemWorkspaceFolder
     if item:IsA("BasePart") then
         item.Position = Vector3.new(position.X, position.Y + item.Size.Y / 2, position.Z)
     elseif item:IsA("Model") then
@@ -94,6 +104,9 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     if not item or not itemInfo then
         return
     end
+
+    -- 计算物品总价值
+    self.TotalValue = self.TotalValue + itemInfo.SellPrice
 
     -- 创建外发光
     local highlight = Instance.new("Highlight")
@@ -390,8 +403,9 @@ end
 
 function ItemService:KnitStart()
     self:initItems()
+    print("物品总价值", self.TotalValue)
     -- task.spawn(function()
-    --     local itemTemp = self:CreateItem(503, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+    --     local itemTemp = self:CreateItem(8, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
     --     if itemTemp then
     --         table.insert(self.Items, itemTemp)
     --     end

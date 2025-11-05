@@ -1,5 +1,6 @@
 -- InventoryService 服务
 -- 使用Knit框架管理服务器数据
+local Debris = game:GetService("Debris")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -459,10 +460,8 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
     tool.Equipped:Connect(function()
         local player = game.Players:GetPlayerFromCharacter(tool.Parent)
         if not player then return end
-        
         local character = player.Character
         if not character then return end
-        
         local humanoid = character:FindFirstChild("Humanoid")
         if not humanoid then return end
 
@@ -481,6 +480,7 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
         if not userId then return end
         local player = game.Players:GetPlayerByUserId(userId)
         if not player then return end
+
 		local script = tool:FindFirstChild("ModuleScript")
 		if script then
 			local module = require(script)
@@ -660,6 +660,7 @@ function InventoryService:EquipToolByKey(player, slot)
         -- 如果是同一个工具，则取下工具
         if isEquippingSameTool then
             if currentTool then
+                character.Humanoid:UnequipTools()
                 for _, v in pairs(toolData) do
                     if v.ItemId == currentItemId and v.Attribute.CreateTime == attribute.CreateTime then
                         v.Attribute.IsEquipped = 0
@@ -667,14 +668,12 @@ function InventoryService:EquipToolByKey(player, slot)
                     end
                 end
                 GameConfig.UpdateItemAttribute(currentTool, "IsEquipped", 0)
-                character.Humanoid:UnequipTools()
-                task.delay(0.05, function()
-                    currentTool:Destroy()
-                end)
+                Debris:AddItem(currentTool, 0.05)
             end
             return 1, toolData
         end
         
+        character.Humanoid:UnequipTools()
         -- 否则，卸下当前工具并装备新工具
         for i, v in pairs(toolData) do
             if v.ItemId == currentItemId and v.Attribute.CreateTime == attribute.CreateTime then
@@ -683,10 +682,7 @@ function InventoryService:EquipToolByKey(player, slot)
             end
         end
         GameConfig.UpdateItemAttribute(currentTool, "IsEquipped", 0)
-        character.Humanoid:UnequipTools()
-        task.delay(0.05, function()
-            currentTool:Destroy()
-        end)
+        Debris:AddItem(currentTool, 0.05)
     end
     
     -- 按需创建新工具
@@ -697,7 +693,6 @@ function InventoryService:EquipToolByKey(player, slot)
         -- 确保工具被正确装备
         if character:FindFirstChild("Humanoid") then
             newTool:SetAttribute("PlayerId", player.UserId)
-            character.Humanoid:EquipTool(newTool)
         	itemData.Attribute.IsEquipped = 1
 			GameConfig.UpdateItemAttribute(newTool, "IsEquipped", 1)
         end

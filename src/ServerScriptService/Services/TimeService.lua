@@ -11,7 +11,7 @@ local TimeService = Knit.CreateService({
 })
 
 -- 时间系统配置
-local _gameTime = 12 -- 游戏时间（小时，0-24）
+local _gameTime = 8 -- 游戏时间（小时，0-24）
 local _lastUpdateTime = tick() -- 上次更新的真实时间
 local Real_To_Game_Second = 96-- 现实1秒 = 游戏96秒
 local _isNight = false -- 是否是晚上

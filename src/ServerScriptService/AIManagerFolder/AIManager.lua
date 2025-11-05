@@ -23,6 +23,21 @@ function AIManager.new(npc, position, monsterInfo)
         -- 监听死亡状态
         Humanoid.Died:Connect(function()
             self:SetState("Dead")
+
+            -- 立即清理视野标记
+            if self.VisionMarkers then
+                self.VisionMarkers:Destroy()
+                self.VisionMarkers = nil
+                print("🧹 怪物死亡时已清理视野标记")
+            end
+            
+            -- 清理视野标记相关引用
+            self.InnerGuiPart = nil
+            self.InnerSurfaceGui = nil
+            self.InnerImage = nil
+            self.SectorGuiPart = nil
+            self.SectorSurfaceGui = nil
+            self.SectorImage = nil
         end)
 
         local humanoidRootPart = self.NPC:FindFirstChild("HumanoidRootPart")
@@ -236,7 +251,12 @@ end
     @param animName string 动画名称 (idle, run, attack, death等)
     @param isLoop boolean 是否循环播放
 ]]
-function AIManager:PlayAnimation(animName, isLoop, playTimeScale)
+-- 播放动画
+-- @param animName string 动画名称
+-- @param isLoop boolean 是否循环播放
+-- @param playTimeScale number 播放速度倍数
+-- @param maxTime number 最大动画时长限制（秒）
+function AIManager:PlayAnimation(animName, isLoop, playTimeScale, maxTime)
     -- 停止当前动画
     self:StopAnimation()
     
@@ -257,6 +277,22 @@ function AIManager:PlayAnimation(animName, isLoop, playTimeScale)
     local speedMultiplier = playTimeScale or 1
     if speedMultiplier ~= 1 then
         track:AdjustSpeed(speedMultiplier)
+    end
+    
+    -- 如果设置了最大时长限制，检查调整速度后的动画时长
+    if maxTime and maxTime > 0 then
+        -- 获取动画的原始长度
+        local originalLength = track.Length
+        if originalLength > 0 then
+            -- 计算调整速度后的实际动画时长
+            local adjustedLength = originalLength / speedMultiplier
+            
+            -- 如果调整后的时长超过最大时长，进一步调整速度
+            if adjustedLength > maxTime then
+                local finalSpeedMultiplier = originalLength / maxTime
+                track:AdjustSpeed(finalSpeedMultiplier)
+            end
+        end
     end
     
     self.currentTrack = track

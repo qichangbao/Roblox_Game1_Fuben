@@ -11,6 +11,12 @@ local MonsterPlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder")
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
+local MonsterWorkspaceFolder = workspace:WaitForChild("Monster")
+if not MonsterWorkspaceFolder then
+    warn("MonsterWorkspaceFolder folder not found")
+    return
+end
+
 local MonsterService = Knit.CreateService {
 	Name = "MonsterService",
 	Client = {
@@ -20,10 +26,118 @@ local MonsterService = Knit.CreateService {
     Monsters = {},
     KillMonsters = {},
     ChaseMonsters = {},
+    MonsterHealthBars = {}, -- 存储怪物血条的引用
 }
 
 function MonsterService:PlayerAdded(player)
     self.KillMonsters[player.UserId] = {}
+end
+
+-- 创建怪物血条UI
+-- @param monster Model 怪物模型
+-- @return BillboardGui 返回创建的血条UI
+function MonsterService:CreateHealthBar(monster)
+    local humanoid = monster:FindFirstChild("Humanoid")
+    local HumanoidRootPart = monster:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not HumanoidRootPart then
+        warn("Monster missing Humanoid or HumanoidRootPart: " .. monster.Name)
+        return nil
+    end
+    
+    -- 创建BillboardGui
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "HealthBar"
+    billboardGui.Size = UDim2.new(4, 0, 0.5, 0)
+    billboardGui.StudsOffset = Vector3.new(0, HumanoidRootPart.Size.Y / 2 + 1, 0)
+    billboardGui.Parent = HumanoidRootPart
+    
+    -- 创建背景框架
+    local backgroundFrame = Instance.new("Frame")
+    backgroundFrame.Name = "Background"
+    backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
+    backgroundFrame.Position = UDim2.new(0, 0, 0, 0)
+    backgroundFrame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    backgroundFrame.BorderSizePixel = 0
+    backgroundFrame.Parent = billboardGui
+    
+    -- 为背景框架添加圆角
+    local backgroundCorner = Instance.new("UICorner")
+    backgroundCorner.CornerRadius = UDim.new(0, 8)
+    backgroundCorner.Parent = backgroundFrame
+    
+    -- 创建血条
+    local healthBar = Instance.new("Frame")
+    healthBar.Name = "HealthBar"
+    healthBar.Size = UDim2.new(1, -4, 1, -4)
+    healthBar.Position = UDim2.new(0, 2, 0, 2)
+    healthBar.BackgroundColor3 = Color3.new(0, 1, 0) -- 绿色
+    healthBar.BorderSizePixel = 0
+    healthBar.Parent = backgroundFrame
+    
+    -- 为血条添加圆角
+    local healthBarCorner = Instance.new("UICorner")
+    healthBarCorner.CornerRadius = UDim.new(0, 4)
+    healthBarCorner.Parent = healthBar
+    
+    -- 创建血量文本
+    local healthText = Instance.new("TextLabel")
+    healthText.Name = "HealthText"
+    healthText.Size = UDim2.new(1, 0, 1, 0)
+    healthText.Position = UDim2.new(0, 0, 0, 0)
+    healthText.BackgroundTransparency = 1
+    healthText.Text = string.format("%.0f/%.0f", humanoid.Health, humanoid.MaxHealth)
+    healthText.TextColor3 = Color3.new(1, 1, 1)
+    healthText.TextScaled = true
+    healthText.FontFace = GameConfig.FontFace
+    healthText.Parent = backgroundFrame
+    
+    return billboardGui
+end
+
+-- 更新血条显示
+-- @param monster Model 怪物模型
+-- @return void
+function MonsterService:UpdateHealthBar(monster)
+    local humanoid = monster:FindFirstChild("Humanoid")
+    local head = monster:FindFirstChild("Head")
+    
+    if not humanoid or not head then
+        return
+    end
+    
+    local billboardGui = head:FindFirstChild("HealthBar")
+    if not billboardGui then
+        return
+    end
+    
+    local backgroundFrame = billboardGui:FindFirstChild("Background")
+    if not backgroundFrame then
+        return
+    end
+    
+    local healthBar = backgroundFrame:FindFirstChild("HealthBar")
+    local healthText = backgroundFrame:FindFirstChild("HealthText")
+    
+    if healthBar and healthText then
+        -- 计算血量百分比
+        local healthPercent = humanoid.Health / humanoid.MaxHealth
+        
+        -- 更新血条宽度
+        healthBar.Size = UDim2.new(healthPercent, -2, 1, -2)
+        
+        -- 更新血条颜色（绿色->黄色->红色）
+        if healthPercent > 0.6 then
+            healthBar.BackgroundColor3 = Color3.new(0, 1, 0) -- 绿色
+        elseif healthPercent > 0.3 then
+            healthBar.BackgroundColor3 = Color3.new(1, 1, 0) -- 黄色
+        else
+            healthBar.BackgroundColor3 = Color3.new(1, 0, 0) -- 红色
+        end
+        
+        -- 更新血量文本
+        healthText.Text = string.format("%.0f/%.0f", humanoid.Health, humanoid.MaxHealth)
+    end
 end
 
 function MonsterService:PlayerRemoved(player)
@@ -74,16 +188,58 @@ function MonsterService:CreateMonster(monsterId, position)
     end
 
     local monster = part:Clone()
-    monster.Parent = workspace
+    monster.Parent = MonsterWorkspaceFolder
     monster.Name = monsterInfo.Model .."_" .. tick()
     table.insert(self.Monsters, monster)
     monster:SetAttribute("HumanoidType", GameConfig.HumanoidType.Monster)
+
+    -- 创建血条
+    local healthBar = self:CreateHealthBar(monster)
+    if healthBar then
+        -- 存储血条引用
+        self.MonsterHealthBars[monster] = healthBar
+        
+        -- 监听生命值变化
+        local humanoid = monster:FindFirstChild("Humanoid")
+        if humanoid then
+            -- 存储连接引用的表
+            local connections = {}
+            
+            -- 监听生命值变化
+            connections.healthChanged = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+                self:UpdateHealthBar(monster)
+            end)
+            
+            -- 监听死亡事件
+            connections.died = humanoid.Died:Connect(function()
+                -- 清理血条
+                if self.MonsterHealthBars[monster] then
+                    self.MonsterHealthBars[monster]:Destroy()
+                    self.MonsterHealthBars[monster] = nil
+                end
+                
+                -- 断开所有连接
+                for _, connection in pairs(connections) do
+                    if connection then
+                        connection:Disconnect()
+                    end
+                end
+            end)
+        end
+    end
 
     AIManager.new(monster, position, monsterInfo)
 end
 
 -- 移除怪物
 function MonsterService:MonsterRemoved(monster)
+    -- 清理血条
+    if self.MonsterHealthBars[monster] then
+        self.MonsterHealthBars[monster]:Destroy()
+        self.MonsterHealthBars[monster] = nil
+    end
+    
+    -- 从怪物列表中移除
     for i, v in ipairs(self.Monsters) do
         if v == monster then
             table.remove(self.Monsters, i)
@@ -199,9 +355,9 @@ end
 
 function MonsterService:KnitInit()
     self:initMonsters()
-    -- self:CreateMonster(30001, Vector3.new(353, -0.7, -240))
-    -- self:CreateMonster(30002, Vector3.new(353, -1.5, -220))
-    -- self:CreateMonster(30003, Vector3.new(353, -1.5, -220))
+    --self:CreateMonster(30001, Vector3.new(353, -0.7, -240))
+    --self:CreateMonster(30002, Vector3.new(353, -0.7, -220))
+    --self:CreateMonster(30003, Vector3.new(353, -0.7, -200))
 end
 
 -- 服务启动时的初始化

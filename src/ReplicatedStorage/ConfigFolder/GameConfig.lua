@@ -45,6 +45,13 @@ GameConfig.AbilityType = {
     Attack = 4, -- 攻击
 }
 
+GameConfig.MapFlagType = {
+    None = 0,
+    JiHe = 1,           -- 集合
+    WeiXian = 2,        -- 危险
+    WuZi = 3,           -- 物资
+}
+
 GameConfig.LandName = "恐龙岛"
 GameConfig.TeleportPartNames = {"撤离点"}-- 触发传送的model名称
 GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
@@ -54,7 +61,7 @@ GameConfig.BAG_NUM = 3
 GameConfig.Item_DragTime = 0.3      -- 物品拖拽响应事件
 GameConfig.AdditionalBackpackId = 6 -- 额外的背包ID
 GameConfig.MaxTurnInItemNum = 18    -- 最大可提交物品数量
-GameConfig.DefaultEscapeTask = 5000  -- 默认的撤离任务
+GameConfig.DefaultEscapeTask = 50  -- 默认的撤离任务
 GameConfig.DefaultEscapeTime = 15 * 60 + 20   -- 默认的撤离时间
 
 -- 物品的扩展属性，用于服务器客户端同步一些动态数据

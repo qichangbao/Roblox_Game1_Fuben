@@ -1,7 +1,6 @@
 local Interface = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local UserInputService = game:GetService("UserInputService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local TweenService = game:GetService("TweenService")
@@ -240,9 +239,13 @@ function Interface.IsPlayerInWater(character)
     -- 使用 FindFirstChildOfClass 查找 Humanoid（因为可能有自定义名称的 Humanoid）
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return false end
     
+    local position = humanoidRootPart.Position
+    local point = Vector3.new(position.X, position.Y - humanoid.HipHeight - humanoidRootPart.Size.Y / 2, position.Z)
     -- 检查玩家是否在游泳状态
-    return humanoid:GetState() == Enum.HumanoidStateType.Swimming
+    return Interface.isPointInTerrainWater(point)
 end
 
 -- 使用射线检测玩家是否真正站在Model上
@@ -291,13 +294,12 @@ end
 -- 检查玩家是否站在船上面
 -- @param player Player 要检查的玩家
 -- @return boolean 是否站在船上面
-function Interface.isPlayerOnBoat(player)
+function Interface.isPlayerOnBoat(player, islandName)
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
         return false
     end
     
-    local landName = Knit.GetService("IslandService"):GetIslandName()
-    local land = Interface.safeWaitPart(workspace, landName)
+    local land = Interface.safeWaitPart(workspace, islandName)
     local special = Interface.safeWaitPart(land, "Special")
     -- 检查每个触发Model
     for _, modelName in ipairs(GameConfig.TeleportPartNames) do
@@ -310,9 +312,12 @@ function Interface.isPlayerOnBoat(player)
     return false
 end
 
+-- 存储每个TextLabel的动画状态，避免重复动画冲突
+local animationStates = {}
+
 --[[
-    数字递增动画
-    @param label TextLabel 文本标签（可选，传入则自动更新文本）
+    数字递增动画接口
+    @param labelOrFrom TextLabel|number 如果是TextLabel则自动更新文本，如果是数字则作为起始值
     @param to number 目标值
     @return NumberValue 可监听Changed事件的数值容器
     @return Tween 动画对象（可用于控制暂停/取消）
@@ -326,6 +331,19 @@ function Interface.AnimateNumberIncrease(labelOrFrom, to)
         label = labelOrFrom
         from = tonumber(label.Text) or 0
         target = tonumber(to) or from
+        
+        -- 如果该TextLabel已有动画在运行，先取消旧动画
+        if animationStates[label] then
+            local oldState = animationStates[label]
+            if oldState.tween then
+                oldState.tween:Cancel()
+            end
+            if oldState.num then
+                oldState.num:Destroy()
+            end
+            -- 从当前动画值开始新动画，保持连贯性
+            from = oldState.num and oldState.num.Value or from
+        end
     else
         from = tonumber(labelOrFrom) or 0
         target = tonumber(to) or from
@@ -345,19 +363,31 @@ function Interface.AnimateNumberIncrease(labelOrFrom, to)
 
     -- 如果传入了TextLabel，则自动更新文本显示（取整）
     if label then
+        -- 记录当前动画状态
+        animationStates[label] = {
+            num = num,
+            tween = tween
+        }
+        
         num.Changed:Connect(function(v)
             label.Text = tostring(math.floor(v))
         end)
     end
 
     tween:Play()
-    -- 动画完成时，强制设置最终值，避免最后一帧未更新导致偏差
+    
+    -- 动画完成时的清理工作
     tween.Completed:Connect(function()
         num.Value = target
         if label then
             label.Text = tostring(math.floor(target))
+            -- 清理动画状态记录
+            animationStates[label] = nil
         end
+        -- 清理NumberValue对象
+        num:Destroy()
     end)
+    
     return num, tween
 end
 

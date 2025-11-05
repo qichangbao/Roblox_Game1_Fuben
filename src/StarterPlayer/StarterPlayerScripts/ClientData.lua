@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild('Packages'):WaitForChild('Knit'):waitForChild('Knit'))
 local Interface = require(ReplicatedStorage:WaitForChild('ToolFolder'):WaitForChild('Interface'))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild('GameConfig'))
+local SimpleArrowNavigation = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("SimpleArrowNavigation"))
 
 local ClientData = {}
 ClientData.Gold = 0
@@ -13,6 +14,7 @@ ClientData.CurEscapeTask = 0    -- 当前完成的撤离任务
 ClientData.EscapeTask = 0       -- 目标完成撤离任务
 ClientData.Difficulty = GameConfig.Difficulty.Easy -- 难度
 ClientData.IsFirstLoginFuben = 0 -- 是否是第一次登录游戏
+ClientData.IslandName = GameConfig.LandName -- 岛屿名称
 
 local function setInitData(data)
     ClientData.Inventory = data.Inventory or {}
@@ -22,6 +24,7 @@ local function setInitData(data)
     ClientData.Difficulty = data.Difficulty or GameConfig.Difficulty.Easy -- 难度
     ClientData.IsFirstLoginFuben = data.IsFirstLoginFuben or 0 -- 是否是第一次登录游戏
     ClientData.Gold = data.Gold or 0 -- 金币
+    ClientData.IslandName = data.IslandName or GameConfig.LandName -- 岛屿名称
     if ClientData.IsFirstLoginFuben == 0 then
         require(script.Parent:WaitForChild("PlayerGuide")):ShowGuide()
     end
@@ -143,6 +146,10 @@ local function init()
             Knit.GetController("UIController").ShowSettleUI:Fire(data)
         end)
 
+        Knit.GetService("SettleService").SuccEvacuation:Connect(function(userId)
+            Knit.GetController("UIController").SuccEvacuation:Fire(userId)
+        end)
+
         Knit.GetService("TeleportService").SendStartTeleport:Connect(function()
 			local playerGui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
             if not playerGui then
@@ -162,6 +169,18 @@ local function init()
 
         Knit.GetService("MonsterService").Chase:Connect(function(npc, isShow)
             showMonsterChaseFlag(npc, isShow)
+        end)
+        
+        Knit.GetService("ClientUIService").ShowArrow:Connect(function(targetPosition)
+            SimpleArrowNavigation.NavigateTo(targetPosition, nil, 10, true, 0.5)
+        end)
+
+        Knit.GetService("ClientUIService").HideArrow:Connect(function()
+            SimpleArrowNavigation.ClearPath()
+        end)
+
+        Knit.GetService("MapService").SendShowFlag:Connect(function(data)
+            Knit.GetController("UIController").ShowMapFlag:Fire(data)
         end)
     end)
 end
