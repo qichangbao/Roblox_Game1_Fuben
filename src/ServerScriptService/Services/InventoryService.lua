@@ -186,6 +186,7 @@ function InventoryService:UpdateToolData(player, data)
         end
     end
 
+    Knit.GetService("PlayerService"):UpdateOverwhelmed(player)
     self:SendToolData(player)
 end
 
@@ -205,6 +206,8 @@ function InventoryService:UpdateBagData(player, data)
             })
         end
     end
+
+    Knit.GetService("PlayerService"):UpdateOverwhelmed(player)
     self.Client.SendBagData:Fire(player, self.BagData[player.UserId])
 end
 
@@ -448,9 +451,9 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
     end
 
     -- 直接设置Tool的Grip属性来控制握持方向
-    if itemInfo.Index == 4 then
+    if itemInfo.Index == 202 then
         tool.Grip = CFrame.Angles(0, math.rad(180), 0)  -- 只旋转，不偏移位置
-    elseif itemInfo.Index == 8 then
+    elseif itemInfo.Index == 203 then
         tool.Grip = CFrame.new(0, -0.6, 0) * CFrame.Angles(0, math.rad(90), 0)  -- y轴偏移0.6并旋转
     else
         tool.Grip = CFrame.Angles(0, 0, math.rad(90))  -- 只旋转，不偏移位置
@@ -524,10 +527,10 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
             end
 
             if itemInfo.Type == GameConfig.ItemType.Weapon then    -- 进攻类
-                if itemInfo.Index == 4 then
+                if itemInfo.Index == 202 then
 					Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD)
-                elseif itemInfo.Index == 8 then
-					Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack2", itemInfo.CD)
+                elseif itemInfo.Index == 203 then
+					Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
                 else
 					Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
                 end
@@ -747,28 +750,17 @@ end
 -- @return void
 function InventoryService:DiscardTool(player, slot)
     local character = player.Character
-    if not character then
-        return false
-    end
-    
+    if not character then return end
     local toolData = self.ToolData[player.UserId]
-    if not toolData then
-        return false
-    end
-    
+    if not toolData then return end
     local slotNumber = tonumber(slot)
     local itemData = toolData[slotNumber]
     local itemId = itemData.ItemId
     local attribute = itemData.Attribute
-    if not itemData or itemId == 0 then
-        return false
-    end
-    
+    if not itemData or itemId == 0 then return end
     -- 获取物品配置信息
     local itemInfo = ItemConfig:GetByIndex(itemId)
-    if not itemInfo then
-        return false
-    end
+    if not itemInfo then return end
 
     -- 从工具栏数据中移除
     toolData[slotNumber] = {
@@ -825,33 +817,23 @@ function InventoryService:DiscardTool(player, slot)
         _G.TriggerManager:DropItem(player, itemId)
         self:CreateItemToFloor(character, itemInfo, attribute)
     end)
-    return true
+
+    self:UpdateToolData(player, self.ToolData[player.UserId])
 end
 
 function InventoryService:DiscardBag(player, slot)
     local character = player.Character
-    if not character then
-        return false
-    end
-
+    if not character then return end
     local bagData = self.BagData[player.UserId]
-    if not bagData then
-        return false
-    end
-
+    if not bagData then return end
     local slotNumber = tonumber(slot)
     local itemData = bagData[slotNumber]
     local itemId = itemData.ItemId
     local attribute = itemData.Attribute
-    if not itemData or itemId == 0 then
-        return false
-    end
-
+    if not itemData or itemId == 0 then return end
     -- 获取物品配置信息
     local itemInfo = ItemConfig:GetByIndex(itemId)
-    if not itemInfo then
-        return false
-    end
+    if not itemInfo then return end
     
     bagData[slotNumber] = {
         ItemId = 0,
@@ -859,7 +841,7 @@ function InventoryService:DiscardBag(player, slot)
     }
     self:CreateItemToFloor(character, itemInfo, attribute)
 
-    return true
+    self:UpdateBagData(player, self.BagData[player.UserId])
 end
 
 -- 丢弃工具

@@ -47,7 +47,7 @@ function GMService:GMCommand(player)
             if healMatch then
                 local amount = tonumber(healMatch)
                 if amount and humanoid then
-                    self:addHp(player, amount)
+                    Interface.addHp(player.Character, amount)
                     print(string.format("玩家 %s 恢复了 %d 点生命值，当前生命值: %d/%d", 
                         player.Name, amount, humanoid.Health, humanoid.MaxHealth))
                     return true
@@ -69,7 +69,7 @@ function GMService:GMCommand(player)
             if damageMatch then
                 local amount = tonumber(damageMatch)
                 if amount and humanoid then
-                    humanoid:TakeDamage(amount)
+                    Interface.decHp(player.Character, amount)
                     print(string.format("玩家 %s 受到了 %d 点伤害，当前生命值: %d/%d", 
                         player.Name, amount, humanoid.Health, humanoid.MaxHealth))
                     return true

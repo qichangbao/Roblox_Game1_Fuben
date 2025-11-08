@@ -1,6 +1,7 @@
 local Interface = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local UserInputService = game:GetService("UserInputService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local TweenService = game:GetService("TweenService")
@@ -389,6 +390,50 @@ function Interface.AnimateNumberIncrease(labelOrFrom, to)
     end)
     
     return num, tween
+end
+
+function Interface.addHp(character, hp)
+    if not character or not character.Parent then
+        return
+    end
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then
+        return
+    end
+    local maxHealth = humanoid.MaxHealth
+    local health = humanoid.Health
+    humanoid.Health = math.min(health + hp, maxHealth)
+
+    -- local EffectFolder = game:GetService("ServerStorage"):FindFirstChild("Effect")
+    -- if not EffectFolder then
+    --     return
+    -- end
+    -- local AddHPEffect = EffectFolder:FindFirstChild("AddHPEffect")
+    -- if not AddHPEffect then
+    --     return
+    -- end
+    -- local effect = AddHPEffect:Clone()
+    -- effect.Parent = character
+    -- effect:PivotTo(CFrame.new(humanoidRootPart.Position.X, humanoidRootPart.Position.Y - humanoid.HipHeight, humanoidRootPart.Position.Z))
+    -- -- 使用Debris服务在3秒后自动销毁特效
+    -- game:GetService("Debris"):AddItem(effect, 3)
+
+    local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
+    Knit.GetService("ClientUIService"):ChangeHp(part, hp)
+end
+
+function Interface.decHp(character, damage)
+    if not character or not character.Parent then
+        return
+    end
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then
+        return
+    end
+    humanoid:TakeDamage(damage)
+    
+    local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
+    Knit.GetService("ClientUIService"):ChangeHp(part, -damage)
 end
 
 return Interface

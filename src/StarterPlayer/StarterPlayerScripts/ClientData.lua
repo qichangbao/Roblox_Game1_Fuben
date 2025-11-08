@@ -15,6 +15,8 @@ ClientData.EscapeTask = 0       -- 目标完成撤离任务
 ClientData.Difficulty = GameConfig.Difficulty.Easy -- 难度
 ClientData.IsFirstLoginFuben = 0 -- 是否是第一次登录游戏
 ClientData.IslandName = GameConfig.LandName -- 岛屿名称
+ClientData.Overwhelmed = 0 -- 当前负重
+ClientData.MaxOverwhelmed = 0 -- 最大负重
 
 local function setInitData(data)
     ClientData.Inventory = data.Inventory or {}
@@ -57,6 +59,13 @@ local function init()
     KnitInitClient.AddListener(function()
         Knit.GetService("PlayerService").GetInitData():andThen(function(data)
             setInitData(data)
+        end)
+
+        -- 监听服务器的发送负重数据请求
+        Knit.GetService("PlayerService").UpdateOverwhelmed:Connect(function(overwhelmed, maxOverwhelmed)
+            ClientData.Overwhelmed = overwhelmed
+            ClientData.MaxOverwhelmed = maxOverwhelmed
+            Knit.GetController("UIController").UpdateOverwhelmedUI:Fire(overwhelmed, maxOverwhelmed)
         end)
 
         -- 监听服务器的发送金币数据请求

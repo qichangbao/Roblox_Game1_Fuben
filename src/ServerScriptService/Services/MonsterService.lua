@@ -10,6 +10,7 @@ local MonsterPosConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):
 local MonsterPlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterPlanConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local TweenService = game:GetService("TweenService")
 
 local MonsterWorkspaceFolder = workspace:WaitForChild("Monster")
 if not MonsterWorkspaceFolder then
@@ -27,6 +28,7 @@ local MonsterService = Knit.CreateService {
     KillMonsters = {},
     ChaseMonsters = {},
     MonsterHealthBars = {}, -- 存储怪物血条的引用
+    MonsterHealthBarState = {}, -- 存储血条动画状态（当前百分比/进行中的Tween）
 }
 
 function MonsterService:PlayerAdded(player)
@@ -95,18 +97,15 @@ function MonsterService:CreateHealthBar(monster)
     return billboardGui
 end
 
--- 更新血条显示
+-- 更新血条显示（带减少动画）
 -- @param monster Model 怪物模型
 -- @return void
 function MonsterService:UpdateHealthBar(monster)
     local humanoid = monster:FindFirstChild("Humanoid")
-    local head = monster:FindFirstChild("Head")
+    if not humanoid  then return end
+    local humanoidRootPart = monster:FindFirstChild("HumanoidRootPart")
     
-    if not humanoid or not head then
-        return
-    end
-    
-    local billboardGui = head:FindFirstChild("HealthBar")
+    local billboardGui = humanoidRootPart:FindFirstChild("HealthBar")
     if not billboardGui then
         return
     end
@@ -120,13 +119,48 @@ function MonsterService:UpdateHealthBar(monster)
     local healthText = backgroundFrame:FindFirstChild("HealthText")
     
     if healthBar and healthText then
-        -- 计算血量百分比
+        -- 计算血量百分比（限制在0~1）
         local healthPercent = humanoid.Health / humanoid.MaxHealth
+        healthPercent = math.clamp(healthPercent, 0, 1)
         
-        -- 更新血条宽度
-        healthBar.Size = UDim2.new(healthPercent, -2, 1, -2)
-        
-        -- 更新血条颜色（绿色->黄色->红色）
+        -- 当前显示的百分比（从UI尺寸读取）
+        local currentPercent = healthBar.Size.X.Scale or 1
+
+        -- 获取并维护该怪物的血条动画状态
+        local state = self.MonsterHealthBarState[monster]
+        if not state then
+            state = { currentPercent = currentPercent, tween = nil }
+            self.MonsterHealthBarState[monster] = state
+        end
+
+        -- 当血量减少时，使用Tween动画平滑缩短血条；增加或不变则直接更新
+        if healthPercent < currentPercent then
+            -- 取消之前可能存在的Tween，避免叠加
+            if state.tween then
+                pcall(function()
+                    state.tween:Cancel()
+                end)
+                state.tween = nil
+            end
+            local targetSize = UDim2.new(healthPercent, -2, 1, -2)
+            local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            local tween = TweenService:Create(healthBar, tweenInfo, { Size = targetSize })
+            state.tween = tween
+            tween:Play()
+            tween.Completed:Connect(function()
+                -- 动画结束后记录当前百分比
+                if self.MonsterHealthBarState[monster] == state then
+                    state.tween = nil
+                    state.currentPercent = healthPercent
+                end
+            end)
+        else
+            -- 非减少：直接更新尺寸
+            healthBar.Size = UDim2.new(healthPercent, -2, 1, -2)
+            state.currentPercent = healthPercent
+        end
+
+        -- 更新血条颜色（绿色->黄色->红色）基于目标百分比
         if healthPercent > 0.6 then
             healthBar.BackgroundColor3 = Color3.new(0, 1, 0) -- 绿色
         elseif healthPercent > 0.3 then
@@ -217,6 +251,14 @@ function MonsterService:CreateMonster(monsterId, position)
                     self.MonsterHealthBars[monster]:Destroy()
                     self.MonsterHealthBars[monster] = nil
                 end
+                -- 清理血条动画状态
+                local state = self.MonsterHealthBarState[monster]
+                if state and state.tween then
+                    pcall(function()
+                        state.tween:Cancel()
+                    end)
+                end
+                self.MonsterHealthBarState[monster] = nil
                 
                 -- 断开所有连接
                 for _, connection in pairs(connections) do
@@ -238,6 +280,14 @@ function MonsterService:MonsterRemoved(monster)
         self.MonsterHealthBars[monster]:Destroy()
         self.MonsterHealthBars[monster] = nil
     end
+    -- 清理血条动画状态
+    local state = self.MonsterHealthBarState[monster]
+    if state and state.tween then
+        pcall(function()
+            state.tween:Cancel()
+        end)
+    end
+    self.MonsterHealthBarState[monster] = nil
     
     -- 从怪物列表中移除
     for i, v in ipairs(self.Monsters) do

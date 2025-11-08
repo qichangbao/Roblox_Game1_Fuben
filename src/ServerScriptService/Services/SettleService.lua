@@ -159,6 +159,7 @@ local function faild(player)
 
     -- 清空工具栏和背包数据
     InventoryService:UpdateToolData(player)
+    InventoryService:UpdateBagData(player)
 
     -- 获取玩家当前位置
     if player.Character then
@@ -177,7 +178,7 @@ local function faild(player)
 
         local humanoid = player.Character:FindFirstChild("Humanoid")
         if humanoid then
-            humanoid:TakeDamage(humanoid.MaxHealth)
+            Interface.decHp(player.Character, humanoid.MaxHealth)
         end
     end
 end

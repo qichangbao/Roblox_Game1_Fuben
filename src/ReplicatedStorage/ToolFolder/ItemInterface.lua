@@ -38,6 +38,7 @@ local function _takeDamage(player, hitCharacter, damage)
 	local humanoidType = hitCharacter:GetAttribute("HumanoidType")
 	if humanoidType == GameConfig.HumanoidType.Monster then
 		targetHumanoid:TakeDamage(damage * attack)
+		Interface.decHp(hitCharacter, damage * attack)
 		if targetHumanoid.Health <= 0 then
             Knit.GetService("MonsterService"):KillMonster(player, hitCharacter)
 		elseif humanoidType == GameConfig.HumanoidType.Player then
@@ -46,6 +47,7 @@ local function _takeDamage(player, hitCharacter, damage)
 				return
 			end
 			targetHumanoid:TakeDamage(damage * attack)
+			Interface.decHp(hitCharacter, damage * attack)
 		end
 		return true
     end

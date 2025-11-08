@@ -10,6 +10,7 @@ local ClientUIService = Knit.CreateService({
         ResetUI = Knit.CreateSignal(),
         ShowArrow = Knit.CreateSignal(),
         HideArrow = Knit.CreateSignal(),
+        ChangeHp = Knit.CreateSignal(),
     },
 })
 
@@ -47,6 +48,10 @@ end
 
 function ClientUIService:HideArrow(player)
     self.Client.HideArrow:Fire(player)
+end
+
+function ClientUIService:ChangeHp(part, hp)
+    self.Client.ChangeHp:FireAll(part, hp)
 end
 
 function ClientUIService:KnitInit()

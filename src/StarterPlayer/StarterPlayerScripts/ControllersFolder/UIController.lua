@@ -30,6 +30,7 @@ local UIController = Knit.CreateController {
     ShowFlyItemUI = Signal.new(),
     SuccEvacuation = Signal.new(),
     ShowMapFlag = Signal.new(),
+    UpdateOverwhelmedUI = Signal.new(),
 }
 
 function UIController:KnitInit()

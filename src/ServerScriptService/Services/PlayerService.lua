@@ -7,24 +7,27 @@ local RunService = game:GetService("RunService")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local AbilityConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("AbilityConfig"))
+local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local PlayerService = Knit.CreateService {
 	Name = "PlayerService",
 	Client = {
+        UpdateOverwhelmed = Knit.CreateSignal(),-- 更新负重信号
 	},
 
-    AbilityData = {},
-    AnimationTracks = {},
+    AbilityData = {},   -- 玩家能力数据
+    AnimationTracks = {},-- 玩家动画轨道
+    FallData = {},      -- 存储玩家下落数据
+    WaterData = {},     -- 存储玩家水中状态数据
+    CurOverwhelmed = {},-- 存储玩家当前负重状态
+    MaxOverwhelmed = {},-- 最大负重值
 }
 -- 配置参数
 local FALL_HEIGHT_THRESHOLD = 17 -- 下落高度阈值（单位：stud）
 local WATER_DAMAGE = 10 -- 水中每秒掉血量
 local WATER_CHECK_INTERVAL = 1 -- 水中检测间隔（秒）
 
--- 数据存储
-local _playerFallData = {}
-local _playerWaterData = {} -- 存储玩家水中状态数据 {userId = lastDamageTime}
 
 function PlayerService:KnitInit()
 end
@@ -130,7 +133,10 @@ function PlayerService:KnitStart()
     local function PlayerRemoved(player)
         self.AnimationTracks[player.UserId] = nil
         self.AbilityData[player.UserId] = nil
-        _playerFallData[player.UserId] = nil
+        self.FallData[player.UserId] = nil
+        self.WaterData[player.UserId] = nil
+        self.CurOverwhelmed[player.UserId] = nil
+        self.MaxOverwhelmed[player.UserId] = nil
         
         -- 停止水中检测循环并清理数据
         self:StopWaterDamageLoop(player)
@@ -174,7 +180,7 @@ function PlayerService:GetInitData(player)
     Knit.GetService("ReviveService"):PlayerAdded(player)
     Knit.GetService("GMService"):PlayerAdded(player)
         
-    _playerFallData[player.UserId] = {
+    self.FallData[player.UserId] = {
 		lastYPosition = nil,
 		fallStartY = nil,
 		maxFallHeight = 0,
@@ -193,6 +199,7 @@ function PlayerService:GetInitData(player)
     local difficulty = GameConfig.Difficulty.Easy
     local isFirstLoginFuben = nil
     local gold = nil
+    local overwhelmed = nil
     -- 获取传送数据
     local joinData = player:GetJoinData()
     if joinData and joinData.TeleportData then
@@ -226,6 +233,8 @@ function PlayerService:GetInitData(player)
             hasEscapeTask = true
             hasEscapeTime = true
         end
+
+        overwhelmed = localTeleportData.Overwhelmed
     else
         print(string.format("玩家 %s 没有传送数据", player.Name))
     end
@@ -239,6 +248,15 @@ function PlayerService:GetInitData(player)
         inventory = Knit.GetService("DBService"):Get(player.UserId, "PlayerInventory")
         tool = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
         Knit.GetService("InventoryService"):PlayerAdded(player, inventory, tool)
+    end
+
+    self.CurOverwhelmed[player.UserId] = 0
+    for _, toolData in ipairs(tool) do
+        local itemId = toolData.ItemId
+        local itemInfo = ItemConfig:GetByIndex(itemId)
+        if itemInfo then
+            self.CurOverwhelmed[player.UserId] += itemInfo.Weight
+        end
     end
 
     if not ability then
@@ -263,6 +281,12 @@ function PlayerService:GetInitData(player)
         gold = Knit.GetService("DBService"):Get(player.UserId, "Gold")
     end
     Knit.GetService("GoldService"):PlayerAdded(player, gold)
+
+    if not overwhelmed then
+        overwhelmed = Knit.GetService("DBService"):Get(player.UserId, "Overwhelmed")
+    end
+    self.MaxOverwhelmed[player.UserId] = overwhelmed
+    self:UpdateOverwhelmed(player)
 
     local inventoryData = Knit.GetService("InventoryService"):GetInventoryData(player)
     local toolData = Knit.GetService("InventoryService"):GetToolData(player)
@@ -292,9 +316,12 @@ end
 -- @param player Player 玩家
 -- @param ability table 能力数据
 function PlayerService:InitPlayerAbility(player, ability)
-    if not ability then
-        return
-    end
+    if not ability then return end
+    local character = player.Character
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
     for abilityId, abilityData in pairs(ability) do
         local level = abilityData.Level
         if not level or level <= 0 then
@@ -308,30 +335,42 @@ function PlayerService:InitPlayerAbility(player, ability)
             else
                 value = abilityInfo.Value
             end
-            if abilityInfo.Type == 1 then
-                local initWalkSpeed = player:GetAttribute("InitWalkSpeed")
-                if initWalkSpeed then
-                    self:ChangePlayerAttribute(player, "WalkSpeed", initWalkSpeed * value)
-                end
-            elseif abilityInfo.Type == 2 then
-                local initMaxHealth = player:GetAttribute("InitMaxHealth")
-                if initMaxHealth then
-                    self:ChangePlayerAttribute(player, "MaxHealth", initMaxHealth * value)
-                    self:ChangePlayerAttribute(player, "Health", initMaxHealth * value)
-                end
-            elseif abilityInfo.Type == 3 then
-                local initJumpPower = player:GetAttribute("InitJumpPower")
-                if initJumpPower then
-                    self:ChangePlayerAttribute(player, "JumpPower", initJumpPower * value)
-                end
-            elseif abilityInfo.Type == GameConfig.AbilityType.Attack then
-                local initAttack = player:GetAttribute("InitAttack")
-                if initAttack then
-                    self:ChangePlayerAttribute(player, "Attack", initAttack * value)
-                end
+            if abilityInfo.Type == GameConfig.AbilityType.WalkSpeed then
+                local initWalkSpeed = player:GetAttribute("InitWalkSpeed") * value
+                player:SetAttribute("InitWalkSpeed", initWalkSpeed)
+                humanoid.WalkSpeed = initWalkSpeed
+            elseif abilityInfo.Type == GameConfig.AbilityType.MaxHealth then
+                local initMaxHealth = player:GetAttribute("InitMaxHealth") * value
+                player:SetAttribute("InitMaxHealth", initMaxHealth)
+                humanoid.MaxHealth = initMaxHealth
+                humanoid.Health = initMaxHealth
+            elseif abilityInfo.Type == GameConfig.AbilityType.JumpPower then
+                local initJumpPower = player:GetAttribute("InitJumpPower") * value
+                player:SetAttribute("InitJumpPower", initJumpPower)
+                humanoid.JumpPower = initJumpPower
             end
         end
     end
+end
+
+-- 计算玩家步行速度
+-- @param player Player 玩家对象
+-- @param value number 乘法因子，用于计算新的步行速度
+-- @return number 新的步行速度
+function PlayerService:CalculateWalkSpeed(player, value)
+    value = value or 1
+    local initWalkSpeed = player:GetAttribute("InitWalkSpeed")
+    local overwhelmed = self.CurOverwhelmed[player.UserId]
+    local scale = 1
+    if overwhelmed <= GameConfig.OverwhelmedWeight.Normal then
+        scale = 1
+    elseif overwhelmed <= GameConfig.OverwhelmedWeight.Overweight then
+        scale = 0.7
+    else
+        scale = 0.3
+    end
+    local newWalkSpeed = initWalkSpeed * scale * value
+    return newWalkSpeed
 end
 
 function PlayerService:ChangePlayerAttribute(player, attributeName, attributeValue)
@@ -347,17 +386,19 @@ function PlayerService:ChangePlayerAttribute(player, attributeName, attributeVal
         if attributeName == "Health" then
             humanoid.Health = attributeValue
         elseif attributeName == "WalkSpeed" then
-            humanoid.WalkSpeed = attributeValue
+            humanoid.WalkSpeed = self:CalculateWalkSpeed(player, attributeValue)
         elseif attributeName == "MaxHealth" then
             humanoid.MaxHealth = attributeValue
         elseif attributeName == "JumpPower" then
             humanoid.JumpPower = attributeValue
+        elseif attributeName == "Attack" then
+            humanoid:SetAttribute("Attack", attributeValue)
         end
     else
         if attributeName == "Health" then
             humanoid.Health = player:GetAttribute("InitHealth")
         elseif attributeName == "WalkSpeed" then
-            humanoid.WalkSpeed = player:GetAttribute("InitWalkSpeed")
+            humanoid.WalkSpeed = self:CalculateWalkSpeed(player)
         elseif attributeName == "MaxHealth" then
             humanoid.MaxHealth = player:GetAttribute("InitMaxHealth")
         elseif attributeName == "JumpPower" then
@@ -366,37 +407,6 @@ function PlayerService:ChangePlayerAttribute(player, attributeName, attributeVal
             humanoid:SetAttribute("Attack", player:GetAttribute("InitAttack"))
         end
     end
-end
-
-function PlayerService:addHp(player, hp)
-    if not player or not player.Character then
-        return
-    end
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if not humanoid then
-        return
-    end
-    local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then
-        return
-    end
-    local maxHealth = humanoid.MaxHealth
-    local health = humanoid.Health
-    health = math.min(health + hp, maxHealth)
-    humanoid.Health = health
-    local EffectFolder = game:GetService("ServerStorage"):FindFirstChild("Effect")
-    if not EffectFolder then
-        return
-    end
-    local AddHPEffect = EffectFolder:FindFirstChild("AddHPEffect")
-    if not AddHPEffect then
-        return
-    end
-    local effect = AddHPEffect:Clone()
-    effect.Parent = player.Character
-    effect:PivotTo(CFrame.new(humanoidRootPart.Position.X, humanoidRootPart.Position.Y - humanoid.HipHeight, humanoidRootPart.Position.Z))
-    -- 使用Debris服务在3秒后自动销毁特效
-    game:GetService("Debris"):AddItem(effect, 3)
 end
 
 -- 播放挥舞动画
@@ -463,12 +473,12 @@ function PlayerService:StartHeartBeat()
         local currentTime = tick()
         
         -- 遍历所有需要检测的玩家（水中伤害）
-        for userId, lastDamageTime in pairs(_playerWaterData) do
+        for userId, lastDamageTime in pairs(self.WaterData) do
             local player = Players:GetPlayerByUserId(userId)
             
             -- 检查玩家是否还在游戏中
             if not player or not player.Parent or not player.Character then
-                _playerWaterData[userId] = nil
+                self.WaterData[userId] = nil
                 continue
             end
             
@@ -477,21 +487,21 @@ function PlayerService:StartHeartBeat()
                 if Interface.IsPlayerInWater(player.Character) then
                     local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
                     if humanoid and humanoid.Health > 0 then
-                        --humanoid:TakeDamage(WATER_DAMAGE)
+                        Interface.decHp(player.Character, WATER_DAMAGE)
                         print(player.Name .. " 在水中受到 " .. WATER_DAMAGE .. " 点伤害")
                     end
                 end
-                _playerWaterData[userId] = currentTime
+                self.WaterData[userId] = currentTime
             end
         end
         
         -- 遍历所有需要检测的玩家（下落检测）
-        for userId, fallData in pairs(_playerFallData) do
+        for userId, fallData in pairs(self.FallData) do
             local player = Players:GetPlayerByUserId(userId)
             
             -- 检查玩家是否还在游戏中
             if not player or not player.Parent or not player.Character then
-                _playerFallData[userId] = nil
+                self.FallData[userId] = nil
                 continue
             end
             
@@ -535,7 +545,7 @@ function PlayerService:StartHeartBeat()
                             damage = 10
                         end
                         
-                        humanoid:TakeDamage(damage)
+                        Interface.decHp(player.Character, damage)
                     end
                     print(player.Name .. " 下落 " .. math.floor(fallHeight))
                 end
@@ -559,7 +569,7 @@ function PlayerService:StartWaterDamageLoop(player)
     if not player then return end
     
     local userId = player.UserId
-    _playerWaterData[userId] = 0 -- 初始化最后伤害时间
+    self.WaterData[userId] = 0 -- 初始化最后伤害时间
 end
 
 -- 为玩家停止水中检测
@@ -567,7 +577,36 @@ function PlayerService:StopWaterDamageLoop(player)
     if not player then return end
     
     local userId = player.UserId
-    _playerWaterData[userId] = nil
+    self.WaterData[userId] = nil
+end
+
+function PlayerService:UpdateOverwhelmed(player)
+    if not player then return end
+    
+    local userId = player.UserId
+    self.CurOverwhelmed[userId] = 0
+    local overwhelmed = 0
+    local tool = Knit.GetService("InventoryService"):GetToolData(player)
+    for _, toolData in ipairs(tool) do
+        local itemId = toolData.ItemId
+        local itemInfo = ItemConfig:GetByIndex(itemId)
+        if itemInfo then
+            overwhelmed += itemInfo.Weight
+        end
+    end
+    local bag = Knit.GetService("InventoryService"):GetBagData(player)
+    for _, bagData in ipairs(bag) do
+        local itemId = bagData.ItemId
+        local itemInfo = ItemConfig:GetByIndex(itemId)
+        if itemInfo then
+            overwhelmed += itemInfo.Weight
+        end
+    end
+
+    self.CurOverwhelmed[userId] = overwhelmed
+    self.Client.UpdateOverwhelmed:Fire(player, self.CurOverwhelmed[userId], self.MaxOverwhelmed[userId])
+    self:ChangePlayerAttribute(player, "WalkSpeed", player:getAttribute("WalkSpeed"))
+    print(player.Name .. " 负重 " .. self.CurOverwhelmed[userId] .. " 速度 " .. player.Character.Humanoid.WalkSpeed)
 end
 
 return PlayerService

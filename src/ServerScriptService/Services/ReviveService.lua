@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
 local ReviveData = {
     {Type = 1, Value = 1000, Description = "Revive for 1000 Gold"},
@@ -23,6 +24,12 @@ function ReviveService:PlayerAdded(player)
         
         -- 监听玩家死亡事件
         humanoid.Died:Connect(function()
+            local tool = Knit.GetService("InventoryService"):GetToolData(player)
+            for _, itemData in pairs(tool) do
+                itemData.Attribute.IsEquipped = 0
+            end
+            Knit.GetService("InventoryService"):SendToolData(player)
+
             -- 如果撤离时间到了，不能复活
             local taskEscapeTime = Knit.GetService("TaskService"):GetEscapeTime(player)
             if taskEscapeTime <= 0 then

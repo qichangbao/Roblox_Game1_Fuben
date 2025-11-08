@@ -1,3 +1,6 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+
 local AttackState = {}
 AttackState.__index = AttackState
 
@@ -90,7 +93,7 @@ function AttackState:CalculateDamage()
     local attack = self.AIManager.NPC:GetAttribute("Attack")
     local humanoid = target:FindFirstChild("Humanoid")
     if humanoid and humanoid.Health > 0 then
-        humanoid:TakeDamage(attack)
+        Interface.decHp(target, attack)
         if humanoid.Health <= 0 then
             self.AIManager:SetState("Chase")
             return
