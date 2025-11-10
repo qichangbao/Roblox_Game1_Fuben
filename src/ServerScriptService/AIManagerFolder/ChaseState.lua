@@ -164,7 +164,7 @@ function ChaseState:CheckDistance()
     local params = OverlapParams.new()
     params.FilterType = Enum.RaycastFilterType.Include
     params.FilterDescendantsInstances = {target}
-    local parts = workspace:GetPartBoundsInRadius(currentPos, attackRange, params) or {}
+    local parts = workspace:GetPartBoundsInRadius(currentPos, attackRange / 2, params) or {}
     if #parts > 0 then
         self.AIManager:SetState("Attack")
         return
