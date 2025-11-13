@@ -216,6 +216,11 @@ function ItemService:HandleItemPickup(player, item)
     -- 尝试将物品添加到玩家背包
     local success, errorMessage = Knit.GetService("InventoryService"):GiveToolToPlayer(player, item)
     if success then
+        local itemId = item:GetAttribute("ItemId")
+        if itemId and itemId ~= 0 then
+            Knit.GetService("QuestService"):OnItemPicked(player, itemId, character:GetPivot().Position)
+        end
+
         self.Items[item] = nil
         item:Destroy()
     else

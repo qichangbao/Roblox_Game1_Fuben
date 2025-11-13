@@ -35,7 +35,10 @@ function InventoryService:KnitStart()
 end
 
 
-function InventoryService:PlayerAdded(player, inventory, toolData)
+function InventoryService:PlayerAdded(player)
+    local DBService = Knit.GetService("DBService")
+    local inventory = DBService:Get(player.UserId, "PlayerInventory")
+    local tool = DBService:Get(player.UserId, "PlayerToolData")
 	self.Inventory[player.UserId] = {}
 	for _, v in pairs(inventory) do
         local attribute = GameConfig.GetItemAttribute()
@@ -49,7 +52,7 @@ function InventoryService:PlayerAdded(player, inventory, toolData)
 
     self.ToolData[player.UserId] = {}
     for i = 1, GameConfig.SLOT_NUM do
-        local data = toolData[i]
+        local data = tool[i]
         local attribute = GameConfig.GetItemAttribute()
         if data then
             attribute.UsedTime = data.UsedTime
@@ -802,6 +805,7 @@ function InventoryService:DiscardTool(player, slot)
                 -- 触发物品丢弃条件
                 _G.TriggerManager:DropItem(player, itemDataTemp.itemInfo.Index)
                 self:CreateItemToFloor(character, itemDataTemp.itemInfo, itemDataTemp.attribute)
+                Knit.GetService("QuestService"):OnPlaceItem(player, itemDataTemp.itemInfo.Index, character:GetPivot().Position)
                 
                 -- 如果不是最后一个物品，等待0.3秒
                 if i < #itemsToThrow then
@@ -812,13 +816,13 @@ function InventoryService:DiscardTool(player, slot)
     end
     
     -- 把物品丢出来
-    task.spawn(function()
-        -- 触发物品丢弃条件
-        _G.TriggerManager:DropItem(player, itemId)
-        self:CreateItemToFloor(character, itemInfo, attribute)
-    end)
+    -- 触发物品丢弃条件
+    _G.TriggerManager:DropItem(player, itemId)
+    self:CreateItemToFloor(character, itemInfo, attribute)
 
     self:UpdateToolData(player, self.ToolData[player.UserId])
+
+    Knit.GetService("QuestService"):OnPlaceItem(player, itemId, character:GetPivot().Position)
 end
 
 function InventoryService:DiscardBag(player, slot)
@@ -842,6 +846,8 @@ function InventoryService:DiscardBag(player, slot)
     self:CreateItemToFloor(character, itemInfo, attribute)
 
     self:UpdateBagData(player, self.BagData[player.UserId])
+
+    Knit.GetService("QuestService"):OnPlaceItem(player, itemId, character:GetPivot().Position)
 end
 
 -- 丢弃工具

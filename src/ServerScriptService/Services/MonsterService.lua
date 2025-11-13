@@ -191,6 +191,7 @@ function MonsterService:KillMonster(player, monster)
         warn("Monster not found: " .. monsterId)
         return
     end
+    Knit.GetService("QuestService"):OnNPCKilled(player, tostring(monsterId))
     Knit.GetService("ClientUIService"):ShowTipAll(string.format("%s Killed the monster %s", player.Name, monsterInfo.DisplayName))
 end
 

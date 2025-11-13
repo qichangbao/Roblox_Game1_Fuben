@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
-local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 
 local GMService = Knit.CreateService({
     Name = 'GMService',
@@ -47,7 +48,7 @@ function GMService:GMCommand(player)
             if healMatch then
                 local amount = tonumber(healMatch)
                 if amount and humanoid then
-                    Interface.addHp(player.Character, amount)
+                    self:addHp(player, amount)
                     print(string.format("玩家 %s 恢复了 %d 点生命值，当前生命值: %d/%d", 
                         player.Name, amount, humanoid.Health, humanoid.MaxHealth))
                     return true
@@ -69,7 +70,7 @@ function GMService:GMCommand(player)
             if damageMatch then
                 local amount = tonumber(damageMatch)
                 if amount and humanoid then
-                    Interface.decHp(player.Character, amount)
+                    humanoid:TakeDamage(amount)
                     print(string.format("玩家 %s 受到了 %d 点伤害，当前生命值: %d/%d", 
                         player.Name, amount, humanoid.Health, humanoid.MaxHealth))
                     return true
@@ -122,16 +123,20 @@ function GMService:GMCommand(player)
 			local addMultiMatch = string.match(lowerMessage, "^add item%s+([%d%s,]+)$")
 			if addMultiMatch then
 				local ids = self:ParseItemIds(addMultiMatch)
-				if #ids > 0 and player.Character then
-                    -- 获取NPC当前位置
-                    local npcPosition = player.Character:GetPivot().Position
+				if #ids > 0 then
 					for _, itemId in ipairs(ids) do
-                        -- 使用高级射线检测获取最佳地面位置
-                        local ignoreList = {player.Character} -- 忽略NPC本身
-                        local pos = Vector3.new(npcPosition.X + math.random(1, 3), npcPosition.Y, npcPosition.Z + math.random(1, 3))
-                        local groundPosition = Interface.getGroundPosition(pos, ignoreList)
-                        
-                        Knit.GetService("ItemService"):CreateItem(itemId, groundPosition, nil, true)
+                        if GameConfig.LandName == "出生岛" then
+                            Knit.GetService("InventoryService"):AddItem(player, {
+                                ItemId = itemId,
+                                Attribute = GameConfig.GetItemAttribute(),
+                            })
+                        else
+                            local itemInfo = ItemConfig:GetByIndex(itemId)
+                            Knit.GetService("InventoryService"):CreateItemToFloor(player, itemInfo, {
+                                ItemId = itemId,
+                                Attribute = GameConfig.GetItemAttribute(),
+                            })
+                        end
 					end
 					print(string.format("已为玩家 %s 添加物品 IDs: %s", player.Name, table.concat(ids, ", ")))
 					return true
@@ -165,6 +170,16 @@ function GMService:GMCommand(player)
                 Knit.GetService("ClientUIService"):ShowTip(player, tip)
                 return true
             end
+
+			local killMonsterMatch = string.match(lowerMessage, "^kill monster (%d+)$")
+            if killMonsterMatch then
+                local monsterId = tonumber(killMonsterMatch)
+                if monsterId then
+                    Knit.GetService("QuestService"):OnNPCKilled(player, tostring(monsterId))
+                    Knit.GetService("ClientUIService"):ShowTip(player, "已击杀怪物 ID: " .. monsterId)
+                    return true
+                end
+            end
             
             -- 解析 "help" 命令 - 显示帮助信息
             if lowerMessage == "help" or lowerMessage == "debug help" then
@@ -181,6 +196,7 @@ function GMService:GMCommand(player)
                 print("add star - 为玩家添加一颗星")
                 print("dec star - 为玩家移除一颗星")
                 print("show tip [tip] - 显示指定提示信息")
+                print("kill monster [monsterId] - 击杀指定怪物")
                 print("help - 显示此帮助信息")
                 return true
             end

@@ -6,6 +6,9 @@ local UIController = Knit.CreateController {
     Name = "UIController",
 
     ShowTip = Signal.new(),
+    ShowStoreUI = Signal.new(),
+    ShowSellUI = Signal.new(),
+    ShowAbilityUI = Signal.new(),
     ShowMessageBoxUI = Signal.new(),
     HideMessageBoxUI = Signal.new(),
 	ResetMessageBoxUI = Signal.new(),
@@ -31,6 +34,8 @@ local UIController = Knit.CreateController {
     SuccEvacuation = Signal.new(),
     ShowMapFlag = Signal.new(),
     UpdateOverwhelmedUI = Signal.new(),
+    ShowQuestUI = Signal.new(),
+    UpdateQuestData = Signal.new(),
 }
 
 function UIController:KnitInit()

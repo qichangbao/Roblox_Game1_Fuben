@@ -9,7 +9,10 @@ QuestConfig.Data = {
         NPC = "Captain",
         QuestDescription = "Eliminate specified monsters (Monster 30001 and Monster 30002) to complete this objective.",
         Type = 1,
-        Preparation = "{ItemId:1011,Num:1}",
+        Preparation = {
+            ItemId = 1011,
+            Num = 1
+        },
         Value = {
             {
                 MonsterId = 30001,
@@ -39,7 +42,16 @@ QuestConfig.Data = {
         NPC = "Captain",
         QuestDescription = "Collect required items (Item 1001 and Item 1004) from the environment.",
         Type = 2,
-        Preparation = "{ItemId:201,Num:1;ItemId:1029,Num:1}",
+        Preparation = {
+            {
+                ItemId = 201,
+                Num = 1
+            },
+            {
+                ItemId = 1029,
+                Num = 1
+            }
+        },
         Value = {
             {
                 ItemId = 1001,
@@ -69,7 +81,10 @@ QuestConfig.Data = {
         NPC = "Captain",
         QuestDescription = "Retrieve specific item (Item 1001) from the designated location (X:50, Y:30, Z:100) within 10 units range.",
         Type = 3,
-        Preparation = "{ItemId:203,Num:4}",
+        Preparation = {
+            ItemId = 203,
+            Num = 4
+        },
         Value = {
             ItemId = 1001,
             Num = 1,
@@ -158,7 +173,16 @@ QuestConfig.Data = {
         NPC = "Captain",
         QuestDescription = "Use specific item (Item 202) on target monster (Monster 30001) to complete the objective.",
         Type = 6,
-        Preparation = "{ItemId:201,Num:1;ItemId:1029,Num:1}",
+        Preparation = {
+            {
+                ItemId = 201,
+                Num = 1
+            },
+            {
+                ItemId = 1029,
+                Num = 1
+            }
+        },
         Value = {
             {
                 ItemId = 202,
@@ -188,10 +212,14 @@ QuestConfig.Data = {
         NPC = "Captain",
         QuestDescription = "Complete multiple objectives: eliminate monsters (30001, 30002) and retrieve items from specified locations.",
         Type = 7,
-        Preparation = "{ItemId:203,Num:4}",
+        Preparation = {
+            ItemId = 203,
+            Num = 4
+        },
         Value = {
             {
-                ["_data"] = {
+                Type = 1,
+                Date = {
                     {
                         MonsterId = 30001,
                         Num = 1
@@ -200,19 +228,20 @@ QuestConfig.Data = {
                         MonsterId = 30002,
                         Num = 1
                     }
-                },
-                Type = 1
+                }
             },
             {
-                ItemId = 1001,
-                Num = 1,
-                Pos = {
-                    X = 50,
-                    Y = 30,
-                    Z = 100
-                },
-                Range = 10,
-                Type = 3
+                Type = 3,
+                Date = {
+                    ItemId = 1001,
+                    Num = 1,
+                    Pos = {
+                        X = 50,
+                        Y = 30,
+                        Z = 100
+                    },
+                    Range = 10
+                }
             }
         },
         RewardItem = {

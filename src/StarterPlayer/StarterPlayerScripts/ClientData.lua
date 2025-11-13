@@ -127,6 +127,18 @@ local function init()
         Knit.GetService("ClientUIService").ShowTip:Connect(function(tip)
             Knit.GetController("UIController").ShowTip:Fire(tip)
         end)
+        -- 监听服务器的触发NPC事件
+        Knit.GetService("NPCTrggeredService").Triggered:Connect(function(npcType)
+            if npcType == GameConfig.NpcUIType.Store then
+                Knit.GetController("UIController").ShowStoreUI:Fire()
+            elseif npcType == GameConfig.NpcUIType.Sell then
+                Knit.GetController("UIController").ShowSellUI:Fire()
+            elseif npcType == GameConfig.NpcUIType.Ability then
+                Knit.GetController("UIController").ShowAbilityUI:Fire()
+            elseif npcType == GameConfig.NpcUIType.Quest then
+                Knit.GetController("UIController").ShowQuestUI:Fire(1)
+            end
+        end)
 
         Knit.GetService("ClientUIService").ShowUI:Connect(function(ui, data)
             if ui == "NoticeUI" then
@@ -148,6 +160,14 @@ local function init()
             if ui == "MessageBoxUI" then
                 Knit.GetController("UIController").ResetMessageBoxUI:Fire()
             end
+        end)
+        
+        Knit.GetService("ClientUIService").ShowArrow:Connect(function(targetPosition)
+            SimpleArrowNavigation.NavigateTo(targetPosition, nil, 10, true, 0.5)
+        end)
+
+        Knit.GetService("ClientUIService").HideArrow:Connect(function()
+            SimpleArrowNavigation.ClearPath()
         end)
 
         Knit.GetService("SettleService").SendShowUI:Connect(function(data)
@@ -179,17 +199,15 @@ local function init()
         Knit.GetService("MonsterService").Chase:Connect(function(npc, isShow)
             showMonsterChaseFlag(npc, isShow)
         end)
-        
-        Knit.GetService("ClientUIService").ShowArrow:Connect(function(targetPosition)
-            SimpleArrowNavigation.NavigateTo(targetPosition, nil, 10, true, 0.5)
-        end)
-
-        Knit.GetService("ClientUIService").HideArrow:Connect(function()
-            SimpleArrowNavigation.ClearPath()
-        end)
 
         Knit.GetService("MapService").SendShowFlag:Connect(function(data)
             Knit.GetController("UIController").ShowMapFlag:Fire(data)
+        end)
+
+        -- 监听服务器的任务数据请求
+        Knit.GetService("QuestService").QuestUpdated:Connect(function(questData)
+            ClientData.QuestData = questData or {}
+            Knit.GetController("UIController").UpdateQuestData:Fire(ClientData.QuestData)
         end)
     end)
 end

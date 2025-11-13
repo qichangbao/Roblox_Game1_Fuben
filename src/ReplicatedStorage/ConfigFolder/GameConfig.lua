@@ -28,8 +28,10 @@ GameConfig.ItemTypeFolder = {
 }
 
 GameConfig.NpcUIType = {
-    Store = 1, -- 商店
-    Sell = 2, -- 出售
+    Store = 1,      -- 商店
+    Sell = 2,       -- 出售
+    Ability = 3,    -- 能力
+    Quest = 4,      -- 任务
 }
 
 GameConfig.Difficulty = {
@@ -43,6 +45,17 @@ GameConfig.AbilityType = {
     MaxHealth = 2, -- 最大生命值
     Jump = 3, -- 跳跃
     Attack = 4, -- 攻击
+}
+
+-- 任务类型枚举（与 QuestConfig.Type 对应）
+GameConfig.TaskType = {
+    KillMonster = 1,          -- 击杀指定怪物（或玩家）
+    CollectItem = 2,          -- 收集/拾取指定物品（环境物品）
+    RetrieveAtLocation = 3,   -- 在指定位置拾取某物
+    PlaceAtLocation = 4,      -- 将物品放置到指定位置
+    ScoutArea = 5,            -- 到达某区域（侦查）
+    UseSpecificItemOnTarget = 6, -- 使用特定物品（或装备）击杀指定目标
+    Composite = 7,            -- 复合型任务
 }
 
 GameConfig.MapFlagType = {
@@ -64,7 +77,7 @@ GameConfig.MAIN_SLOT_NUM = 3        -- 主工具栏插槽数量
 GameConfig.SLOT_NUM = 6
 GameConfig.BAG_NUM = 3
 GameConfig.Item_DragTime = 0.3      -- 物品拖拽响应事件
-GameConfig.AdditionalBackpackId = 6 -- 额外的背包ID
+GameConfig.AdditionalBackpackId = 302 -- 额外的背包ID
 GameConfig.MaxTurnInItemNum = 18    -- 最大可提交物品数量
 GameConfig.DefaultEscapeTask = 50  -- 默认的撤离任务
 GameConfig.DefaultEscapeTime = 15 * 60 + 20   -- 默认的撤离时间

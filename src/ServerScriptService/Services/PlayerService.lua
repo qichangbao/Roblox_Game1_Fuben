@@ -141,15 +141,18 @@ function PlayerService:KnitStart()
         -- 停止水中检测循环并清理数据
         self:StopWaterDamageLoop(player)
 
-        Knit.GetService("SettleService"):PlayerRemoved(player)
-        Knit.GetService("InventoryService"):PlayerRemoved(player)
-        Knit.GetService("DBService"):PlayerRemoved(player)
-        Knit.GetService("MonsterService"):PlayerRemoved(player)
-        Knit.GetService("LevelService"):PlayerRemoved(player)
-        Knit.GetService("TaskService"):PlayerRemoved(player)
-        Knit.GetService("ReviveService"):PlayerRemoved(player)
         Knit.GetService("GoldService"):PlayerRemoved(player)
+        Knit.GetService("InventoryService"):PlayerRemoved(player)
+        Knit.GetService("LevelService"):PlayerRemoved(player)
+        Knit.GetService("AbilityService"):PlayerRemoved(player)
         Knit.GetService("GMService"):PlayerRemoved(player)
+        Knit.GetService("QuestService"):PlayerRemoved(player)
+        Knit.GetService("SettleService"):PlayerRemoved(player)
+        Knit.GetService("MonsterService"):PlayerRemoved(player)
+        Knit.GetService("ReviveService"):PlayerRemoved(player)
+        Knit.GetService("TaskService"):PlayerRemoved(player)
+
+        Knit.GetService("DBService"):PlayerRemoved(player)
     end
 
     for _, player in pairs(Players:GetPlayers()) do
@@ -172,12 +175,17 @@ end
 
 function PlayerService:GetInitData(player)
     Knit.GetService("DBService"):PlayerAdded(player)
+
+    Knit.GetService("GoldService"):PlayerAdded(player)
+    Knit.GetService("InventoryService"):PlayerAdded(player)
+    Knit.GetService("LevelService"):PlayerAdded(player)
+    Knit.GetService("AbilityService"):PlayerAdded(player)
+    Knit.GetService("GMService"):PlayerAdded(player)
+    Knit.GetService("QuestService"):PlayerAdded(player)
     Knit.GetService("SettleService"):PlayerAdded(player)
     Knit.GetService("MonsterService"):PlayerAdded(player)
-    Knit.GetService("LevelService"):PlayerAdded(player)
-    Knit.GetService("TaskService"):PlayerAdded(player)
     Knit.GetService("ReviveService"):PlayerAdded(player)
-    Knit.GetService("GMService"):PlayerAdded(player)
+    Knit.GetService("TaskService"):PlayerAdded(player)
         
     self.FallData[player.UserId] = {
 		lastYPosition = nil,
@@ -188,33 +196,15 @@ function PlayerService:GetInitData(player)
 		lastCheckTime = 0,
     }
 
-    local islandName = nil
-    local inventory = nil
-    local tool = nil
-    local ability = nil
-
+    local islandName = GameConfig.LandName
     local hasEscapeTask = false
     local hasEscapeTime = false
     local difficulty = GameConfig.Difficulty.Easy
-    local isFirstLoginFuben = nil
-    local gold = nil
-    local overwhelmed = nil
     -- 获取传送数据
     local joinData = player:GetJoinData()
     if joinData and joinData.TeleportData then
         local localTeleportData = joinData.TeleportData
-        islandName = localTeleportData.IslandName
-        if localTeleportData.PlayerData then
-            local playerData = localTeleportData.PlayerData[tostring(player.UserId)]
-            if playerData and playerData.InventoryData and playerData.ToolData then
-                inventory = playerData.InventoryData
-                tool = playerData.ToolData
-                Knit.GetService("InventoryService"):PlayerAdded(player, inventory, tool)
-            end
-            ability = playerData.AbilityData
-            isFirstLoginFuben = localTeleportData.PlayerData.IsFirstLoginFuben
-            gold = localTeleportData.PlayerData.Gold
-        end
+        islandName = localTeleportData.IslandName or GameConfig.LandName
 
         difficulty = localTeleportData.Difficulty or GameConfig.Difficulty.Easy
         local TaskService = Knit.GetService("TaskService")
@@ -232,37 +222,11 @@ function PlayerService:GetInitData(player)
             hasEscapeTask = true
             hasEscapeTime = true
         end
-
-        overwhelmed = localTeleportData.Overwhelmed
     else
         print(string.format("玩家 %s 没有传送数据", player.Name))
     end
 
-    if not islandName then
-        islandName = GameConfig.LandName
-    end
     Knit.GetService("IslandService"):SetIslandName(islandName)
-
-    if not inventory and not tool then
-        inventory = Knit.GetService("DBService"):Get(player.UserId, "PlayerInventory")
-        tool = Knit.GetService("DBService"):Get(player.UserId, "PlayerToolData")
-        Knit.GetService("InventoryService"):PlayerAdded(player, inventory, tool)
-    end
-
-    self.CurOverwhelmed[player.UserId] = 0
-    for _, toolData in ipairs(tool) do
-        local itemId = toolData.ItemId
-        local itemInfo = ItemConfig:GetByIndex(itemId)
-        if itemInfo then
-            self.CurOverwhelmed[player.UserId] += itemInfo.Weight
-        end
-    end
-
-    if not ability then
-        ability = Knit.GetService("DBService"):Get(player.UserId, "AbilityData")
-    end
-    self.AbilityData[player.UserId] = ability
-    self:InitPlayerAbility(player, ability)
     
     if not hasEscapeTask then
         Knit.GetService("TaskService"):InitEscapeTask(GameConfig.DefaultEscapeTask)
@@ -272,35 +236,38 @@ function PlayerService:GetInitData(player)
         Knit.GetService("TaskService"):InitEscapeTime(GameConfig.DefaultEscapeTime)
     end
 
-    if not isFirstLoginFuben then
-        isFirstLoginFuben = Knit.GetService("DBService"):Get(player.UserId, "IsFirstLoginFuben")
+    local gold = Knit.GetService("GoldService"):GetGoldData(player)
+    local inventoryData = Knit.GetService("InventoryService"):GetInventoryData(player)
+    local tool = Knit.GetService("InventoryService"):GetToolData(player)
+    self.CurOverwhelmed[player.UserId] = 0
+    for _, toolData in ipairs(tool) do
+        local itemId = toolData.ItemId
+        local itemInfo = ItemConfig:GetByIndex(itemId)
+        if itemInfo then
+            self.CurOverwhelmed[player.UserId] += itemInfo.Weight
+        end
     end
-
-    if not gold then
-        gold = Knit.GetService("DBService"):Get(player.UserId, "Gold")
-    end
-    Knit.GetService("GoldService"):PlayerAdded(player, gold)
-
-    if not overwhelmed then
-        overwhelmed = Knit.GetService("DBService"):Get(player.UserId, "Overwhelmed")
-    end
+    local abilityData = Knit.GetService("AbilityService"):GetAbilityData(player)
+    self.AbilityData[player.UserId] = abilityData
+    self:InitPlayerAbility(player, abilityData)
+    local questData = Knit.GetService("QuestService"):GetPlayerQuests(player)
+    local overwhelmed = Knit.GetService("DBService"):Get(player.UserId, "Overwhelmed")
     self.MaxOverwhelmed[player.UserId] = overwhelmed
     self:UpdateOverwhelmed(player)
-
-    local inventoryData = Knit.GetService("InventoryService"):GetInventoryData(player)
-    local toolData = Knit.GetService("InventoryService"):GetToolData(player)
+    local isFirstLoginFuben = Knit.GetService("DBService"):Get(player.UserId, "IsFirstLoginFuben")
     local escapeTask = Knit.GetService("TaskService"):GetEscapeTask()
     local escapeTime = Knit.GetService("TaskService"):GetEscapeTime()
 
     return {
+        Gold = gold,
         Inventory = inventoryData,
-        ToolData = toolData,
+        ToolData = tool,
         EscapeTask = escapeTask,
         EscapeTime = escapeTime,
         Difficulty = difficulty,
         IsFirstLoginFuben = isFirstLoginFuben,
-        Gold = gold,
         IslandName = islandName,
+        QuestData = questData,
     }
 end
 
