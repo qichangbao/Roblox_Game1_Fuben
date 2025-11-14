@@ -31,6 +31,34 @@ local MonsterService = Knit.CreateService {
     MonsterHealthBarState = {}, -- 存储血条动画状态（当前百分比/进行中的Tween）
 }
 
+-- 计算怪物血条的BillboardGui尺寸（根据怪物模型尺寸动态映射）
+-- @param monster Model 怪物模型
+-- @return UDim2 返回用于BillboardGui.Size的尺寸（Scale方式）
+function MonsterService:_ComputeHealthBarBillboardSize(monster)
+    -- 使用模型包围盒尺寸；若不可用则退化为HumanoidRootPart尺寸
+    local size
+    local success, result = pcall(function()
+        return monster:GetExtentsSize()
+    end)
+    if success and result then
+        size = result
+    else
+        local hrp = monster:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            size = hrp.Size
+        else
+            size = Vector3.new(4, 6, 4) -- 兜底尺寸，防止nil
+        end
+    end
+
+    -- 将包围盒尺寸映射为UI尺寸（Scale值），并限制上下界避免过大或过小
+    -- 宽度基于模型X尺寸，高度基于模型Y尺寸，系数可按需要调整
+    local widthScale = math.clamp(size.X / 4, 1, 4)
+    local heightScale = math.clamp(size.Y / 20, 0.3, 1)
+
+    return UDim2.new(widthScale, 0, heightScale, 0)
+end
+
 function MonsterService:PlayerAdded(player)
     self.KillMonsters[player.UserId] = {}
 end
@@ -50,8 +78,10 @@ function MonsterService:CreateHealthBar(monster)
     -- 创建BillboardGui
     local billboardGui = Instance.new("BillboardGui")
     billboardGui.Name = "HealthBar"
-    billboardGui.Size = UDim2.new(4, 0, 0.5, 0)
-    billboardGui.StudsOffset = Vector3.new(0, HumanoidRootPart.Size.Y / 2 + 1, 0)
+    -- 根据怪物尺寸动态设置血条容器大小与高度偏移
+    billboardGui.Size = self:_ComputeHealthBarBillboardSize(monster)
+    local offsetY = HumanoidRootPart.Position.Y + HumanoidRootPart.Size.Y / 2 + 1
+    billboardGui.StudsOffset = Vector3.new(0, offsetY, 0)
     billboardGui.Parent = HumanoidRootPart
     
     -- 创建背景框架
@@ -90,6 +120,8 @@ function MonsterService:CreateHealthBar(monster)
     healthText.BackgroundTransparency = 1
     healthText.Text = string.format("%.0f/%.0f", humanoid.Health, humanoid.MaxHealth)
     healthText.TextColor3 = Color3.new(1, 1, 1)
+    healthText.TextStrokeTransparency = 0
+    healthText.TextStrokeColor3 = Color3.new(255, 0, 0)
     healthText.TextScaled = true
     healthText.FontFace = GameConfig.FontFace
     healthText.Parent = backgroundFrame
@@ -109,6 +141,11 @@ function MonsterService:UpdateHealthBar(monster)
     if not billboardGui then
         return
     end
+    -- 动态调整血条容器尺寸（若怪物缩放变化）
+    billboardGui.Size = self:_ComputeHealthBarBillboardSize(monster)
+    local extents2 = monster:GetExtentsSize()
+    local offsetY2 = ((extents2 and extents2.Y) or humanoidRootPart.Size.Y) / 2 + 1
+    billboardGui.StudsOffset = Vector3.new(0, offsetY2, 0)
     
     local backgroundFrame = billboardGui:FindFirstChild("Background")
     if not backgroundFrame then

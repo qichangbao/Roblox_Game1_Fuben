@@ -18,7 +18,26 @@ _bagFrame.Visible = false
 local _taskTipLabel = _topFrame:WaitForChild("TaskTipLabel")
 _taskTipLabel.RichText = true
 _taskTipLabel.Text = ""
-local _escopeTime = GameConfig.DefaultEscapeTime
+
+-- 将真实秒数转换为游戏秒数（函数级注释）：
+-- @param realSeconds number 真实世界的秒数
+-- @return number 对应的游戏内秒数（按照换算比例REAL_TO_GAME_SECOND）
+local function RealToGameSeconds(realSeconds)
+    return realSeconds * GameConfig.Real_To_Game_Second
+end
+-- 将游戏秒数格式化为游戏时钟（函数级注释）：
+-- @param gameSeconds number 游戏内秒数（例如 57600 表示 16 小时）
+-- @return string 形如 "HH:MM" 的字符串，超过 24 小时也会累加小时数
+local function FormatGameClock(gameSeconds)
+    local totalSeconds = math.max(0, math.floor(gameSeconds))
+    local hours = math.floor(totalSeconds / 3600)
+    local minutes = math.floor((totalSeconds % 3600) / 60)
+    return string.format("%02d:%02d", hours, minutes)
+end
+-- 真实撤离时间（秒，来自服务器/传送数据）
+local _escopeTimeReal = GameConfig.DefaultEscapeTime
+-- 游戏时间视角下的撤离时间（秒，用于UI展示）
+local _escopeTime = RealToGameSeconds(_escopeTimeReal)
 local _frameTemp = _topFrame:WaitForChild("Frame")
 local _taskCurGoldLabel = _frameTemp:WaitForChild("TaskCurGoldLabel")
 _taskCurGoldLabel.Text = ""
@@ -29,7 +48,7 @@ _escapeButton.MouseButton1Down:Connect(function(x, y)
 	if _escapeButton:FindFirstChild("Frame").Visible then
 		return
 	end
-	
+
 	local isOnBoat = Interface.isPlayerOnBoat(game.Players.LocalPlayer, _G.ClientData.IslandName)
 	if not isOnBoat then
 		Knit.GetController("UIController").ShowTip:Fire({Type = 1, Text = "Proceed to the Extraction Point!"})
@@ -65,7 +84,7 @@ local function updateTaskLabel(curEscapeTask, escapeTask)
 	else
 		_taskCurGoldLabel.TextColor3 = Color3.new(255, 0, 0)
 	end
-	
+
 	local curGold = tonumber(_taskCurGoldLabel.Text)
 	if curGold and curGold < curEscapeTask then
 		Interface.AnimateNumberIncrease(_taskCurGoldLabel, curEscapeTask)
@@ -73,7 +92,7 @@ local function updateTaskLabel(curEscapeTask, escapeTask)
 		_taskCurGoldLabel.Text = curEscapeTask
 	end
 	_taskTargetGoldLabel.Text = string.format("/%s", escapeTask)
-	_escapeButton:FindFirstChild("Frame").Visible = not isTaskDone
+	_escapeButton:WaitForChild("Frame").Visible = not isTaskDone
 end
 
 local _slots = {}
@@ -96,7 +115,7 @@ local function stopCD(slotIndex)
 	elseif slotIndex <= GameConfig.SLOT_NUM + GameConfig.BAG_NUM then
 		parent = _bags[slotIndex - GameConfig.SLOT_NUM]
 	end
-	
+
 	if _cdTween[slotIndex] then
 		_cdTween[slotIndex]:Cancel()
 		_cdTween[slotIndex] = nil
@@ -113,7 +132,7 @@ local function startCD(slotIndex, endTime, CD)
 	elseif slotIndex <= GameConfig.SLOT_NUM + GameConfig.BAG_NUM then
 		parent = _bags[slotIndex - GameConfig.SLOT_NUM]
 	end
-	
+
 	if not parent then
 		return
 	end
@@ -162,11 +181,13 @@ local function updateTool(isSendMessage)
 		local iconImage = Interface.safeWaitPart(slot, "IconImage")
 		local priceLabel = slot:WaitForChild("PriceLabel")
 		local useNumLabel = slot:WaitForChild("UseNumLabel")
+		local weightLabel = slot:WaitForChild("WeightLabel")
 		if itemData and itemData.ItemId ~= 0 then
 			local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
 			if not itemInfo then
 				iconImage.Visible = false
 				useNumLabel.Visible = false
+				weightLabel.Visible	= false
 				slot:WaitForChild("UIStroke").Enabled = false
 				slot:SetAttribute("ItemId", nil)
 				continue
@@ -183,6 +204,16 @@ local function updateTool(isSendMessage)
 				priceLabel.Visible = false
 			end
 			
+			weightLabel.Visible	= true
+			weightLabel.Text = itemInfo.Weight .. "KG"
+			if itemInfo.Weight <= 1 then
+				weightLabel.TextColor3 = Color3.new(0, 255, 0)
+			elseif itemInfo.Weight <= 5 then
+				weightLabel.TextColor3 = Color3.new(255, 255, 0)
+			else
+				weightLabel.TextColor3 = Color3.new(255, 0, 0)
+			end
+
 			if itemInfo.Duration > 0 then
 				useNumLabel.Visible = true
 				useNumLabel.Text = math.floor(math.max(0, itemInfo.Duration - itemData.Attribute.UsedTime or 0))
@@ -204,6 +235,7 @@ local function updateTool(isSendMessage)
 			iconImage.Visible = false
 			priceLabel.Visible = false
 			useNumLabel.Visible = false
+			weightLabel.Visible = false
 			slot:WaitForChild("UIStroke").Enabled = false
 			slot:SetAttribute("ItemId", nil)
 			stopCD(index)
@@ -222,11 +254,13 @@ local function updateBag(isSendMessage)
 		local iconImage = Interface.safeWaitPart(slot, "IconImage")
 		local priceLabel = slot:WaitForChild("PriceLabel")
 		local useNumLabel = slot:WaitForChild("UseNumLabel")
+		local weightLabel = slot:WaitForChild("WeightLabel")
 		if itemData and itemData.ItemId ~= 0 then
 			local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
 			if not itemInfo then
 				iconImage.Visible = false
 				useNumLabel.Visible = false
+				weightLabel.Visible = false
 				slot:WaitForChild("UIStroke").Enabled = false
 				slot:SetAttribute("ItemId", nil)
 				continue
@@ -241,6 +275,16 @@ local function updateBag(isSendMessage)
 				priceLabel.Text = itemInfo.SellPrice
 			else
 				priceLabel.Visible = false
+			end
+
+			weightLabel.Visible	= true
+			weightLabel.Text = itemInfo.Weight .. "KG"
+			if itemInfo.Weight <= 1 then
+				weightLabel.TextColor3 = Color3.new(0, 255, 0)
+			elseif itemInfo.Weight <= 5 then
+				weightLabel.TextColor3 = Color3.new(255, 255, 0)
+			else
+				weightLabel.TextColor3 = Color3.new(255, 0, 0)
 			end
 
 			if itemInfo.Duration > 0 then
@@ -264,6 +308,7 @@ local function updateBag(isSendMessage)
 			iconImage.Visible = false
 			priceLabel.Visible = false
 			useNumLabel.Visible = false
+			weightLabel.Visible = false
 			slot:WaitForChild("UIStroke").Enabled = false
 			slot:SetAttribute("ItemId", nil)
 			stopCD(index + GameConfig.SLOT_NUM)
@@ -302,7 +347,7 @@ _swingButton.MouseButton1Down:Connect(function(x, y)
 			if not itemInfo then
 				return
 			end
-			
+
 			if itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
 				Knit.GetService("InventoryService"):ActivateTool(index)
 			end
@@ -328,7 +373,7 @@ local function equipTool(slot)
 				end
 			end
 			updateTool(false)
-			
+
 			if Interface.isMobile() then
 				if returnFlag == 1 then
 					_dropButton.Visible = false
@@ -378,7 +423,7 @@ local function findTargetSlot(mousePosition)
 			return slot, 1
 		end
 	end
-	
+
 	if _bagFrame.Visible then
 		for i = GameConfig.SLOT_NUM + 1, GameConfig.SLOT_NUM + GameConfig.BAG_NUM do
 			local slot = _bags[i - GameConfig.SLOT_NUM]
@@ -619,7 +664,7 @@ for i = 1, GameConfig.BAG_NUM do
 	local slot = _bagFrame:WaitForChild(tostring(i))
 	table.insert(_bags, slot)
 	_bagData[i] = {ItemId = 0, Attribute = GameConfig.GetItemAttribute()}
-	
+
 	slot:SetAttribute("ItemId", 0)
 	GameConfig.SetItemAttribute(slot)
 	slot:FindFirstChild("UIStroke").Enabled = false
@@ -701,7 +746,7 @@ Knit.OnStart():andThen(function()
 		table.insert(_toolData, itemData)
 	end
 	updateTool(false)
-	
+
 	UIController.UpdateBagUI:Connect(function(bagData)
 		_bagData = {}
 		for index, itemData in pairs(bagData) do
@@ -719,19 +764,24 @@ Knit.OnStart():andThen(function()
 		updateTaskLabel(curEscapeTask, escapeTask)
 	end)
 	updateTaskLabel(_G.ClientData.CurEscapeTask, _G.ClientData.EscapeTask)
-	
+
 	UIController.ShowAdditionalBackpackUI:Connect(function(isShow)
 		_bagFrame.Visible = isShow
 	end)
-	
-	local teleportData = TeleportService:GetLocalPlayerTeleportData()
-	if teleportData and teleportData.EscapeTime then
-		_escopeTime = teleportData.EscapeTime
-	end
-	_taskTipLabel.Text = "Remaining evacuation time:<font color='#FF0000'>" .. Interface.formatTimeMMSS(math.floor(_escopeTime)) .. "</font>"
 
-	game:GetService("RunService").Heartbeat:Connect(function(dt)
-		_escopeTime -= dt
-		_taskTipLabel.Text = "Remaining evacuation time:<font color='#FF0000'>" .. Interface.formatTimeMMSS(math.floor(_escopeTime)) .. "</font>"
-	end)
+    local teleportData = TeleportService:GetLocalPlayerTeleportData()
+    if teleportData and teleportData.EscapeTime then
+        -- 传入为真实秒数，转化为游戏时间用于显示
+        _escopeTimeReal = teleportData.EscapeTime
+        _escopeTime = RealToGameSeconds(_escopeTimeReal)
+    end
+    _taskTipLabel.Text = "Remaining evacuation time:<font color='#FF0000'>" .. FormatGameClock(_escopeTime) .. "</font>"
+
+    game:GetService("RunService").Heartbeat:Connect(function(dt)
+        -- 真实时间流逝：用于保持与服务器一致
+        _escopeTimeReal -= dt
+        -- 转化为游戏时间秒数用于显示
+        _escopeTime = math.max(0, RealToGameSeconds(_escopeTimeReal))
+        _taskTipLabel.Text = "Remaining evacuation time:<font color='#FF0000'>" .. FormatGameClock(_escopeTime) .. "</font>"
+    end)
 end)

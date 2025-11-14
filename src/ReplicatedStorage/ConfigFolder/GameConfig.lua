@@ -81,6 +81,7 @@ GameConfig.AdditionalBackpackId = 302 -- 额外的背包ID
 GameConfig.MaxTurnInItemNum = 18    -- 最大可提交物品数量
 GameConfig.DefaultEscapeTask = 50  -- 默认的撤离任务
 GameConfig.DefaultEscapeTime = 15 * 60 + 20   -- 默认的撤离时间
+GameConfig.Real_To_Game_Second = 96-- 现实1秒 = 游戏96秒
 
 -- 物品的扩展属性，用于服务器客户端同步一些动态数据
 GameConfig.GetItemAttribute = function(item)

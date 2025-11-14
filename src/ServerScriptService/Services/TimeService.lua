@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local Lighting = game:GetService("Lighting")
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
 local TimeService = Knit.CreateService({
     Name = 'TimeService',
@@ -13,14 +14,13 @@ local TimeService = Knit.CreateService({
 -- 时间系统配置
 local _gameTime = 8 -- 游戏时间（小时，0-24）
 local _lastUpdateTime = tick() -- 上次更新的真实时间
-local Real_To_Game_Second = 96-- 现实1秒 = 游戏96秒
 local _isNight = false -- 是否是晚上
 
 -- 时间系统更新函数
 -- @param deltaTime number 距离上次更新的真实时间间隔（秒）
 function TimeService:updateGameTime(deltaTime)
     -- 计算游戏时间增量（小时）
-    local gameTimeIncrement = (deltaTime * Real_To_Game_Second) / 3600
+    local gameTimeIncrement = (deltaTime * GameConfig.Real_To_Game_Second) / 3600
     
     -- 更新游戏时间
     _gameTime = _gameTime + gameTimeIncrement

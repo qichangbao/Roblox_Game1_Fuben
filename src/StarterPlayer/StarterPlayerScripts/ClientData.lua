@@ -38,7 +38,14 @@ local function setInitData(data)
     Knit.GetController("UIController").UpdateEscapeTask:Fire(ClientData.CurEscapeTask, ClientData.EscapeTask)
     Knit.GetController("UIController").ShowStartGameUI:Fire(ClientData.Difficulty) -- 显示开始游戏UI
 
-    require(script.Parent:WaitForChild("Sound"))
+    local land = Interface.safeWaitPart(game.Workspace, ClientData.IslandName)
+    local Special = Interface.safeWaitPart(land, "Special")
+    local SpawnLocation = Interface.safeWaitPart(Special, "SpawnLocation")
+    local spawnLocation1 = Interface.safeWaitPart(SpawnLocation, "SpawnLocation1")
+    workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    if not workspace.CurrentCamera.CameraSubject then
+        workspace.CurrentCamera.CameraSubject = spawnLocation1
+    end
 end
 
 local function showMonsterChaseFlag(monster, isShow)

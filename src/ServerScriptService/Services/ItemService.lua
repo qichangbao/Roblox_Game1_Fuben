@@ -438,15 +438,6 @@ function ItemService:KnitStart()
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
-
-    -- local world = Interface.safeWaitPart(workspace, Knit.GetService("IslandService"):GetIslandName())
-    -- local Special = Interface.safeWaitPart(world, "Special")
-    -- local worldStoneTablet = Interface.safeWaitPart(Special, "StoneTablet")
-    -- local StoneTablet = ServerStorage:WaitForChild("StoneTablet")
-    -- local folder = StoneTablet:WaitForChild(Knit.GetService("IslandService"):GetIslandName())
-    -- local tablet = folder:WaitForChild("碑"):Clone()
-    -- tablet.Parent = worldStoneTablet
-    -- require(tablet:WaitForChild("ModuleScript"))
 end
 
 return ItemService

@@ -339,6 +339,26 @@ function PlayerService:CalculateWalkSpeed(player, value)
     return newWalkSpeed
 end
 
+-- 计算玩家跳跃力
+-- @param player Player 玩家对象
+-- @param value number 乘法因子，用于计算新的步行速度
+-- @return number 新的跳跃力
+function PlayerService:CalculateJumpPower(player, value)
+    value = value or 1
+    local initJumpPower = player:GetAttribute("InitJumpPower")
+    local overwhelmed = self.CurOverwhelmed[player.UserId]
+    local scale = 1
+    if overwhelmed <= GameConfig.OverwhelmedWeight.Normal then
+        scale = 1
+    elseif overwhelmed <= GameConfig.OverwhelmedWeight.Overweight then
+        scale = 0.7
+    else
+        scale = 0.3
+    end
+    local newJumpPower = initJumpPower * scale * value
+    return newJumpPower
+end
+
 function PlayerService:ChangePlayerAttribute(player, attributeName, attributeValue)
     if not player or not player.Character then
         return
@@ -356,7 +376,7 @@ function PlayerService:ChangePlayerAttribute(player, attributeName, attributeVal
         elseif attributeName == "MaxHealth" then
             humanoid.MaxHealth = attributeValue
         elseif attributeName == "JumpPower" then
-            humanoid.JumpPower = attributeValue
+            humanoid.JumpPower = self:CalculateJumpPower(player, attributeValue)
         elseif attributeName == "Attack" then
             humanoid:SetAttribute("Attack", attributeValue)
         end
@@ -368,7 +388,7 @@ function PlayerService:ChangePlayerAttribute(player, attributeName, attributeVal
         elseif attributeName == "MaxHealth" then
             humanoid.MaxHealth = player:GetAttribute("InitMaxHealth")
         elseif attributeName == "JumpPower" then
-            humanoid.JumpPower = player:GetAttribute("InitJumpPower")
+            humanoid.JumpPower = self:CalculateJumpPower(player)
         elseif attributeName == "Attack" then
             humanoid:SetAttribute("Attack", player:GetAttribute("InitAttack"))
         end
@@ -572,7 +592,11 @@ function PlayerService:UpdateOverwhelmed(player)
     self.CurOverwhelmed[userId] = overwhelmed
     self.Client.UpdateOverwhelmed:Fire(player, self.CurOverwhelmed[userId], self.MaxOverwhelmed[userId])
     self:ChangePlayerAttribute(player, "WalkSpeed", player:getAttribute("WalkSpeed"))
-    print(player.Name .. " 负重 " .. self.CurOverwhelmed[userId] .. " 速度 " .. player.Character.Humanoid.WalkSpeed)
+    self:ChangePlayerAttribute(player, "JumpPower", player:getAttribute("JumpPower"))
+    if player.Character and player.Character.Humanoid then
+        print(player.Name .. " 负重 " .. self.CurOverwhelmed[userId] .. " 速度 " .. player.Character.Humanoid.WalkSpeed)
+        print(player.Name .. " 负重 " .. self.CurOverwhelmed[userId] .. " 跳跃力 " .. player.Character.Humanoid.JumpPower)
+    end
 end
 
 return PlayerService
