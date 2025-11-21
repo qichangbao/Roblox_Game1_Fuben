@@ -258,7 +258,7 @@ function InventoryService:GiveToolToPlayer(player, item)
     end
 
     local itemId = item:GetAttribute("ItemId")
-    local itemInfo = ItemConfig:GetByIndex(itemId)
+    local itemInfo = ItemConfig:GetByItemId(itemId)
     if not itemInfo then
         return false, "物品不存在"
     end
@@ -269,7 +269,7 @@ function InventoryService:GiveToolToPlayer(player, item)
         if itemData.ItemId == 0 then
             slot = i
             attribute = GameConfig.GetItemAttribute(item)
-            toolData[slot] = {ItemId = itemInfo.Index, Attribute = attribute}
+            toolData[slot] = {ItemId = itemInfo.ItemId, Attribute = attribute}
             isPickUp = true
             break
         end
@@ -291,7 +291,7 @@ function InventoryService:GiveToolToPlayer(player, item)
                 if itemData.ItemId == 0 then
                     slot = i
                     attribute = GameConfig.GetItemAttribute(item)
-                    bagData[slot] = {ItemId = itemInfo.Index, Attribute = attribute}
+                    bagData[slot] = {ItemId = itemInfo.ItemId, Attribute = attribute}
                     isPickUp = true
                     break
                 end
@@ -316,7 +316,7 @@ function InventoryService:GiveToolToPlayer(player, item)
     -- 成功添加到背包，销毁世界中的物品
     self:CreatePickUpEffect(item:GetPivot().Position)
     self.Client.PlayPickUpSound:Fire(player, itemInfo)
-    Knit.GetService("ClientUIService"):PickUpItem(player, itemInfo.Index)
+    Knit.GetService("ClientUIService"):PickUpItem(player, itemInfo.ItemId)
     return true, "物品添加成功"
 end
 
@@ -335,7 +335,7 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
     if itemData.ItemId == 0 then
         return
     end
-    local itemInfo = ItemConfig:GetByIndex(tonumber(itemData.ItemId))
+    local itemInfo = ItemConfig:GetByItemId(tonumber(itemData.ItemId))
     if not itemInfo then
         warn("找不到物品ID: " .. tostring(itemData.ItemId))
         return
@@ -454,9 +454,9 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
     end
 
     -- 直接设置Tool的Grip属性来控制握持方向
-    if itemInfo.Index == 202 then
+    if itemInfo.ItemId == 202 then
         tool.Grip = CFrame.Angles(0, math.rad(180), 0)  -- 只旋转，不偏移位置
-    elseif itemInfo.Index == 203 then
+    elseif itemInfo.ItemId == 203 then
         tool.Grip = CFrame.new(0, -0.6, 0) * CFrame.Angles(0, math.rad(90), 0)  -- y轴偏移0.6并旋转
     else
         tool.Grip = CFrame.Angles(0, 0, math.rad(90))  -- 只旋转，不偏移位置
@@ -530,9 +530,9 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
             end
 
             if itemInfo.Type == GameConfig.ItemType.Weapon then    -- 进攻类
-                if itemInfo.Index == 202 then
+                if itemInfo.ItemId == 202 then
 					Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD)
-                elseif itemInfo.Index == 203 then
+                elseif itemInfo.ItemId == 203 then
 					Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
                 else
 					Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
@@ -598,7 +598,7 @@ function InventoryService:ActivateTool(player, slot)
         if tool:IsA("Tool") then
             local itemId = tool:GetAttribute("ItemId")
             -- 获取物品信息
-            local itemInfo = ItemConfig:GetByIndex(itemId)
+            local itemInfo = ItemConfig:GetByItemId(itemId)
             if not itemInfo then
                 warn("ActivateTool: 无法获取物品信息，ItemId: " .. itemId)
                 return false
@@ -744,7 +744,7 @@ function InventoryService:CreateItemToFloor(character, itemInfo, attribute)
     
     -- 通过ItemService创建物品
     local ItemService = Knit.GetService("ItemService")
-    ItemService:CreateItem(itemInfo.Index, dropPosition, attribute, true)
+    ItemService:CreateItem(itemInfo.ItemId, dropPosition, attribute, true)
 end
 
 -- 丢弃工具实现
@@ -762,7 +762,7 @@ function InventoryService:DiscardTool(player, slot)
     local attribute = itemData.Attribute
     if not itemData or itemId == 0 then return end
     -- 获取物品配置信息
-    local itemInfo = ItemConfig:GetByIndex(itemId)
+    local itemInfo = ItemConfig:GetByItemId(itemId)
     if not itemInfo then return end
 
     -- 从工具栏数据中移除
@@ -794,7 +794,7 @@ function InventoryService:DiscardTool(player, slot)
             for _, v in pairs(data) do
                 if v.ItemId ~= 0 then
                     table.insert(itemsToThrow, {
-                        itemInfo = ItemConfig:GetByIndex(v.ItemId),
+                        itemInfo = ItemConfig:GetByItemId(v.ItemId),
                         attribute = v.Attribute
                     })
                 end
@@ -803,9 +803,9 @@ function InventoryService:DiscardTool(player, slot)
             -- 逐个丢出物品，每个间隔0.5秒
             for i, itemDataTemp in ipairs(itemsToThrow) do
                 -- 触发物品丢弃条件
-                _G.TriggerManager:DropItem(player, itemDataTemp.itemInfo.Index)
+                _G.TriggerManager:DropItem(player, itemDataTemp.itemInfo.ItemId)
                 self:CreateItemToFloor(character, itemDataTemp.itemInfo, itemDataTemp.attribute)
-                Knit.GetService("QuestService"):OnPlaceItem(player, itemDataTemp.itemInfo.Index, character:GetPivot().Position)
+                Knit.GetService("QuestService"):OnPlaceItem(player, itemDataTemp.itemInfo.ItemId, character:GetPivot().Position)
                 
                 -- 如果不是最后一个物品，等待0.3秒
                 if i < #itemsToThrow then
@@ -836,7 +836,7 @@ function InventoryService:DiscardBag(player, slot)
     local attribute = itemData.Attribute
     if not itemData or itemId == 0 then return end
     -- 获取物品配置信息
-    local itemInfo = ItemConfig:GetByIndex(itemId)
+    local itemInfo = ItemConfig:GetByItemId(itemId)
     if not itemInfo then return end
     
     bagData[slotNumber] = {
@@ -903,7 +903,7 @@ function InventoryService:TurnInCollect(player)
     for i = 1, #self.ToolData[userId] do
         local toolData = self.ToolData[userId][i]
         if toolData and toolData.ItemId ~= 0 then
-            local itemInfo = ItemConfig:GetByIndex(toolData.ItemId)
+            local itemInfo = ItemConfig:GetByItemId(toolData.ItemId)
             if itemInfo and itemInfo.Type == GameConfig.ItemType.Collect then
                 if self.TurnInNum[userId] >= GameConfig.MaxTurnInItemNum then
                     break
@@ -928,7 +928,7 @@ function InventoryService:TurnInCollect(player)
     for i = 1, #self.BagData[userId] do
         local bagData = self.BagData[userId][i]
         if bagData and bagData.ItemId ~= 0 then
-            local itemInfo = ItemConfig:GetByIndex(bagData.ItemId)
+            local itemInfo = ItemConfig:GetByItemId(bagData.ItemId)
             if itemInfo and itemInfo.Type == GameConfig.ItemType.Collect then
                 if self.TurnInNum[userId] >= GameConfig.MaxTurnInItemNum then
                     break
@@ -1003,7 +1003,7 @@ function InventoryService:UseTool(player, tool, type, dt)
         return
     end
 
-    local itemInfo = ItemConfig:GetByIndex(itemId)
+    local itemInfo = ItemConfig:GetByItemId(itemId)
     if not itemInfo then
         return
     end

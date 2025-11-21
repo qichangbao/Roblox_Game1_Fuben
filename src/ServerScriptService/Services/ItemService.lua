@@ -36,10 +36,11 @@ local ItemService = Knit.CreateService {
 }
 
 -- 创建炫彩宝箱特效
-function ItemService:CreateXuanCaiChestEffect(position)
+function ItemService:CreateXuanCaiChestEffect(item)
+    local position = item:GetPivot().Position
     local effect = ServerStorage:WaitForChild("Effect"):WaitForChild("XuanCaiChestEffect"):Clone()
     effect.Name = "XuanCaiChestEffect"
-    effect.Parent = EffectWorkspaceFolder
+    effect.Parent = item
     effect:PivotTo(CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)))
 end
 
@@ -48,7 +49,7 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, attribute, is
         return
     end
 
-    local itemInfo = ItemConfig:GetByIndex(itemId)
+    local itemInfo = ItemConfig:GetByItemId(itemId)
     if not itemInfo then
         warn("Item not found: " .. itemId)
         return
@@ -124,7 +125,7 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     if itemInfo.Type == GameConfig.ItemType.Chest then
         proximityPrompt.ActionText = "Open"
     elseif itemInfo.Type == GameConfig.ItemType.Mound then
-        if itemInfo.Index == 601 then
+        if itemInfo.ItemId == 601 then
             proximityPrompt.ActionText = "Dig with a shovel"
         else
             proximityPrompt.ActionText = "Mining with a Ore"
@@ -147,14 +148,11 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
             -- 宝箱类物品，调用SpecialItemService处理奖励
             Knit.GetService("SpecialItemService"):OpenChest(player, item, itemInfo)
             return
-        end
-
-        --  mound和Buff 类物品不能拾取
-        if itemInfo.Type == GameConfig.ItemType.Mound then
+        elseif itemInfo.Type == GameConfig.ItemType.Mound then
+            --  mound 类物品不能拾取
             return
-        end
-
-        if itemInfo.Type == GameConfig.ItemType.Buff then
+        elseif itemInfo.Type == GameConfig.ItemType.Buff then
+            --  Buff 类物品不能拾取
             local script = item:FindFirstChild("ModuleScript")
             if script then
                 local module = require(script)
@@ -253,13 +251,13 @@ function ItemService:CreateItemByPlan(planData, position, isAnchored)
                 if type(planData.ItemId) == "table" then
                     for i, itemIdTemp in pairs(planData.ItemId) do
                         if itemIdTemp == 1035 then
-                            self:CreateXuanCaiChestEffect(item:GetPivot().Position)
+                            self:CreateXuanCaiChestEffect(item)
                             break
                         end
                     end
                 else
                     if planData.ItemId == 1035 then
-                        self:CreateXuanCaiChestEffect(item:GetPivot().Position)
+                        self:CreateXuanCaiChestEffect(item)
                     end
                 end
             end
@@ -360,7 +358,7 @@ function ItemService:FindNearestItem(player)
                 continue
             end
             
-            local itemInfo = ItemConfig:GetByIndex(itemId)
+            local itemInfo = ItemConfig:GetByItemId(itemId)
             if not itemInfo or itemInfo.Type ~= GameConfig.ItemType.Collect then
                 continue
             end

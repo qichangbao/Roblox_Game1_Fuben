@@ -47,7 +47,7 @@ local function succ(player)
         -- 创建包含价格信息的物品数组
         local itemsWithPrice = {}
         for _, itemData in ipairs(escapeItems) do
-            local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+            local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
             if itemInfo and itemInfo.SellPrice then
                 table.insert(itemsWithPrice, {
                     ItemId = itemData.ItemId,
@@ -76,7 +76,7 @@ local function succ(player)
     end
 
     for _, itemData in ipairs(escapeItems) do
-        local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+        local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
         if itemInfo then
             totalValue += itemInfo.SellPrice
         end
@@ -91,7 +91,7 @@ local function succ(player)
     for i = 1, #toolData do
         local data = toolData[i]
         if data.ItemId ~= 0 then
-            local itemInfo = ItemConfig:GetByIndex(data.ItemId)
+            local itemInfo = ItemConfig:GetByItemId(data.ItemId)
             if not itemInfo then
                 continue
             end
@@ -121,7 +121,7 @@ local function succ(player)
     for i = 1, #bagData do
         local data = bagData[i]
         if data.ItemId ~= 0 then
-            local itemInfo = ItemConfig:GetByIndex(data.ItemId)
+            local itemInfo = ItemConfig:GetByItemId(data.ItemId)
             if itemInfo and itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
                 table.insert(escapeItems, {
                     ItemId = data.ItemId,

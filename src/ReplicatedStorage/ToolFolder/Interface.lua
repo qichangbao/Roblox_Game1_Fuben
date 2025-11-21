@@ -422,7 +422,7 @@ function Interface.addHp(character, hp)
     Knit.GetService("ClientUIService"):ChangeHp(part, hp)
 end
 
-function Interface.decHp(character, damage)
+function Interface.decHp(character, damage, isCrit)
     if not character or not character.Parent then
         return
     end
@@ -433,7 +433,7 @@ function Interface.decHp(character, damage)
     humanoid:TakeDamage(damage)
     
     local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
-    Knit.GetService("ClientUIService"):ChangeHp(part, -damage)
+    Knit.GetService("ClientUIService"):ChangeHp(part, -damage, isCrit)
 end
 
 return Interface

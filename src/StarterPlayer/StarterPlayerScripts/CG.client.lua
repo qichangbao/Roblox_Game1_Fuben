@@ -115,7 +115,7 @@ function ChestShowcaseSystem.getChestsInWorld()
         -- 检查是否是宝箱（通过ItemId属性判断）
         local itemId = obj:GetAttribute("ItemId")
         if itemId then
-			local itemInfo = ItemConfig:GetByIndex(itemId)
+			local itemInfo = ItemConfig:GetByItemId(itemId)
             -- 检查是否是宝箱类型（501=普通宝箱，502=黄金宝箱，503=炫彩宝箱）
             if itemInfo.Type == GameConfig.ItemType.Chest then
                 table.insert(chests, obj)

@@ -123,14 +123,6 @@ local function init()
             Knit.GetController("UIController").UpdateEscapeTask:Fire(curEscapeTask, escapeTask)
         end)
 
-        Knit.GetService("TaskService").OpenSubmitUI:Connect(function()
-            Knit.GetController("UIController").OpenSubmitUI:Fire()
-        end)
-
-        Knit.GetService("TaskService").OpenTaskUI:Connect(function(taskId)
-            Knit.GetController("UIController").OpenTaskUI:Fire(taskId)
-        end)
-
         Knit.GetService("ClientUIService").ShowTip:Connect(function(tip)
             Knit.GetController("UIController").ShowTip:Fire(tip)
         end)
@@ -140,8 +132,8 @@ local function init()
                 Knit.GetController("UIController").ShowStoreUI:Fire()
             elseif npcType == GameConfig.NpcUIType.Sell then
                 Knit.GetController("UIController").ShowSellUI:Fire()
-            elseif npcType == GameConfig.NpcUIType.Ability then
-                Knit.GetController("UIController").ShowAbilityUI:Fire()
+            elseif npcType == GameConfig.NpcUIType.Talent then
+                Knit.GetController("UIController").ShowTalentUI:Fire()
             elseif npcType == GameConfig.NpcUIType.Quest then
                 Knit.GetController("UIController").ShowQuestUI:Fire(1)
             end
@@ -154,6 +146,8 @@ local function init()
                 Knit.GetController("UIController").ShowMessageBoxUI:Fire(data)
             elseif ui == "DragonOrbLostUI" then
                 Knit.GetController("UIController").ShowDragonOrbLostUI:Fire(data)
+            elseif ui == "EscapeSubmitUI" then
+                Knit.GetController("UIController").OpenSubmitUI:Fire(data)
             end
         end)
 

@@ -34,22 +34,28 @@ local function _takeDamage(player, hitCharacter, damage)
 		return false
 	end
 
+	local criticalProbability = Knit.GetService("PlayerService"):GetPlayerAttribute(player, "CriticalProbability") or 0
 	local attack = sourceHumanoid:GetAttribute("Attack") or 1
 	local humanoidType = hitCharacter:GetAttribute("HumanoidType")
+	local normalDamage = damage * attack
+	local isCrit = false
+	local random = math.random(100)
+	if random <= criticalProbability then			-- 暴击
+		normalDamage = normalDamage * math.random(150, 250) % 100
+		isCrit = true
+	end
 	if humanoidType == GameConfig.HumanoidType.Monster then
-		targetHumanoid:TakeDamage(damage * attack)
-		Interface.decHp(hitCharacter, damage * attack)
+		Interface.decHp(hitCharacter, normalDamage, isCrit)
 		if targetHumanoid.Health <= 0 then
             Knit.GetService("MonsterService"):KillMonster(player, hitCharacter)
-		elseif humanoidType == GameConfig.HumanoidType.Player then
-			local isOnBoat = Interface.isPlayerOnBoat(player, Knit.GetService("IslandService"):GetIslandName())
-			if isOnBoat then
-				return
-			end
-			targetHumanoid:TakeDamage(damage * attack)
-			Interface.decHp(hitCharacter, damage * attack)
 		end
 		return true
+	elseif humanoidType == GameConfig.HumanoidType.Player then
+		local isOnBoat = Interface.isPlayerOnBoat(player, Knit.GetService("IslandService"):GetIslandName())
+		if isOnBoat then
+			return
+		end
+		Interface.decHp(hitCharacter, normalDamage, isCrit)
     end
 end
 
@@ -83,7 +89,7 @@ function ItemInterface.performAreaDetection(player, itemInfo, collisionCallback)
 	local centerPosition = humanoidRootPart.Position
 	local lookDirection = humanoidRootPart.CFrame.LookVector
 
-	local itemId = itemInfo.Index
+	local itemId = itemInfo.ItemId
 	local weaponInfo = WeaponConfig:GetByItemId(itemId)
 	-- 检测区域参数
 	local detectionRange = weaponInfo.Position.X -- 检测距离

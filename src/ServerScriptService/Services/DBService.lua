@@ -4,18 +4,41 @@ local ProfileService = require(ReplicatedStorage:WaitForChild("Packages"):WaitFo
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 
 local _dataTemplate = {
-	Gold = 0,	-- 金币
-	PlayerInventory = {},	-- 背包数据
-	PlayerToolData = {},	-- 工具栏数据
+	Gold = 0,					-- 金币
+	PlayerInventory = {},		-- 背包数据
+	PlayerToolData = {
+		[1] = {
+			ItemId = 201,
+			UsedTime = 0,
+			UsedNum = 0,
+		},
+		[2] = {
+			ItemId = 301,
+			UsedTime = 0,
+			UsedNum = 0,
+		},
+		[3] = {
+			ItemId = 0,
+			UsedTime = 0,
+			UsedNum = 0,
+		},
+	},		-- 工具栏数据
+	EscapeActions = {},			-- 逃生数据
 	DuanWeiData = {				-- 段位数据
 		duanWei = 1,			-- 段位等级 (1-7)
 		level = 1,				-- 当前段位的级别
 		star = 0				-- 当前级别的星级
 	},
-	EscapeActions = {},			-- 逃生数据
-	AbilityData = {},			-- 能力列表
-	Overwhelmed = 15,			-- 负重
+	TalentData = {
+		["8001"] = {
+			TalentTreeId = 8001,
+			ItemNum = {},
+			Gold = 0,
+			Complated = false,
+		},
+	},			-- 能力列表
 	IsFirstLoginFuben = 0,		-- 是否第一次进入副本
+	QuestData = {},				-- 任务数据（QuestService 持久化使用）
 }
 
 local ProfileStore = ProfileService.GetProfileStore(

@@ -50,8 +50,8 @@ function ClientUIService:HideArrow(player)
     self.Client.HideArrow:Fire(player)
 end
 
-function ClientUIService:ChangeHp(part, hp)
-    self.Client.ChangeHp:FireAll(part, hp)
+function ClientUIService:ChangeHp(part, hp, isCrit)
+    self.Client.ChangeHp:FireAll(part, hp, isCrit)
 end
 
 function ClientUIService:KnitInit()

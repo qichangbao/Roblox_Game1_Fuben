@@ -30,7 +30,7 @@ GameConfig.ItemTypeFolder = {
 GameConfig.NpcUIType = {
     Store = 1,      -- 商店
     Sell = 2,       -- 出售
-    Ability = 3,    -- 能力
+    Talent = 3,     -- 能力
     Quest = 4,      -- 任务
 }
 
@@ -40,11 +40,13 @@ GameConfig.Difficulty = {
     HellDifficulty = 3, -- 地狱
 }
 
-GameConfig.AbilityType = {
-    WalkSpeed = 1, -- 移动
-    MaxHealth = 2, -- 最大生命值
-    Jump = 3, -- 跳跃
-    Attack = 4, -- 攻击
+GameConfig.TalentType = {
+    WalkSpeed = 1,      -- 移动
+    MaxHealth = 2,      -- 最大生命值
+    Jump = 3,           -- 跳跃
+    Weight = 4,         -- 重量
+    CriticalProbability = 5, -- 暴击几率
+    Luck = 6,           -- 幸运
 }
 
 -- 任务类型枚举（与 QuestConfig.Type 对应）
@@ -82,6 +84,10 @@ GameConfig.MaxTurnInItemNum = 18    -- 最大可提交物品数量
 GameConfig.DefaultEscapeTask = 50  -- 默认的撤离任务
 GameConfig.DefaultEscapeTime = 15 * 60 + 20   -- 默认的撤离时间
 GameConfig.Real_To_Game_Second = 96-- 现实1秒 = 游戏96秒
+GameConfig.Overwhelmed = 15         -- 负重
+GameConfig.Luck = 0                 -- 幸运值
+GameConfig.Attack = 1               -- 攻击力
+GameConfig.CriticalProbability = 5 -- 暴击几率
 
 -- 物品的扩展属性，用于服务器客户端同步一些动态数据
 GameConfig.GetItemAttribute = function(item)

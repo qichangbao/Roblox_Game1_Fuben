@@ -23,7 +23,7 @@ function SpecialItemService:OpenMound(player, item)
         return false
     end
 
-    local itemInfo = ItemConfig:GetByIndex(curItemId)
+    local itemInfo = ItemConfig:GetByItemId(curItemId)
     if not itemInfo then
         return false
     end
@@ -33,7 +33,7 @@ function SpecialItemService:OpenMound(player, item)
     Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
     self:PlaySound(player, "OpenMound")
 
-    local plan = PlanConfig:GetByCanisterId(itemInfo.Index)
+    local plan = PlanConfig:GetByCanisterId(itemInfo.ItemId)
     if not plan then
         return false
     end
@@ -43,10 +43,11 @@ function SpecialItemService:OpenMound(player, item)
         totalProbability += probability
     end
 
+    local luck = Knit.GetService("PlayerService"):GetPlayerAttribute(player, "Luck") or 0
     local random = math.random(1, math.max(totalProbability, 10000))
     local curProbability = 0
-    for i, itemId in pairs(plan.ItemId) do
-        curProbability += plan.Probability[i]
+    for i, itemId in ipairs(plan.ItemId) do
+        curProbability += plan.Probability[i] + luck
         if random <= curProbability then
             Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
             break
@@ -67,7 +68,7 @@ function SpecialItemService:OpenOre(player, item)
         return false
     end
 
-    local itemInfo = ItemConfig:GetByIndex(curItemId)
+    local itemInfo = ItemConfig:GetByItemId(curItemId)
     if not itemInfo then
         return false
     end
@@ -77,11 +78,12 @@ function SpecialItemService:OpenOre(player, item)
     Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
     self:PlaySound(player, "OpenOre")
     
-    local plan = PlanConfig:GetByCanisterId(itemInfo.Index)
+    local plan = PlanConfig:GetByCanisterId(itemInfo.ItemId)
     if not plan then
         return false
     end
 
+    local luck = Knit.GetService("PlayerService"):GetPlayerAttribute(player, "Luck") or 0
     if type(plan.ItemId) == "table" then
         local totalProbability = 0
         for _, probability in pairs(plan.Probability) do
@@ -90,8 +92,8 @@ function SpecialItemService:OpenOre(player, item)
 
         local random = math.random(1, math.max(totalProbability, 10000))
         local curProbability = 0
-        for i, itemId in pairs(plan.ItemId) do
-            curProbability += plan.Probability[i]
+        for i, itemId in ipairs(plan.ItemId) do
+            curProbability += plan.Probability[i] + luck
             if random <= curProbability then
                 Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
                 break
@@ -99,7 +101,7 @@ function SpecialItemService:OpenOre(player, item)
         end
     else
         local random = math.random(1, 10000)
-        if random <= plan.Probability then
+        if random <= plan.Probability + luck then
             Knit.GetService("ItemService"):CreateItem(plan.ItemId, position, GameConfig.GetItemAttribute(), true)
         end
     end
@@ -187,12 +189,12 @@ function SpecialItemService:OpenChest(player, item, itemInfo)
         return false
     end
     
-    local plan = PlanConfig:GetByCanisterId(itemInfo.Index)
+    local plan = PlanConfig:GetByCanisterId(itemInfo.ItemId)
     if not plan then
         return false
     end
 
-    local XuanCaiChestEffect = workspace:FindFirstChild("XuanCaiChestEffect")
+    local XuanCaiChestEffect = item:FindFirstChild("XuanCaiChestEffect")
     if XuanCaiChestEffect then
         XuanCaiChestEffect:Destroy()
     end
@@ -201,6 +203,7 @@ function SpecialItemService:OpenChest(player, item, itemInfo)
     self:PlayChestOpenAnimation(item)
     self:PlaySound(player, "OpenChest")
 
+    local luck = Knit.GetService("PlayerService"):GetPlayerAttribute(player, "Luck") or 0
     local position = item:GetPivot().Position
     if type(plan.ItemId) == "table" then
         local totalProbability = 0
@@ -210,8 +213,8 @@ function SpecialItemService:OpenChest(player, item, itemInfo)
 
         local random = math.random(1, math.max(totalProbability, 10000))
         local curProbability = 0
-        for i, itemId in pairs(plan.ItemId) do
-            curProbability += plan.Probability[i]
+        for i, itemId in ipairs(plan.ItemId) do
+            curProbability += plan.Probability[i] + luck
             if random <= curProbability then
                 Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
                 break
@@ -219,7 +222,7 @@ function SpecialItemService:OpenChest(player, item, itemInfo)
         end
     else
         local random = math.random(1, 10000)
-        if random <= plan.Probability then
+        if random <= plan.Probability + luck then
             Knit.GetService("ItemService"):CreateItem(plan.ItemId, position, GameConfig.GetItemAttribute(), true)
         end
     end

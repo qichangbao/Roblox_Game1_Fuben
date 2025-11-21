@@ -41,7 +41,7 @@ function Model3DViewer.new(parent, config)
         
         -- 交互设置
         enableRotation = config.enableRotation ~= false, -- 默认启用
-        enableZoom = config.enableZoom ~= false, -- 默认启用
+        enableZoom = config.enableZoom == true, -- 默认禁用，仅在明确设为true时启用
         autoRotate = config.autoRotate or false,
         rotationSpeed = config.rotationSpeed or 1,
         
@@ -54,6 +54,7 @@ function Model3DViewer.new(parent, config)
         connections = {},
         isDestroyed = false,
         currentRotation = 0,
+        zoomConnection = nil,
     }
     
     -- 设置metatable以便访问方法
@@ -182,17 +183,8 @@ function Model3DViewer:_setupInteraction()
         table.insert(self.connections, connection3)
     end
     
-    -- 鼠标滚轮缩放
-    if self.enableZoom then
-        local connection4 = self.viewportFrame.InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseWheel then
-                local zoomFactor = input.Position.Z > 0 and 0.9 or 1.1
-                self:zoomCamera(zoomFactor)
-            end
-        end)
-        
-        table.insert(self.connections, connection4)
-    end
+    -- 鼠标滚轮缩放（可开关，默认关闭）
+    self:setEnableZoom(self.enableZoom)
 end
 
 --[[
@@ -230,31 +222,10 @@ function Model3DViewer:setModel(model)
         self.model:Destroy()
     end
     
-    -- 克隆新模型
-    local success, clonedModel = pcall(function()
-        return model:Clone()
-    end)
-    
-    if not success or not clonedModel then
-        warn("Model3DViewer: 模型克隆失败")
-        return
-    end
-    
-    self.model = clonedModel
+    self.model = model
     self.model.Parent = self.worldModel
     
-    -- 设置模型位置，稍微往下移动
-    if self.model.PrimaryPart then
-        self.model:SetPrimaryPartCFrame(CFrame.new(0, -1, 0)) -- Y坐标从0改为-1，往下移动
-    else
-        -- 如果没有PrimaryPart，移动第一个Part
-        local firstPart = self.model:FindFirstChildOfClass("BasePart")
-        if firstPart then
-            firstPart.CFrame = CFrame.new(0, -1, 0) -- Y坐标从0改为-1，往下移动
-        end
-    end
-    
-    -- 自动调整相机距离
+    -- 自动调整相机距离并使相机对准模型中心
     self:_autoFitCamera()
     
     -- 更新相机位置
@@ -264,28 +235,74 @@ end
 --[[
     自动调整相机距离以适应模型大小
 ]]
+--[[
+    自动调整相机距离以适应模型大小（完整显示模型）
+    - 根据ViewportFrame的宽高比和相机的垂直FOV，计算横向/纵向所需的距离
+    - 取两者的最大值，并加上模型深度的一半作为前后缓冲，避免近裁剪导致“只显示一半”
+]]
 function Model3DViewer:_autoFitCamera()
-    if not self.model then return end
-    
+    if not self.model or not self.camera or not self.viewportFrame then return end
+
     local cf, size = self.model:GetBoundingBox()
-    local maxSize = math.max(size.X, size.Y, size.Z)
-    -- 调整倍数从2改为1.2，让模型显示得更大
-    self.cameraDistance = maxSize * 0.7
+
+    -- 计算视口宽高比
+    local vpSize = self.viewportFrame.AbsoluteSize
+    local aspect = (vpSize.Y > 0) and (vpSize.X / vpSize.Y) or 1
+
+    -- 垂直/水平视野角（弧度）
+    local vFov = math.rad(self.camera.FieldOfView)
+    local hFov = 2 * math.atan(math.tan(vFov / 2) * aspect)
+
+    -- 横向和纵向分别需要的相机距离
+    local halfWidth = size.X / 2
+    local halfHeight = size.Y / 2
+    local distH = halfWidth / math.tan(hFov / 2)
+    local distV = halfHeight / math.tan(vFov / 2)
+
+    -- 选择更大的距离，并加上深度缓冲避免近裁剪
+    local baseDist = math.max(distH, distV)
+    local depthPadding = size.Z / 2
+    local paddingScale = 0.05 -- 额外5%的安全边距
+    self.cameraDistance = math.max(1, baseDist + depthPadding) * (1 + paddingScale)
 end
 
 --[[
     更新相机位置
 ]]
+--[[
+    更新相机位置
+    - 相机始终看向模型的包围盒中心，避免仅显示模型的一部分
+]]
 function Model3DViewer:updateCameraPosition()
     if not self.camera or not self.model then return end
-    
+
     local angle = self.cameraAngle + Vector3.new(0, self.currentRotation, 0)
     local x = math.sin(angle.Y) * self.cameraDistance
     local z = math.cos(angle.Y) * self.cameraDistance
     local y = math.sin(angle.X) * self.cameraDistance
-    
-    local cameraPosition = Vector3.new(x, y, z)
-    self.camera.CFrame = CFrame.lookAt(cameraPosition, Vector3.new(0, 0, 0))
+
+    -- 获取模型中心点
+    local center, size = self:_getModelCenterAndSize()
+
+    -- 让相机围绕中心点旋转与缩放
+    local cameraPosition = center + Vector3.new(x, y, z)
+    self.camera.CFrame = CFrame.lookAt(cameraPosition, center)
+
+    -- 让主光源跟随模型中心（提升观看效果，可选）
+    if self.lightSources and self.lightSources.lightPart then
+        -- 将光源放在模型前上方位置
+        local lightOffset = Vector3.new(0, size.Y * 0.8, math.max(6, size.Z))
+        self.lightSources.lightPart.Position = center + lightOffset
+    end
+end
+
+--[[
+    获取模型的中心点与尺寸（包围盒）
+    @return Vector3 center, Vector3 size
+]]
+function Model3DViewer:_getModelCenterAndSize()
+    local cf, size = self.model:GetBoundingBox()
+    return cf.Position, size
 end
 
 --[[
@@ -305,6 +322,33 @@ end
 function Model3DViewer:zoomCamera(factor)
     self.cameraDistance = math.clamp(self.cameraDistance * factor, 1, 100)
     self:updateCameraPosition()
+end
+
+--[[
+    开关滚轮缩放功能（默认关闭）
+    @param enabled boolean 是否启用滚轮缩放
+    说明：
+    - 启用时，绑定鼠标滚轮事件，使用 zoomCamera 调整相机距离
+    - 关闭时，解绑事件，滚轮不再影响相机
+]]
+function Model3DViewer:setEnableZoom(enabled)
+    self.enableZoom = enabled == true
+    
+    -- 先解绑已有的缩放事件
+    if self.zoomConnection then
+        self.zoomConnection:Disconnect()
+        self.zoomConnection = nil
+    end
+    
+    -- 如需启用并且视图存在，则重新绑定
+    if self.enableZoom and self.viewportFrame then
+        self.zoomConnection = self.viewportFrame.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseWheel then
+                local zoomFactor = input.Position.Z > 0 and 0.9 or 1.1
+                self:zoomCamera(zoomFactor)
+            end
+        end)
+    end
 end
 
 --[[
@@ -356,6 +400,12 @@ function Model3DViewer:destroy()
         end
     end
     self.connections = {}
+    
+    -- 断开缩放连接
+    if self.zoomConnection then
+        self.zoomConnection:Disconnect()
+        self.zoomConnection = nil
+    end
     
     -- 销毁UI组件
     if self.viewportFrame then
