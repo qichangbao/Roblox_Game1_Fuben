@@ -148,6 +148,7 @@ function PlayerService:KnitStart()
         Knit.GetService("MonsterService"):PlayerRemoved(player)
         Knit.GetService("ReviveService"):PlayerRemoved(player)
         Knit.GetService("TaskService"):PlayerRemoved(player)
+        Knit.GetService("EquipmentService"):PlayerRemoved(player)
 
         Knit.GetService("DBService"):PlayerRemoved(player)
     end
@@ -173,6 +174,7 @@ end
 function PlayerService:GetInitData(player)
     Knit.GetService("DBService"):PlayerAdded(player)
 
+    Knit.GetService("EquipmentService"):PlayerAdded(player)
     Knit.GetService("GoldService"):PlayerAdded(player)
     Knit.GetService("InventoryService"):PlayerAdded(player)
     Knit.GetService("LevelService"):PlayerAdded(player)
@@ -255,6 +257,7 @@ function PlayerService:GetInitData(player)
             self.AttributeData[player.UserId].Overwhelmed += itemInfo.Weight
         end
     end
+    local equipmentData = Knit.GetService("EquipmentService"):GetEquipmentData(player)
     local talentData = Knit.GetService("TalentService"):GetTalentData(player)
     self.TalentData[player.UserId] = talentData
     self:InitPlayerTalent(player, talentData)
@@ -269,6 +272,7 @@ function PlayerService:GetInitData(player)
         Gold = gold,
         Inventory = inventoryData,
         ToolData = tool,
+        EquipmentData = equipmentData,
         EscapeTask = escapeTask,
         EscapeTime = escapeTime,
         Difficulty = difficulty,

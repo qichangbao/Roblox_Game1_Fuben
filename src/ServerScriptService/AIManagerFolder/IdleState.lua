@@ -32,6 +32,8 @@ function IdleState:Update(dt)
     end
     
     if self.timer <= 0 then
+        -- 怪物类型为2时，不巡逻
+        if self.AIManager.monsterInfo.Type == 2 then return end
         self.AIManager:SetState("Patrol")
         return
     end

@@ -44,6 +44,7 @@ function InventoryService:PlayerAdded(player)
         local attribute = GameConfig.GetItemAttribute()
         attribute.UsedTime = v.UsedTime
         attribute.UsedNum = v.UsedNum
+		attribute.IsLocked = v.IsLocked or 0
 		table.insert(self.Inventory[player.UserId], {
             ItemId = v.ItemId,
             Attribute = attribute,

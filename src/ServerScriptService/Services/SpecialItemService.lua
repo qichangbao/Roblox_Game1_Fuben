@@ -232,6 +232,47 @@ end
 
 -- 播放箱子打开动画（主函数）
 function SpecialItemService:PlayChestOpenAnimation(chestItem)
+    -- 先做“左右抬起-放下”的序列抖动，再执行开盖动画（函数级注释）：
+    -- 行为：
+    -- 1) 围绕 Z 轴（Roll）小幅旋转实现“左边/右边抬起”，每次抬起后立即放下；
+    -- 2) 左抬起→放下→右抬起→放下为一轮，共进行 5 轮；
+    -- 3) 完成抖动后复位到初始姿态，再根据 Top 类型执行开盖动画；
+    -- 4) 最后禁用 ProximityPrompt，避免重复触发。
+    -- @param chestItem Model 箱子模型（需有 Top/Bottom 子节点或已设置 Pivot）
+    -- @return void
+    if not chestItem or not chestItem:IsA("Model") then
+        warn("PlayChestOpenAnimation: chestItem must be a Model")
+        return
+    end
+
+    -- 左右抬起序列参数
+    local basePivot = chestItem:GetPivot()
+    local ROUNDS = 5
+    local LIFT_ANGLE_DEG = 10      -- 抬起角度（度），过大可能显得夸张
+    local HOLD_TIME = 0.03        -- 抬起后的停顿时间（秒）
+
+    local leftAngle = math.rad(LIFT_ANGLE_DEG)   -- 左边抬起（Z轴正旋）
+    local rightAngle = -math.rad(LIFT_ANGLE_DEG) -- 右边抬起（Z轴负旋）
+
+    for _ = 1, ROUNDS do
+        -- 左边抬起
+        chestItem:PivotTo(basePivot * CFrame.Angles(0, 0, leftAngle))
+        task.wait(HOLD_TIME)
+        -- 放下复位
+        chestItem:PivotTo(basePivot)
+        task.wait(HOLD_TIME)
+
+        -- 右边抬起
+        chestItem:PivotTo(basePivot * CFrame.Angles(0, 0, rightAngle))
+        task.wait(HOLD_TIME)
+        -- 放下复位
+        chestItem:PivotTo(basePivot)
+        task.wait(HOLD_TIME)
+    end
+
+    -- 最终复位，准备开盖动画
+    chestItem:PivotTo(basePivot)
+
     -- 查找箱子的Top部分
     local top = chestItem:FindFirstChild("Top")
     if not top then

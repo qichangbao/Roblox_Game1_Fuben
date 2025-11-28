@@ -113,7 +113,7 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     local highlight = Instance.new("Highlight")
     highlight.Parent = item
     highlight.FillTransparency = 1
-    highlight.OutlineTransparency = 0.85
+    highlight.OutlineTransparency = 0.5
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
     highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 
@@ -408,7 +408,7 @@ function ItemService:KnitStart()
     self:initItems()
     print("物品总价值", self.TotalValue)
     -- task.spawn(function()
-    --     local itemTemp = self:CreateItem(8, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+    --     local itemTemp = self:CreateItem(501, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
     --     if itemTemp then
     --         table.insert(self.Items, itemTemp)
     --     end

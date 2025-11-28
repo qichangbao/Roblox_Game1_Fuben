@@ -4,7 +4,7 @@ local TalentTreeConfig = {}
 TalentTreeConfig.Data = {
     [1] = {
         TalentTreeId = 8001,
-        Type = 1,
+        Type = 4,
         ChildType = 2,
         DisplayName = "Carry Capacity 1",
         Description = "Max Carry Capacity +3",
@@ -27,9 +27,9 @@ TalentTreeConfig.Data = {
     },
     [2] = {
         TalentTreeId = 8002,
-        Type = 2,
+        Type = 5,
         ChildType = 1,
-        DisplayName = "Gathering 1",
+        DisplayName = "Melee Crit Chance 1",
         Description = nil,
         Value = 5,
         Icon = nil,
@@ -41,7 +41,7 @@ TalentTreeConfig.Data = {
     },
     [3] = {
         TalentTreeId = 8003,
-        Type = 3,
+        Type = 1,
         ChildType = 1,
         DisplayName = "Movement Speed 1",
         Description = nil,
@@ -52,7 +52,7 @@ TalentTreeConfig.Data = {
     },
     [4] = {
         TalentTreeId = 8004,
-        Type = 1,
+        Type = 4,
         ChildType = 2,
         DisplayName = "Carry Capacity 2",
         Description = nil,
@@ -63,7 +63,7 @@ TalentTreeConfig.Data = {
     },
     [5] = {
         TalentTreeId = 8005,
-        Type = 4,
+        Type = 6,
         ChildType = 1,
         DisplayName = "Luck 1",
         Description = nil,

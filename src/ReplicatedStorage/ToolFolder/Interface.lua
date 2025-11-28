@@ -210,42 +210,89 @@ end
     @param point Vector3 要判断的点
     @return boolean 如果在水体内返回true，否则返回false
 ]]
+-- 判断一个点是否在地形水体内（函数级注释）：
+-- 说明：
+-- - 使用 Terrain:ReadVoxels 读取该点所在的体素材质；
+-- - 注意 Region3:ExpandToGrid 会对齐到体素网格，返回的 materials 索引 [1][1][1]
+--   并不保证是“点所在体素”，若点靠近体素边界，可能命中相邻体素（例如岩石 Slate）。
+-- - 为避免误判，需计算“点所在体素”与“区域最小体素”的差，得到正确的索引后读取材质。
+-- @param point Vector3 要判断的世界坐标点
+-- @return boolean 若该点所在体素材质为 Water 返回 true，否则返回 false
 function Interface.isPointInTerrainWater(point)
-    -- 判断一个点是否在地形水体内
     local Terrain = workspace:FindFirstChildOfClass("Terrain")
     if not Terrain then return false end
 
-    -- 将世界坐标转换为体素坐标
-    local voxelResolution = 4  -- Roblox Terrain 的体素分辨率为4
+    local voxelResolution = 4  -- Roblox Terrain 的体素分辨率为 4
+    -- 以 point 为中心构造一个体素大小的 Region3，并对齐到网格
     local region = Region3.new(
         point - Vector3.new(voxelResolution/2, voxelResolution/2, voxelResolution/2),
         point + Vector3.new(voxelResolution/2, voxelResolution/2, voxelResolution/2)
     ):ExpandToGrid(voxelResolution)
 
     local materials, _ = Terrain:ReadVoxels(region, voxelResolution)
-    -- 只取中间体素
-    local mat = materials[1][1][1]
+
+    -- 计算区域世界坐标最小点（对齐后的），并转换为体素坐标
+    local regionCenter = region.CFrame.Position
+    local regionSize = region.Size
+    local regionMin = regionCenter - (regionSize * 0.5)
+    local minCell = Terrain:WorldToCell(regionMin)
+    local pointCell = Terrain:WorldToCell(point)
+
+    -- 计算点所在体素相对于区域起始体素的索引（Lua 索引从 1 开始）
+    local ix = math.max(1, (pointCell.X - minCell.X) + 1)
+    local iy = math.max(1, (pointCell.Y - minCell.Y) + 1)
+    local iz = math.max(1, (pointCell.Z - minCell.Z) + 1)
+
+    -- 边界保护：若区域尺寸为 1x1x1，则索引最多为 1
+    local maxX = #materials
+    local maxY = #materials[1]
+    local maxZ = #materials[1][1]
+    ix = math.min(ix, maxX)
+    iy = math.min(iy, maxY)
+    iz = math.min(iz, maxZ)
+
+    local mat = materials[ix][iy][iz]
     return mat == Enum.Material.Water
 end
 
 -- 检测玩家是否在游泳
+-- 判断玩家是否在水中（函数级注释）：
+-- 行为：
+-- 1) Swimming 状态下直接返回 true；
+-- 2) 水面跳跃：若 HRP 下方 3 studs 内是 Terrain 的 Water，也返回 true；
+-- 3) 体素检测：脚下采样点在 Water 体素内返回 true；
+-- 4) ForceField 存在时返回 false（无敌不受水影响）。
+-- @param character Model 玩家角色模型
+-- @return boolean 是否判定为在水中
 function Interface.IsPlayerInWater(character)
     if not character then return false end
-    
-    -- 检查是否有无敌保护（ForceField）- 使用更高效的 FindFirstChild
+
     if character:FindFirstChild("ForceField") then
         return false  -- 有无敌时不受水中伤害
     end
-    
-    -- 使用 FindFirstChildOfClass 查找 Humanoid（因为可能有自定义名称的 Humanoid）
+
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
+    if humanoid:GetState() == Enum.HumanoidStateType.Swimming then return true end
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then return false end
-    
+
+    -- 水面邻近检测：从 HRP 向下少量距离仅检测 Terrain 的 Water
+    local SURFACE_CHECK_DEPTH = 3
+    local Terrain = workspace:FindFirstChildOfClass("Terrain")
+    if Terrain then
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Include
+        params.FilterDescendantsInstances = { Terrain }
+        local res = workspace:Raycast(humanoidRootPart.Position, Vector3.new(0, -SURFACE_CHECK_DEPTH, 0), params)
+        if res and res.Instance == Terrain and res.Material == Enum.Material.Water then
+            return true
+        end
+    end
+
+    -- 体素检测：脚下采样点在水体内
     local position = humanoidRootPart.Position
     local point = Vector3.new(position.X, position.Y - humanoid.HipHeight - humanoidRootPart.Size.Y / 2, position.Z)
-    -- 检查玩家是否在游泳状态
     return Interface.isPointInTerrainWater(point)
 end
 
