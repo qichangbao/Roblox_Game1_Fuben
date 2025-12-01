@@ -205,10 +205,13 @@ local function init()
             Knit.GetController("UIController").ShowMapFlag:Fire(data)
         end)
 
-        -- 监听服务器的任务数据请求
         Knit.GetService("QuestService").QuestUpdated:Connect(function(questData)
             ClientData.QuestData = questData or {}
             Knit.GetController("UIController").UpdateQuestData:Fire(ClientData.QuestData)
+        end)
+
+        Knit.GetService("SpecialItemService").ShakeCarame:Connect(function(info)
+            Knit.GetController("UIController").ShakeCarame:Fire(info)
         end)
     end)
 end

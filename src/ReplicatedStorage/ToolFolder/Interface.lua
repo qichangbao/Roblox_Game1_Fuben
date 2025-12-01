@@ -5,6 +5,7 @@ local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Kn
 local UserInputService = game:GetService("UserInputService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local TweenService = game:GetService("TweenService")
+local ContentProvider = game:GetService("ContentProvider")
 
 --[[
     深拷贝函数 - 递归复制表结构
@@ -22,6 +23,72 @@ function Interface.clone(original)
     end
     
     return copy
+end
+
+-- 预加载并设置 ImageLabel 的图片（函数级注释）：
+-- @param img ImageLabel 目标图像控件
+-- @param source Instance|string Texture/Decal实例，或asset id字符串（支持纯数字或rbxassetid://前缀）
+-- @param timeout number 可选，最大等待时长（秒），默认2.0；超过也不报错，仅结束等待
+-- @return boolean 是否成功触发并完成预加载（true表示已完成，false表示超时或失败）
+function Interface.PreloadImageForLabel(img, source, timeout)
+    timeout = timeout or 2.0
+    if not img or not img:IsA("ImageLabel") then
+        return false
+    end
+
+    -- 转换为内容ID字符串
+    local function toContentId(src)
+        if typeof(src) == "string" then
+            if src:match("^rbxassetid://") or src:match("^https?://") then
+                return src
+            elseif src:match("^%d+$/?") or src:match("^%d+$") then
+                -- 兼容可能带斜杠的数字字符串
+                local id = src:gsub("/", "")
+                return "rbxassetid://" .. id
+            end
+        elseif typeof(src) == "Instance" then
+            if src:IsA("Texture") or src:IsA("Decal") then
+                return src.Texture
+            end
+        end
+        return nil
+    end
+
+    local cid = toContentId(source)
+    if not cid then
+        return false
+    end
+
+    -- 先设置 Image，再进行预加载（对ImageLabel生效）
+    img.Image = cid
+
+    local ok, err = pcall(function()
+        -- ContentProvider:PreloadAsync 会在资源加载完成后返回
+        local finished = false
+        local done = false
+        task.spawn(function()
+            ContentProvider:PreloadAsync({ img })
+            finished = true
+        end)
+        local start = os.clock()
+        while not finished do
+            if os.clock() - start >= timeout then
+                done = false
+                break
+            end
+            task.wait(0.03)
+        end
+        if finished then
+            done = true
+        end
+        return done
+    end)
+
+    if not ok then
+        warn("PreloadImageForLabel failed:", err)
+        return false
+    end
+    return true
 end
 
 -- 随机打乱一个数组
@@ -439,6 +506,102 @@ function Interface.AnimateNumberIncrease(labelOrFrom, to)
     return num, tween
 end
 
+-- 将进度条通过补间动画平滑更新（函数级注释）：
+-- @param bar GuiObject 进度条UI对象（通常为 Frame 或 ImageLabel）
+-- @param targetRatio number 目标比例（0-1），会被 clamp 到 [0,1]
+-- @param duration number 动画时长（秒），可选，默认 0.35 秒
+-- @return void
+function Interface.TweenProgressBarSize(bar, targetRatio, duration)
+    duration = duration or 0.35
+    if not bar or not bar:IsA("GuiObject") then
+        return
+    end
+    targetRatio = math.clamp(targetRatio or 0, 0, 1)
+    local currentSize = bar.Size
+    local goal = {
+        Size = UDim2.new(targetRatio, 0, currentSize.Y.Scale, currentSize.Y.Offset),
+    }
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(bar, info, goal)
+    tween:Play()
+end
+
+-- 启动Gui颜色黑色脉冲循环（函数级注释）：
+-- @param gui GuiObject 需要循环变色的UI对象（Frame/ImageLabel/TextLabel等）
+-- @param toBlackDuration number 变为黑色的时长（秒），默认1.0
+-- @param backDuration number 从黑色恢复到原色的时长（秒），默认1.0
+-- 行为：持续“到黑→回原”循环，直到调用 StopPulseGuiColorLoop 或对象销毁
+function Interface.StartPulseGuiColorLoop(gui, toColor, toBlackDuration, backDuration)
+    if not gui or not gui:IsA("GuiObject") then
+        return
+    end
+    -- 已在循环中则跳过
+    if gui:GetAttribute("Interface_ColorPulseLoopRunning") then
+        return
+    end
+    gui:SetAttribute("Interface_ColorPulseLoopRunning", true)
+
+    toBlackDuration = toBlackDuration or 1.0
+    backDuration = backDuration or 1.0
+
+    local function getColorPropName(instance)
+        if instance:IsA("ImageLabel") or instance:IsA("ImageButton") then
+            return "ImageColor3"
+        elseif instance:IsA("TextLabel") or instance:IsA("TextButton") then
+            return "TextColor3"
+        else
+            return "BackgroundColor3"
+        end
+    end
+
+    local propName = getColorPropName(gui)
+    -- 读取当前颜色（允许外部改变原色时能跟随）
+    local ok1, initColor = pcall(function()
+        return gui[propName]
+    end)
+    task.spawn(function()
+        while gui.Parent and gui:GetAttribute("Interface_ColorPulseLoopRunning") do
+            -- 读取当前颜色（允许外部改变原色时能跟随）
+            local ok2, currentColor = pcall(function()
+                return gui[propName]
+            end)
+            if not ok2 or typeof(currentColor) ~= "Color3" then
+                break
+            end
+
+            local tweenToBlack = TweenService:Create(gui, TweenInfo.new(toBlackDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), { [propName] = toColor })
+            tweenToBlack:Play()
+            tweenToBlack.Completed:Wait()
+
+            -- 循环可能在到黑期间被停止
+            if not gui.Parent or not gui:GetAttribute("Interface_ColorPulseLoopRunning") then
+                break
+            end
+
+            local tweenBack = TweenService:Create(gui, TweenInfo.new(backDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), { [propName] = currentColor })
+            tweenBack:Play()
+            tweenBack.Completed:Wait()
+        end
+
+        pcall(function()
+            gui[propName] = initColor
+        end)
+        gui:SetAttribute("Interface_ColorPulseLoopRunning", false)
+    end)
+end
+
+-- 停止Gui颜色黑色脉冲循环（函数级注释）：
+-- @param gui GuiObject 待停止的UI对象
+-- 行为：将运行标记置为false，正在进行的当前补间完成后退出循环
+function Interface.StopPulseGuiColorLoop(gui)
+    if not gui or not gui:IsA("GuiObject") then
+        return
+    end
+    if gui:GetAttribute("Interface_ColorPulseLoopRunning") then
+        gui:SetAttribute("Interface_ColorPulseLoopRunning", false)
+    end
+end
+
 function Interface.addHp(character, hp)
     if not character or not character.Parent then
         return
@@ -481,6 +644,85 @@ function Interface.decHp(character, damage, isCrit)
     
     local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
     Knit.GetService("ClientUIService"):ChangeHp(part, -damage, isCrit)
+end
+
+-- 存储每个GuiObject的缩放动画状态，避免重复动画冲突
+local uiScaleStates = {}
+
+--[[
+    UI显示动画：使用 UIScale 将尺寸从 0 缩放到 1
+    @param guiObject GuiObject|ScreenGui 目标UI元素（Frame、ImageLabel、TextLabel等）或屏幕容器
+    @param opts table? 可选配置
+        - duration number 动画时长（秒），默认 0.1
+        - easingStyle Enum.EasingStyle 缓动类型，默认 Quad
+        - easingDirection Enum.EasingDirection 缓动方向，默认 Out
+        - setVisible boolean 是否在播放前设置为可见：
+            GuiObject 使用 Visible=true，ScreenGui/SurfaceGui/BillboardGui 使用 Enabled=true，默认 true
+        - center boolean 是否将 AnchorPoint 设为居中 (0.5,0.5)，仅 GuiObject 生效，默认 false
+    @return UIScale, Tween 返回 UIScale 与 Tween 对象（便于外部控制/监听）
+    说明：
+    - 优先使用 UIScale 缩放，不会破坏原始 Size/Position 布局
+    - 若目标下不存在 UIScale，会自动创建一个
+]]
+function Interface.AnimateUIShowScale(guiObject, opts)
+    if typeof(guiObject) ~= "Instance" or not guiObject:IsA("GuiBase2d") then
+        warn("AnimateUIShowScale: 需要传入 GuiObject 或 ScreenGui（GuiBase2d）")
+        return nil, nil
+    end
+
+    opts = opts or {}
+    local duration = typeof(opts.duration) == "number" and opts.duration or 0.1
+    local easingStyle = opts.easingStyle or Enum.EasingStyle.Quad
+    local easingDirection = opts.easingDirection or Enum.EasingDirection.Out
+    local setVisible = (opts.setVisible == nil) and true or opts.setVisible
+    local center = opts.center == true
+    local isGuiObject = guiObject:IsA("GuiObject")
+
+    if center and isGuiObject then
+        guiObject.AnchorPoint = Vector2.new(0.5, 0.5)
+    end
+    if setVisible then
+        if isGuiObject then
+            guiObject.Visible = true
+        else
+            if guiObject:IsA("ScreenGui") or guiObject:IsA("SurfaceGui") or guiObject:IsA("BillboardGui") then
+                guiObject.Enabled = true
+            end
+        end
+    end
+
+    local scale = guiObject:FindFirstChildOfClass("UIScale")
+    if not scale then
+        scale = Instance.new("UIScale")
+        scale.Scale = 0
+        scale.Parent = guiObject
+    else
+        -- 从 0 开始，保证有缩放过渡
+        scale.Scale = 0
+    end
+
+    -- 如果该 GuiObject 有动画在运行，先取消旧动画
+    if uiScaleStates[guiObject] then
+        local old = uiScaleStates[guiObject]
+        if old.tween then old.tween:Cancel() end
+    end
+
+    local tweenInfo = TweenInfo.new(duration, easingStyle, easingDirection)
+    local tween = TweenService:Create(scale, tweenInfo, { Scale = 1 })
+
+    -- 记录当前动画状态
+    uiScaleStates[guiObject] = {
+        scale = scale,
+        tween = tween,
+    }
+
+    tween:Play()
+    tween.Completed:Connect(function()
+        -- 动画完成后清理状态记录
+        uiScaleStates[guiObject] = nil
+    end)
+
+    return scale, tween
 end
 
 return Interface

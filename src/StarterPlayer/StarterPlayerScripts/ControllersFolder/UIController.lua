@@ -36,6 +36,7 @@ local UIController = Knit.CreateController {
     UpdateOverwhelmedUI = Signal.new(),
     ShowQuestUI = Signal.new(),
     UpdateQuestData = Signal.new(),
+    ShakeCarame = Signal.new(),
 }
 
 function UIController:KnitInit()

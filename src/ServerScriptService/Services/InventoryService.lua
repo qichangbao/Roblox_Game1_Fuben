@@ -317,7 +317,6 @@ function InventoryService:GiveToolToPlayer(player, item)
     -- 成功添加到背包，销毁世界中的物品
     self:CreatePickUpEffect(item:GetPivot().Position)
     self.Client.PlayPickUpSound:Fire(player, itemInfo)
-    Knit.GetService("ClientUIService"):PickUpItem(player, itemInfo.ItemId)
     return true, "物品添加成功"
 end
 
@@ -898,6 +897,7 @@ function InventoryService:TurnInCollect(player)
         return 0
     end
     
+    local turnItems = {}
     local isToolChanged = false
     local gold = 0
     -- 收集所有搜集类物品
@@ -911,6 +911,7 @@ function InventoryService:TurnInCollect(player)
                 end
                 self.TurnInNum[userId] += 1
                 gold += itemInfo.SellPrice
+                table.insert(turnItems, toolData.ItemId)
                 table.insert(self.EscapeItems[userId], {
                     ItemId = toolData.ItemId,
                     Attribute = Interface.clone(toolData.Attribute)
@@ -936,6 +937,7 @@ function InventoryService:TurnInCollect(player)
                 end
                 self.TurnInNum[userId] += 1
                 gold += itemInfo.SellPrice
+                table.insert(turnItems, bagData.ItemId)
                 table.insert(self.EscapeItems[userId], {
                     ItemId = bagData.ItemId,
                     Attribute = Interface.clone(bagData.Attribute)
@@ -959,7 +961,7 @@ function InventoryService:TurnInCollect(player)
         if isBagChanged then
             self:UpdateBagData(player, self.BagData[player.UserId])
         end
-        Knit.GetService("ClientUIService"):ShowTipAll(string.format("%s submitted items worth %d", player.Name, gold))
+        Knit.GetService("ClientUIService"):SubmitItems(player, turnItems)
     else
         print(string.format("玩家 %s 没有可上交的搜集物品", player.Name))
     end

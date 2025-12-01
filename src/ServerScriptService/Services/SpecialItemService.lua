@@ -9,6 +9,7 @@ local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForCh
 local SpecialItemService = Knit.CreateService({
     Name = 'SpecialItemService',
     Client = {
+        ShakeCarame = Knit.CreateSignal(),
     },
 })
 
@@ -53,6 +54,7 @@ function SpecialItemService:OpenMound(player, item)
             break
         end
     end
+    self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
     
     return true
 end
@@ -105,6 +107,7 @@ function SpecialItemService:OpenOre(player, item)
             Knit.GetService("ItemService"):CreateItem(plan.ItemId, position, GameConfig.GetItemAttribute(), true)
         end
     end
+    self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
 end
 
 --[[
@@ -180,6 +183,7 @@ function SpecialItemService:JitterOre(player, item)
             end
         end)
     end
+    self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.5, ShakeSpeed = 10, ShakeDuration = 0.2})
     
     return true
 end
@@ -200,6 +204,7 @@ function SpecialItemService:OpenChest(player, item, itemInfo)
     end
 
     -- 播放开箱子动画
+    self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
     self:PlayChestOpenAnimation(item)
     self:PlaySound(player, "OpenChest")
 

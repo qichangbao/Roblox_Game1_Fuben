@@ -72,6 +72,11 @@ GameConfig.OverwhelmedWeight = {
     Overweight = 40,    -- 超重负重
 }
 
+GameConfig.AnimationMap = {
+    swing = "rbxassetid://90203983110020",
+    dig = "rbxassetid://82370673878002",
+}
+
 GameConfig.LandName = "恐龙岛"
 GameConfig.TeleportPartNames = {"撤离点"}-- 触发传送的model名称
 GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")

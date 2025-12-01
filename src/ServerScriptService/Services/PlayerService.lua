@@ -25,8 +25,7 @@ local PlayerService = Knit.CreateService {
 -- 配置参数
 local FALL_HEIGHT_THRESHOLD = 17 -- 下落高度阈值（单位：stud）
 local WATER_DAMAGE = 10 -- 水中每秒掉血量
-local WATER_CHECK_INTERVAL = 1 -- 水中检测间隔（秒）
-
+local WATER_CHECK_INTERVAL = 2 -- 水中检测间隔（秒）
 
 function PlayerService:KnitInit()
 end
@@ -51,20 +50,10 @@ function PlayerService:KnitStart()
                 self.AnimationTracks[player.UserId] = {}
                 local animator = humanoid:FindFirstChildOfClass("Animator")
                 if animator then
-                    -- 定义动画映射表
-                    local animationMap = {
-                        swing = {"rbxassetid://107273238071706", "rbxassetid://90203983110020"},
-                        dig = {"rbxassetid://96906531402562", "rbxassetid://82370673878002"},
-                    }
-                    
                     -- 预加载所有动画
-                    for animName, animInfo in pairs(animationMap) do
+                    for animName, animId in pairs(GameConfig.AnimationMap) do
                         local animation = Instance.new("Animation")
-                        if humanoid.RigType == Enum.HumanoidRigType.R6 then
-                            animation.AnimationId = animInfo[1]
-                        else
-                            animation.AnimationId = animInfo[2]
-                        end
+                        animation.AnimationId = animId
                         
                         local success, track = pcall(function()
                             return animator:LoadAnimation(animation)

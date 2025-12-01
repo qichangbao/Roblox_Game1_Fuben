@@ -408,7 +408,7 @@ function ItemService:KnitStart()
     self:initItems()
     print("物品总价值", self.TotalValue)
     -- task.spawn(function()
-    --     local itemTemp = self:CreateItem(501, Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+    --     local itemTemp = self:CreateItem(501, Vector3.new(353, -1.2, -250), GameConfig.GetItemAttribute(), false)
     --     if itemTemp then
     --         table.insert(self.Items, itemTemp)
     --     end

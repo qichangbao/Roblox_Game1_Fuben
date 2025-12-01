@@ -19,30 +19,41 @@ local _taskTipLabel = _topFrame:WaitForChild("TaskTipLabel")
 _taskTipLabel.RichText = true
 _taskTipLabel.Text = ""
 
+local _questFrame = _leftFrame:WaitForChild("QuestFrame")
+local _questButton = _questFrame:WaitForChild("QuestButton")
+_questButton.MouseButton1Click:Connect(function()
+	Knit.GetController("UIController").ShowQuestUI:Fire(2)
+end)
+
+-- 现实秒与游戏秒的换算（1现实秒 = 96游戏秒）
+local REAL_TO_GAME_SECOND = 96
 -- 将真实秒数转换为游戏秒数（函数级注释）：
 -- @param realSeconds number 真实世界的秒数
 -- @return number 对应的游戏内秒数（按照换算比例REAL_TO_GAME_SECOND）
 local function RealToGameSeconds(realSeconds)
-    return realSeconds * GameConfig.Real_To_Game_Second
+	return realSeconds * REAL_TO_GAME_SECOND
 end
 -- 将游戏秒数格式化为游戏时钟（函数级注释）：
 -- @param gameSeconds number 游戏内秒数（例如 57600 表示 16 小时）
 -- @return string 形如 "HH:MM" 的字符串，超过 24 小时也会累加小时数
 local function FormatGameClock(gameSeconds)
-    local totalSeconds = math.max(0, math.floor(gameSeconds))
-    local hours = math.floor(totalSeconds / 3600)
-    local minutes = math.floor((totalSeconds % 3600) / 60)
-    return string.format("%02d:%02d", hours, minutes)
+	local totalSeconds = math.max(0, math.floor(gameSeconds))
+	local hours = math.floor(totalSeconds / 3600)
+	local minutes = math.floor((totalSeconds % 3600) / 60)
+	return string.format("%02d:%02d", hours, minutes)
 end
 -- 真实撤离时间（秒，来自服务器/传送数据）
 local _escopeTimeReal = GameConfig.DefaultEscapeTime
 -- 游戏时间视角下的撤离时间（秒，用于UI展示）
 local _escopeTime = RealToGameSeconds(_escopeTimeReal)
-local _frameTemp = _topFrame:WaitForChild("Frame")
-local _taskCurGoldLabel = _frameTemp:WaitForChild("TaskCurGoldLabel")
+local _taskGoldFrame = _topFrame:WaitForChild("TaskGoldFrame")
+local _taskGoldLabelFrame = _taskGoldFrame:WaitForChild("TaskGoldLabelFrame")
+local _taskCurGoldLabel = _taskGoldLabelFrame:WaitForChild("TaskCurGoldLabel")
 _taskCurGoldLabel.Text = ""
-local _taskTargetGoldLabel = _frameTemp:WaitForChild("TaskTargetGoldLabel")
+local _taskTargetGoldLabel = _taskGoldLabelFrame:WaitForChild("TaskTargetGoldLabel")
 _taskTargetGoldLabel.Text = ""
+local _taskTargetGoldProgress = _taskGoldFrame:WaitForChild("TaskTargetGoldProgress")
+_taskTargetGoldProgress.Size = UDim2.new(0, 0, 1, 0)
 local _escapeButton = _topFrame:WaitForChild("EscapeButton")
 _escapeButton.MouseButton1Down:Connect(function(x, y)
 	if _escapeButton:FindFirstChild("Frame").Visible then
@@ -78,6 +89,7 @@ local _dropButton = _rightFrame:WaitForChild("DropButton")
 _dropButton.Visible = false
 
 local function updateTaskLabel(curEscapeTask, escapeTask)
+	if escapeTask == 0 then return end
 	local isTaskDone = curEscapeTask >= escapeTask
 	if isTaskDone then
 		_taskCurGoldLabel.TextColor3 = Color3.new(0, 255, 0)
@@ -91,8 +103,16 @@ local function updateTaskLabel(curEscapeTask, escapeTask)
 	else
 		_taskCurGoldLabel.Text = curEscapeTask
 	end
-	_taskTargetGoldLabel.Text = string.format("/%s", escapeTask)
-	_escapeButton:WaitForChild("Frame").Visible = not isTaskDone
+    _taskTargetGoldLabel.Text = string.format("/%s", escapeTask)
+    Interface.TweenProgressBarSize(_taskTargetGoldProgress, curEscapeTask / escapeTask, 0.4)
+    if curEscapeTask >= escapeTask then
+        -- 目标达成时启动颜色脉冲循环：1秒到黑色，再1秒回原色，持续循环（函数级注释）
+        Interface.StartPulseGuiColorLoop(_taskTargetGoldProgress, 1.0, 1.0)
+    else
+        -- 未达成或回退时停止颜色脉冲循环
+        Interface.StopPulseGuiColorLoop(_taskTargetGoldProgress)
+    end
+    _escapeButton:WaitForChild("Frame").Visible = not isTaskDone
 end
 
 local _slots = {}
@@ -183,7 +203,7 @@ local function updateTool(isSendMessage)
 		local useNumLabel = slot:WaitForChild("UseNumLabel")
 		local weightLabel = slot:WaitForChild("WeightLabel")
 		if itemData and itemData.ItemId ~= 0 then
-			local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+			local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
 			if not itemInfo then
 				iconImage.Visible = false
 				useNumLabel.Visible = false
@@ -203,7 +223,7 @@ local function updateTool(isSendMessage)
 			else
 				priceLabel.Visible = false
 			end
-			
+
 			weightLabel.Visible	= true
 			weightLabel.Text = itemInfo.Weight .. "KG"
 			if itemInfo.Weight <= 1 then
@@ -256,7 +276,7 @@ local function updateBag(isSendMessage)
 		local useNumLabel = slot:WaitForChild("UseNumLabel")
 		local weightLabel = slot:WaitForChild("WeightLabel")
 		if itemData and itemData.ItemId ~= 0 then
-			local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+			local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
 			if not itemInfo then
 				iconImage.Visible = false
 				useNumLabel.Visible = false
@@ -325,7 +345,7 @@ local function discardItem()
 	for index, itemData in pairs(_toolData) do
 		local attribute = itemData.Attribute
 		if tonumber(attribute.IsEquipped) == 1 then
-			local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+			local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
 			if not itemInfo then
 				return
 			end
@@ -343,7 +363,7 @@ end
 _swingButton.MouseButton1Down:Connect(function(x, y)
 	for index, itemData in pairs(_toolData) do
 		if tonumber(itemData.Attribute.IsEquipped) == 1 then
-			local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+			local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
 			if not itemInfo then
 				return
 			end
@@ -369,7 +389,7 @@ local function equipTool(slot)
 			for index, itemData in pairs(toolData) do
 				_toolData[tonumber(index)] = itemData
 				if tonumber(itemData.Attribute.IsEquipped) == 1 then
-					equipItemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+					equipItemInfo = ItemConfig:GetByItemId(itemData.ItemId)
 				end
 			end
 			updateTool(false)
@@ -546,7 +566,7 @@ local function discardTool()
 	if not itemData then
 		return
 	end
-	local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+	local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
 	if itemInfo then
 		content = string.format("Drop %s?", itemInfo.DisplayName)
 	end
@@ -565,7 +585,7 @@ local function discardBag()
 	if not itemData then
 		return
 	end
-	local itemInfo = ItemConfig:GetByIndex(itemData.ItemId)
+	local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
 	if itemInfo then
 		content = string.format("Drop %s?", itemInfo.DisplayName)
 	end
@@ -638,7 +658,7 @@ for i = 1, GameConfig.SLOT_NUM do
 		end
 
 		local itemId = slot:GetAttribute("ItemId")
-		local itemInfo = ItemConfig:GetByIndex(itemId)
+		local itemInfo = ItemConfig:GetByItemId(itemId)
 		if not itemInfo then
 			return
 		end
@@ -678,7 +698,7 @@ for i = 1, GameConfig.BAG_NUM do
 		end
 
 		local itemId = slot:GetAttribute("ItemId")
-		local itemInfo = ItemConfig:GetByIndex(itemId)
+		local itemInfo = ItemConfig:GetByItemId(itemId)
 		if not itemInfo then
 			return
 		end
@@ -769,19 +789,22 @@ Knit.OnStart():andThen(function()
 		_bagFrame.Visible = isShow
 	end)
 
-    local teleportData = TeleportService:GetLocalPlayerTeleportData()
-    if teleportData and teleportData.EscapeTime then
-        -- 传入为真实秒数，转化为游戏时间用于显示
-        _escopeTimeReal = teleportData.EscapeTime
-        _escopeTime = RealToGameSeconds(_escopeTimeReal)
-    end
-    _taskTipLabel.Text = "Remaining evacuation time:<font color='#FF0000'>" .. FormatGameClock(_escopeTime) .. "</font>"
+	local teleportData = TeleportService:GetLocalPlayerTeleportData()
+	if teleportData and teleportData.EscapeTime then
+		-- 传入为真实秒数，转化为游戏时间用于显示
+		_escopeTimeReal = teleportData.EscapeTime
+		_escopeTime = RealToGameSeconds(_escopeTimeReal)
+	end
+	_taskTipLabel.Text = FormatGameClock(_escopeTime)
 
-    game:GetService("RunService").Heartbeat:Connect(function(dt)
-        -- 真实时间流逝：用于保持与服务器一致
-        _escopeTimeReal -= dt
-        -- 转化为游戏时间秒数用于显示
-        _escopeTime = math.max(0, RealToGameSeconds(_escopeTimeReal))
-        _taskTipLabel.Text = "Remaining evacuation time:<font color='#FF0000'>" .. FormatGameClock(_escopeTime) .. "</font>"
-    end)
+	game:GetService("RunService").Heartbeat:Connect(function(dt)
+		-- 真实时间流逝：用于保持与服务器一致
+		_escopeTimeReal -= dt
+		-- 转化为游戏时间秒数用于显示
+		_escopeTime = math.max(0, RealToGameSeconds(_escopeTimeReal))
+		if _escopeTime <= 30 then
+			_taskTipLabel.TextColor3 = Color3.new(0.858823, 0.184313, 0.184313)
+		end
+		_taskTipLabel.Text = FormatGameClock(_escopeTime)
+	end)
 end)

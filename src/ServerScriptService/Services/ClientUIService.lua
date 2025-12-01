@@ -22,8 +22,10 @@ function ClientUIService:ShowTipAll(tip)
     self.Client.ShowTip:FireAll({Type = 1, Text = tip})
 end
 
-function ClientUIService:PickUpItem(player, itemId)
-    self.Client.ShowTip:FireAll({Type = 2, Name = player.Name, ItemId = itemId})
+function ClientUIService:SubmitItems(player, itemIds)
+    for _, v in ipairs(itemIds) do
+        self.Client.ShowTip:FireAll({Type = 2, Name = player.Name, ItemId = v})
+    end
 end
 
 function ClientUIService:ShowUISingle(player, ui, data)
