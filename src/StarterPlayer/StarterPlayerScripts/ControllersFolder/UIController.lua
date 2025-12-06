@@ -37,6 +37,7 @@ local UIController = Knit.CreateController {
     ShowQuestUI = Signal.new(),
     UpdateQuestData = Signal.new(),
     ShakeCarame = Signal.new(),
+    PickUpItem = Signal.new(),
 }
 
 function UIController:KnitInit()

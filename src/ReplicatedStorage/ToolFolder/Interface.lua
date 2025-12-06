@@ -614,7 +614,7 @@ function Interface.addHp(character, hp)
     local health = humanoid.Health
     humanoid.Health = math.min(health + hp, maxHealth)
 
-    -- local EffectFolder = game:GetService("ServerStorage"):FindFirstChild("Effect")
+    -- local EffectFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Effect")
     -- if not EffectFolder then
     --     return
     -- end

@@ -9,6 +9,7 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 local TalentTreeConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("TalentTreeConfig"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+local ItemInterface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("ItemInterface"))
 
 local PlayerService = Knit.CreateService {
 	Name = "PlayerService",
@@ -21,6 +22,7 @@ local PlayerService = Knit.CreateService {
     FallData = {},      -- 存储玩家下落数据
     WaterData = {},     -- 存储玩家水中状态数据
     AttributeData = {}, -- 存储玩家属性数据
+    AnimationMarkerConns = {},  -- 动画标记事件连接
 }
 -- 配置参数
 local FALL_HEIGHT_THRESHOLD = 17 -- 下落高度阈值（单位：stud）
@@ -36,34 +38,52 @@ function PlayerService:KnitStart()
     local function PlayerAdded(player)
         print("PlayerAdded    ", player.Name)
         player.CharacterAdded:Connect(function(character)
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.AutoJumpEnabled = false
-                humanoid.UseJumpPower = true
-                humanoid:SetAttribute("InitHealth", humanoid.Health)
-                humanoid:SetAttribute("InitWalkSpeed", humanoid.WalkSpeed)
-                humanoid:SetAttribute("InitJumpPower", humanoid.JumpPower)
-                humanoid:SetAttribute("InitMaxHealth", humanoid.MaxHealth)
-                
-                self:InitPlayerTalent(player, self.TalentData[player.UserId])
+            local humanoid = character:WaitForChild("Humanoid")
+            humanoid.AutoJumpEnabled = false
+            humanoid.UseJumpPower = true
+            humanoid:SetAttribute("InitHealth", humanoid.Health)
+            humanoid:SetAttribute("InitWalkSpeed", humanoid.WalkSpeed)
+            humanoid:SetAttribute("InitJumpPower", humanoid.JumpPower)
+            humanoid:SetAttribute("InitMaxHealth", humanoid.MaxHealth)
+            
+            self:InitPlayerTalent(player, self.TalentData[player.UserId])
 
-                self.AnimationTracks[player.UserId] = {}
-                local animator = humanoid:FindFirstChildOfClass("Animator")
-                if animator then
-                    -- 预加载所有动画
-                    for animName, animId in pairs(GameConfig.AnimationMap) do
-                        local animation = Instance.new("Animation")
-                        animation.AnimationId = animId
-                        
-                        local success, track = pcall(function()
-                            return animator:LoadAnimation(animation)
-                        end)
-                        
-                        if success and track then
-                            track.Priority = Enum.AnimationPriority.Action
-                            track.Looped = false
-                            self.AnimationTracks[player.UserId][animName] = track
+            -- 如果之前已有标记连接，先清理（例如角色重生）
+            self:RemoveAnimationMarker(player)
+            self.AnimationTracks[player.UserId] = {}
+            local animator = humanoid:FindFirstChildOfClass("Animator")
+            if animator then
+                -- 预加载所有动画
+                for animName, animId in pairs(GameConfig.AnimationMap) do
+                    local animation = Instance.new("Animation")
+                    animation.AnimationId = animId
+                    
+                    local success, track = pcall(function()
+                        return animator:LoadAnimation(animation)
+                    end)
+                    
+                    if success and track then
+                        track.Priority = Enum.AnimationPriority.Action3
+                        track.Looped = false
+                        self.AnimationTracks[player.UserId][animName] = track
+
+                        -- 为动画标记添加监听（支持 "Hit" 或 "hit" 名称）
+                        self.AnimationMarkerConns[player.UserId] = self.AnimationMarkerConns[player.UserId] or {}
+                        self.AnimationMarkerConns[player.UserId][animName] = self.AnimationMarkerConns[player.UserId][animName] or {}
+
+                        local function bindMarker(markerName)
+                            local ok, signal = pcall(function()
+                                return track:GetMarkerReachedSignal(markerName)
+                            end)
+                            if ok and signal then
+                                local conn = signal:Connect(function(param)
+                                    self:OnAnimationMarker(player, animName, markerName, param, track)
+                                end)
+                                self.AnimationMarkerConns[player.UserId][animName][markerName] = conn
+                            end
                         end
+
+                        bindMarker("Hit")
                     end
                 end
 
@@ -118,6 +138,9 @@ function PlayerService:KnitStart()
     end
 
     local function PlayerRemoved(player)
+        -- 断开动画标记事件连接，避免内存泄漏
+        self:RemoveAnimationMarker(player)
+
         self.AnimationTracks[player.UserId] = nil
         self.TalentData[player.UserId] = nil
         self.FallData[player.UserId] = nil
@@ -468,6 +491,8 @@ function PlayerService:PlaySwingAnimation(player, cd)
     -- 目标：让动画在cd秒内播放完成
     local playbackSpeed = cd / animationLength
     animationTrack:AdjustSpeed(playbackSpeed)
+
+    ItemInterface.showAttackEffect(player)
 end
 
 -- 播放挖掘动画函数（从下往上）
@@ -506,6 +531,65 @@ function PlayerService:playAnimation(player, animationName, soundName, cd)
     if music then
         music:Play()
     end
+end
+
+function  PlayerService:RemoveAnimationMarker(player)
+    if self.AnimationMarkerConns[player.UserId] then
+        for _, markers in pairs(self.AnimationMarkerConns[player.UserId]) do
+            for _, conn in pairs(markers) do
+                if typeof(conn) == "RBXScriptConnection" then
+                    conn:Disconnect()
+                end
+            end
+        end
+        self.AnimationMarkerConns[player.UserId] = nil
+    end
+end
+
+-- 动画标记统一回调（服务端）
+-- @function OnAnimationMarker
+-- @param player Player 触发标记的玩家
+-- @param animationName string 动画名称（如 "swing"、"dig"）
+-- @param markerName string 标记名称（如 "Hit"）
+-- @param param any 标记参数（来自动画编辑器中该标记的参数）
+-- @param track AnimationTrack 触发的动画轨道
+-- @return void
+function PlayerService:OnAnimationMarker(player, animationName, markerName, param, track)
+    -- 在这里编写你的命中逻辑。例如：处理武器命中、采集判定等。
+    
+    -- 获取玩家当前装备的工具（函数级注释）：
+    -- 行为：从玩家角色下查找处于装备状态的 Tool（Tool 被装备时 Parent 会在 Character 下）
+    -- 返回：local equippedTool Tool|nil
+    local equippedTool = self:GetEquippedTool(player)
+    if not equippedTool then return end
+    local itemId = equippedTool:GetAttribute("ItemId")
+    local itemInfo = ItemConfig:GetByItemId(itemId)
+    if not itemInfo then return end
+
+    ItemInterface.performAreaDetection(player, itemInfo, function(hit, weaponInfo)
+        local script = equippedTool:FindFirstChild("ModuleScript")
+        if script then
+            local module = require(script)
+            if module and module.HandleToolCollision then
+                module:HandleToolCollision(player, hit, weaponInfo)
+            end
+        end
+    end)
+end
+
+-- 获取玩家当前装备的工具（函数级注释）：
+-- @param player Player 玩家
+-- @return Tool|nil 返回玩家当前装备的 Tool；若未装备则返回 nil
+function PlayerService:GetEquippedTool(player)
+    if not player or not player.Character then
+        return nil
+    end
+    for _, child in ipairs(player.Character:GetChildren()) do
+        if child:IsA("Tool") then
+            return child
+        end
+    end
+    return nil
 end
 
 -- 启动全局检测循环（水中伤害 + 下落检测）

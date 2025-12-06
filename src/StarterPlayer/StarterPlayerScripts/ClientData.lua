@@ -95,10 +95,12 @@ local function init()
             Knit.GetController("UIController").ShowAdditionalBackpackUI:Fire(equip)
         end)
 
-        Knit.GetService("InventoryService").PlayPickUpSound:Connect(function(itemInfo)
+        Knit.GetService("InventoryService").PickUpItem:Connect(function(itemInfo)
             if not itemInfo then
                 return
             end
+
+            Knit.GetController("UIController").PickUpItem:Fire(itemInfo)
 
             local gameSound = Interface.safeWaitPart(game:GetService("SoundService"), "GAME")
             local sound = nil

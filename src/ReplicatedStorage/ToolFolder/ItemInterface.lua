@@ -25,6 +25,122 @@ local function _VisualizeDetectionArea(cframe, size)
 	game:GetService("Debris"):AddItem(visualPart, 0.2)
 end
 
+-- 在攻击范围边缘展示命中特效（函数级注释）：
+-- @param player Player 触发命中的玩家
+-- 行为：获取玩家当前装备物品的攻击范围（WeaponConfig.Position.X），
+--       将命中特效摆放在角色前方“攻击盒”的最远边缘中心点。
+-- 计算：edgePos = HRP.Position + LookVector * detectionRange
+-- 回退：若找不到装备或范围配置，退回到HRP位置播放特效。
+local function _showHitEffect(player)
+    local character = player and player.Character
+    if not character then return end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- 查找当前装备的 Tool
+    local equippedTool = nil
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("Tool") then
+            equippedTool = child
+            break
+        end
+    end
+
+    -- 计算攻击范围的最远边缘位置
+    local pos = hrp.Position
+    local forward = hrp.CFrame.LookVector
+    local edgePos = pos
+
+    if equippedTool then
+        local itemId = equippedTool:GetAttribute("ItemId")
+        if itemId then
+            local weaponInfo = WeaponConfig:GetByItemId(itemId)
+            if weaponInfo and weaponInfo.Position then
+                local detectionRange = weaponInfo.Position.X
+                if typeof(detectionRange) == "number" and detectionRange > 0 then
+                    edgePos = pos + forward * detectionRange
+                end
+            end
+        end
+    end
+
+    -- 生成并摆放命中特效到边缘中心
+    local effectTemplateFolder = ReplicatedStorage:FindFirstChild("Effect")
+    if not effectTemplateFolder then return end
+    local template = effectTemplateFolder:FindFirstChild("HitEffect")
+    if not template then return end
+
+    local effect = template:Clone()
+    local effectContainer = workspace:FindFirstChild("Effect") or workspace
+    effect.Parent = effectContainer
+    -- 朝向前方，便于某些发射型或方向性特效对齐
+    effect.CFrame = CFrame.lookAt(edgePos, edgePos + forward)
+    --game:GetService("Debris"):AddItem(effect, 0.5)
+end
+
+function ItemInterface.showAttackEffect(player)
+    local character = player and player.Character
+    if not character then return end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- 查找当前装备的 Tool
+    local equippedTool = nil
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("Tool") then
+            equippedTool = child
+            break
+        end
+    end
+
+    -- 计算攻击范围的最远边缘位置
+    local pos = hrp.Position
+    local forward = hrp.CFrame.LookVector
+    local edgePos = pos
+
+    if equippedTool then
+        local itemId = equippedTool:GetAttribute("ItemId")
+        if itemId then
+            local weaponInfo = WeaponConfig:GetByItemId(itemId)
+            if weaponInfo and weaponInfo.Position then
+                local detectionRange = weaponInfo.Position.X
+                if typeof(detectionRange) == "number" and detectionRange > 0 then
+                    edgePos = pos + forward * detectionRange
+                end
+            end
+        end
+    end
+
+    -- 生成并摆放命中特效到边缘中心
+    local effectTemplateFolder = ReplicatedStorage:FindFirstChild("Effect")
+    if not effectTemplateFolder then return end
+    local template = effectTemplateFolder:FindFirstChild("AttackEffect")
+    if not template then return end
+
+    local effect = template:Clone()
+    local effectContainer = workspace:FindFirstChild("Effect") or workspace
+    effect.Parent = effectContainer
+    -- 朝向前方，便于某些发射型或方向性特效对齐
+    effect.CFrame = CFrame.lookAt(edgePos, edgePos + forward)
+    
+    -- 立即触发粒子发射，避免依赖 Enabled 与 Rate 的延迟（函数级注释）
+    -- 行为：查找所有 ParticleEmitter，关闭持续发射，仅进行一次性 Burst。
+    -- 数量来源：优先读取发射器属性 `EmitCount` 或 `Burst`（可自定义为 Attribute），
+    --          若无则使用默认值 30。
+    task.defer(function()
+        for _, d in ipairs(effect:GetDescendants()) do
+            if d:IsA("ParticleEmitter") then
+                local count = d:GetAttribute("EmitCount") or d:GetAttribute("Burst") or 30
+                d.Enabled = false
+                d:Emit(tonumber(count) or 30)
+            end
+        end
+    end)
+    --game:GetService("Debris"):AddItem(effect, 1)
+end
+
 local function _takeDamage(player, hitCharacter, damage)
     if not player or not hitCharacter or not player.Character or hitCharacter == player.Character then return end
     local sourceHumanoid = player.Character:FindFirstChild("Humanoid")
@@ -45,6 +161,7 @@ local function _takeDamage(player, hitCharacter, damage)
 		isCrit = true
 	end
 	if humanoidType == GameConfig.HumanoidType.Monster then
+		_showHitEffect(player)
 		Interface.decHp(hitCharacter, normalDamage, isCrit)
 		if targetHumanoid.Health <= 0 then
             Knit.GetService("MonsterService"):KillMonster(player, hitCharacter)
@@ -55,6 +172,7 @@ local function _takeDamage(player, hitCharacter, damage)
 		if isOnBoat then
 			return
 		end
+		_showHitEffect(player)
 		Interface.decHp(hitCharacter, normalDamage, isCrit)
     end
 end
@@ -123,7 +241,7 @@ function ItemInterface.performAreaDetection(player, itemInfo, collisionCallback)
 			-- 处理碰撞
             if not _takeDamage(player, hitParent, weaponInfo.Damage) then
                 if collisionCallback then
-                    collisionCallback(player, hit, weaponInfo)
+                    collisionCallback(hit, weaponInfo)
                 end
             end
 		end

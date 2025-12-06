@@ -16,7 +16,7 @@ local InventoryService = Knit.CreateService {
         SendToolData = Knit.CreateSignal(),
         SendBagData = Knit.CreateSignal(),
         EquipAdditionalBackpack = Knit.CreateSignal(),
-        PlayPickUpSound = Knit.CreateSignal(),
+        PickUpItem = Knit.CreateSignal(),
 	},
 
 	Inventory = {},     -- 背包数据
@@ -244,7 +244,7 @@ end
 
 -- 创建物品捡取特效
 function InventoryService:CreatePickUpEffect(position)
-    local effect = ServerStorage:WaitForChild("Effect"):WaitForChild("PickUpEffect"):Clone()
+    local effect = ReplicatedStorage:WaitForChild("Effect"):WaitForChild("PickUpEffect"):Clone()
     effect.Parent = workspace
     effect:PivotTo(CFrame.new(position))
     
@@ -316,7 +316,7 @@ function InventoryService:GiveToolToPlayer(player, item)
     _G.TriggerManager:PickUpItem(player, itemId)
     -- 成功添加到背包，销毁世界中的物品
     self:CreatePickUpEffect(item:GetPivot().Position)
-    self.Client.PlayPickUpSound:Fire(player, itemInfo)
+    self.Client.PickUpItem:Fire(player, itemInfo)
     return true, "物品添加成功"
 end
 
@@ -341,7 +341,7 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
         return
     end
 
-    local itemFolder = ServerStorage:FindFirstChild("Item")
+    local itemFolder = ReplicatedStorage:FindFirstChild("Item")
     if not itemFolder then
         warn("Item folder not found")
         return
@@ -516,27 +516,18 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
             return
         end
 
-        local script = tool:FindFirstChild("ModuleScript")
-        if script then
-            local module = require(script)
-            if module and module.Activate then
-                local isSuccess = module:Activate(player, itemInfo)
-                if isSuccess then
-					local CDElapsedTime = currentTime + itemInfo.CD
-					self.ToolData[player.UserId][slot].Attribute.CDElapsedTime = CDElapsedTime
-					GameConfig.UpdateItemAttribute(tool, "CDElapsedTime", CDElapsedTime)
-                    self:SendToolData(player)
-                end
-            end
+        local CDElapsedTime = currentTime + itemInfo.CD
+        self.ToolData[player.UserId][slot].Attribute.CDElapsedTime = CDElapsedTime
+        GameConfig.UpdateItemAttribute(tool, "CDElapsedTime", CDElapsedTime)
+        self:SendToolData(player)
 
-            if itemInfo.Type == GameConfig.ItemType.Weapon then    -- 进攻类
-                if itemInfo.ItemId == 202 then
-					Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD)
-                elseif itemInfo.ItemId == 203 then
-					Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
-                else
-					Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
-                end
+        if itemInfo.Type == GameConfig.ItemType.Weapon then    -- 进攻类
+            if itemInfo.ItemId == 202 then
+                Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD)
+            elseif itemInfo.ItemId == 203 then
+                Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
+            else
+                Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
             end
         end
     end)

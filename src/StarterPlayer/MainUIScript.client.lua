@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local guiInset = game:GetService("GuiService"):GetGuiInset()
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
@@ -8,6 +9,12 @@ local TeleportService = game:GetService("TeleportService")
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local _screenGui = script.Parent
+local _center = _screenGui:WaitForChild("center")
+local _itemFrame = _center:WaitForChild("ItemFrame")
+local _itemImageLabel = _itemFrame:WaitForChild("ImageLabel")
+_itemImageLabel.Visible = false
+_itemImageLabel.ImageTransparency = 1
+local _itemImageFadeTween = nil
 local _leftFrame = _screenGui:WaitForChild("left")
 local _bottomFrame = _screenGui:WaitForChild("bottom")
 local _rightFrame = _screenGui:WaitForChild("right")
@@ -103,16 +110,16 @@ local function updateTaskLabel(curEscapeTask, escapeTask)
 	else
 		_taskCurGoldLabel.Text = curEscapeTask
 	end
-    _taskTargetGoldLabel.Text = string.format("/%s", escapeTask)
-    Interface.TweenProgressBarSize(_taskTargetGoldProgress, curEscapeTask / escapeTask, 0.4)
-    if curEscapeTask >= escapeTask then
-        -- 目标达成时启动颜色脉冲循环：1秒到黑色，再1秒回原色，持续循环（函数级注释）
-        Interface.StartPulseGuiColorLoop(_taskTargetGoldProgress, 1.0, 1.0)
-    else
-        -- 未达成或回退时停止颜色脉冲循环
-        Interface.StopPulseGuiColorLoop(_taskTargetGoldProgress)
-    end
-    _escapeButton:WaitForChild("Frame").Visible = not isTaskDone
+	_taskTargetGoldLabel.Text = string.format("/%s", escapeTask)
+	Interface.TweenProgressBarSize(_taskTargetGoldProgress, curEscapeTask / escapeTask, 0.4)
+	if curEscapeTask >= escapeTask then
+		-- 目标达成时启动颜色脉冲循环：1秒到黑色，再1秒回原色，持续循环（函数级注释）
+		Interface.StartPulseGuiColorLoop(_taskTargetGoldProgress, Color3.new(0, 0, 0), 1.0, 1.0)
+	else
+		-- 未达成或回退时停止颜色脉冲循环
+		Interface.StopPulseGuiColorLoop(_taskTargetGoldProgress)
+	end
+	_escapeButton:WaitForChild("Frame").Visible = not isTaskDone
 end
 
 local _slots = {}
@@ -747,6 +754,37 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
+-- 播放拾取物品图标淡入/停留/淡出动画（函数级注释）：
+-- @param imageLabel ImageLabel 要播放动画的图像标签
+-- @param fadeIn number 淡入时长（秒），从不可见到完全可见
+-- @param hold number 停留时长（秒），保持完全可见
+-- @param fadeOut number 淡出时长（秒），从完全可见到不可见
+local function PlayItemImageFade(imageLabel, fadeIn, hold, fadeOut)
+	-- 先取消上一轮可能仍在进行的补间
+	if _itemImageFadeTween then _itemImageFadeTween:Cancel() end
+	_itemImageFadeTween = nil
+
+	imageLabel.Visible = true
+	imageLabel.ImageTransparency = 1
+
+	-- 淡入
+	local inInfo = TweenInfo.new(fadeIn, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	_itemImageFadeTween = TweenService:Create(imageLabel, inInfo, { ImageTransparency = 0 })
+	_itemImageFadeTween:Play()
+	_itemImageFadeTween.Completed:Wait()
+
+	-- 停留
+	task.wait(hold)
+
+	-- 淡出
+	local outInfo = TweenInfo.new(fadeOut, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	_itemImageFadeTween = TweenService:Create(imageLabel, outInfo, { ImageTransparency = 1 })
+	_itemImageFadeTween:Play()
+	_itemImageFadeTween.Completed:Wait()
+
+	imageLabel.Visible = false
+end
+
 Knit.OnStart():andThen(function()
 	_goldLabel.Text = _G.ClientData.Gold
 	local UIController = Knit.GetController("UIController")
@@ -787,6 +825,13 @@ Knit.OnStart():andThen(function()
 
 	UIController.ShowAdditionalBackpackUI:Connect(function(isShow)
 		_bagFrame.Visible = isShow
+	end)
+	
+	UIController.PickUpItem:Connect(function(itemInfo)
+		if not itemInfo then return end
+
+		_itemImageLabel.Image = itemInfo.Icon
+		PlayItemImageFade(_itemImageLabel, 0.5, 2.0, 0.5)
 	end)
 
 	local teleportData = TeleportService:GetLocalPlayerTeleportData()

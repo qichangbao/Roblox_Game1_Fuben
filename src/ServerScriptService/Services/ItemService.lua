@@ -2,7 +2,6 @@
 -- 使用Knit框架管理物品生成和捡取系统
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local PosConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PosConfig"))
@@ -20,7 +19,7 @@ if not EffectWorkspaceFolder then
     warn("EffectWorkspaceFolder folder not found")
     return
 end
-local ItemFolder = ServerStorage:WaitForChild("Item")
+local ItemFolder = ReplicatedStorage:WaitForChild("Item")
 if not ItemFolder then
     warn("Item folder not found")
     return
@@ -38,7 +37,7 @@ local ItemService = Knit.CreateService {
 -- 创建炫彩宝箱特效
 function ItemService:CreateXuanCaiChestEffect(item)
     local position = item:GetPivot().Position
-    local effect = ServerStorage:WaitForChild("Effect"):WaitForChild("XuanCaiChestEffect"):Clone()
+    local effect = ReplicatedStorage:WaitForChild("Effect"):WaitForChild("XuanCaiChestEffect"):Clone()
     effect.Name = "XuanCaiChestEffect"
     effect.Parent = item
     effect:PivotTo(CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)))
@@ -405,27 +404,27 @@ function ItemService:KnitInit()
 end
 
 function ItemService:KnitStart()
-    self:initItems()
-    print("物品总价值", self.TotalValue)
-    -- task.spawn(function()
-    --     local itemTemp = self:CreateItem(501, Vector3.new(353, -1.2, -250), GameConfig.GetItemAttribute(), false)
-    --     if itemTemp then
-    --         table.insert(self.Items, itemTemp)
-    --     end
+    -- self:initItems()
+    -- print("物品总价值", self.TotalValue)
+    task.spawn(function()
+        local itemTemp = self:CreateItem(204, Vector3.new(353, -1.2, -250), GameConfig.GetItemAttribute(), false)
+        if itemTemp then
+            table.insert(self.Items, itemTemp)
+        end
 
-    --     task.delay(5, function()
-    --         for _, item in pairs(self.Items) do
-    --             if item:IsA("BasePart") then
-    --                 -- 设置Part的锚固为false
-    --                 item.Anchored = true
-    --             elseif item:IsA("Model") then
-    --                 if item.PrimaryPart then
-    --                     item.PrimaryPart.Anchored = true
-    --                 end
-    --             end
-    --         end
-    --     end)
-    -- end)
+        task.delay(5, function()
+            for _, item in pairs(self.Items) do
+                if item:IsA("BasePart") then
+                    -- 设置Part的锚固为false
+                    item.Anchored = true
+                elseif item:IsA("Model") then
+                    if item.PrimaryPart then
+                        item.PrimaryPart.Anchored = true
+                    end
+                end
+            end
+        end)
+    end)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute(), false)
