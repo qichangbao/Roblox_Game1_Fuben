@@ -37,15 +37,15 @@ local processQueue2
 -- @param message table 消息对象，含 Type 字段（1=文本，2=图文）
 -- 行为：根据类型分发到队列，并触发各自的处理器
 local function addTipToQueue1(message)
-    if not message or message == "" then return end
-    table.insert(tipQueue1, message)
-    processQueue1()
+	if not message or message == "" then return end
+	table.insert(tipQueue1, message)
+	processQueue1()
 end
 
 local function addTipToQueue2(message)
-    if not message or message == "" then return end
-    table.insert(tipQueue2, message)
-    processQueue2()
+	if not message or message == "" then return end
+	table.insert(tipQueue2, message)
+	processQueue2()
 end
 
 local FadeTime = 0.5
@@ -200,7 +200,7 @@ local function showTip2(message)
 	if itemInfo and itemInfo.Icon then
 		-- 为 ImageLabel 预加载图片，减少首次显示的网络延迟（函数级注释）
 		-- 在设置可见之前进行预加载，提升即时显示效果
-		Interface.PreloadImageForLabel(imageLabel, itemInfo.Icon, 2.0)
+		--Interface.PreloadImageForLabel(imageLabel, itemInfo.Icon, 2.0)
 		imageLabel.Visible = true
 		local label = imageLabel:FindFirstChild("TextLabel")
 		if itemInfo.SellPrice > 0 then
@@ -247,35 +247,35 @@ end
 -- 处理文本TIP队列（函数级注释）：
 -- 行为：串行播放队列中的 Type=1 TIP，按 TIP_INTERVAL_1 控制间隔
 processQueue1 = function()
-    if isShowingTip1 or #tipQueue1 == 0 then return end
-    isShowingTip1 = true
-    local message = table.remove(tipQueue1, 1)
-    showTip1(message)
-    task.wait(TIP_INTERVAL_1)
-    isShowingTip1 = false
-    processQueue1()
+	if isShowingTip1 or #tipQueue1 == 0 then return end
+	isShowingTip1 = true
+	local message = table.remove(tipQueue1, 1)
+	showTip1(message)
+	task.wait(TIP_INTERVAL_1)
+	isShowingTip1 = false
+	processQueue1()
 end
 
 -- 处理图文TIP队列（函数级注释）：
 -- 行为：串行播放队列中的 Type=2 TIP，按 TIP_INTERVAL_2 控制间隔
 processQueue2 = function()
-    if isShowingTip2 or #tipQueue2 == 0 then return end
-    isShowingTip2 = true
-    local message = table.remove(tipQueue2, 1)
-    showTip2(message)
-    task.wait(TIP_INTERVAL_2)
-    isShowingTip2 = false
-    processQueue2()
+	if isShowingTip2 or #tipQueue2 == 0 then return end
+	isShowingTip2 = true
+	local message = table.remove(tipQueue2, 1)
+	showTip2(message)
+	task.wait(TIP_INTERVAL_2)
+	isShowingTip2 = false
+	processQueue2()
 end
 
 Knit:OnStart():andThen(function()
-    Knit.GetController('UIController').ShowTip:Connect(function(message)
-        task.spawn(function()
-            if message and message.Type == 1 then
-                addTipToQueue1(message)
-            elseif message and message.Type == 2 then
-                addTipToQueue2(message)
-            end
-        end)
-    end)
+	Knit.GetController('UIController').ShowTip:Connect(function(message)
+		task.spawn(function()
+			if message and message.Type == 1 then
+				addTipToQueue1(message)
+			elseif message and message.Type == 2 then
+				addTipToQueue2(message)
+			end
+		end)
+	end)
 end)

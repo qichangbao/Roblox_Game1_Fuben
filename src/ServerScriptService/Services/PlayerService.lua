@@ -47,6 +47,7 @@ function PlayerService:KnitStart()
             humanoid:SetAttribute("InitMaxHealth", humanoid.MaxHealth)
             
             self:InitPlayerTalent(player, self.TalentData[player.UserId])
+            self:InitAnimEffect(player)
 
             -- 如果之前已有标记连接，先清理（例如角色重生）
             self:RemoveAnimationMarker(player)
@@ -54,47 +55,54 @@ function PlayerService:KnitStart()
             local animator = humanoid:FindFirstChildOfClass("Animator")
             if animator then
                 -- 预加载所有动画
-                for animName, animId in pairs(GameConfig.AnimationMap) do
-                    local animation = Instance.new("Animation")
-                    animation.AnimationId = animId
-                    
-                    local success, track = pcall(function()
-                        return animator:LoadAnimation(animation)
-                    end)
-                    
-                    if success and track then
-                        track.Priority = Enum.AnimationPriority.Action3
-                        track.Looped = false
-                        self.AnimationTracks[player.UserId][animName] = track
+                for animName, animIds in pairs(GameConfig.AnimationMap) do
+                    self.AnimationTracks[player.UserId][animName] = {}
+                    for _, animId in ipairs(animIds) do
+                        local animation = Instance.new("Animation")
+                        animation.AnimationId = animId
+                        
+                        local success, track = pcall(function()
+                            return animator:LoadAnimation(animation)
+                        end)
+                        
+                        if success and track then
+                            track.Priority = Enum.AnimationPriority.Action3
+                            track.Looped = false
+                            table.insert(self.AnimationTracks[player.UserId][animName], track)
 
-                        -- 为动画标记添加监听（支持 "Hit" 或 "hit" 名称）
-                        self.AnimationMarkerConns[player.UserId] = self.AnimationMarkerConns[player.UserId] or {}
-                        self.AnimationMarkerConns[player.UserId][animName] = self.AnimationMarkerConns[player.UserId][animName] or {}
+                            -- 为动画标记添加监听（支持 "Hit" 或 "hit" 名称）
+                            -- 结构：AnimationMarkerConns[userId][animName][markerName] = { RBXScriptConnection, ... }
+                            self.AnimationMarkerConns[player.UserId] = self.AnimationMarkerConns[player.UserId] or {}
+                            self.AnimationMarkerConns[player.UserId][animName] = self.AnimationMarkerConns[player.UserId][animName] or {}
 
-                        local function bindMarker(markerName)
-                            local ok, signal = pcall(function()
-                                return track:GetMarkerReachedSignal(markerName)
-                            end)
-                            if ok and signal then
-                                local conn = signal:Connect(function(param)
-                                    self:OnAnimationMarker(player, animName, markerName, param, track)
+                            local function bindMarker(markerName)
+                                local ok, signal = pcall(function()
+                                    return track:GetMarkerReachedSignal(markerName)
                                 end)
-                                self.AnimationMarkerConns[player.UserId][animName][markerName] = conn
+                                if ok and signal then
+                                    local conn = signal:Connect(function(param)
+                                        self:OnAnimationMarker(player, animName, markerName, param, track)
+                                    end)
+                                    -- 为每条轨道分别保存连接，避免被覆盖
+                                    local container = self.AnimationMarkerConns[player.UserId][animName]
+                                    container[markerName] = container[markerName] or {}
+                                    table.insert(container[markerName], conn)
+                                end
                             end
-                        end
 
-                        bindMarker("Hit")
+                            bindMarker("Hit")
+                        end
                     end
                 end
 
                 local gameSound = Interface.safeWaitPart(game:GetService("SoundService"), "GAME")
                 local music1 = Interface.safeWaitPart(gameSound, "Attack1"):Clone()
                 music1.Name = "Attack1"
-                music1.Parent = character
+                music1.Parent = character:FindFirstChild("HumanoidRootPart") or character
 
                 local music2 = Interface.safeWaitPart(gameSound, "Attack2"):Clone()
                 music2.Name = "Attack2"
-                music2.Parent = character
+                music2.Parent = character:FindFirstChild("HumanoidRootPart") or character
             end
             
             -- 递归遍历角色下的所有Part并设置CollisionGroup
@@ -473,23 +481,68 @@ function PlayerService:ChangePlayerAttribute(player, attributeName, attributeVal
     end
 end
 
--- 播放挥舞动画
--- @param player Player 玩家对象
--- @param cd number 冷却时间，用于调整动画播放速度 (cd越小动画越快，cd越大动画越慢)
+function PlayerService:InitAnimEffect(player)
+    -- 生成并摆放命中特效到边缘中心
+    local effectTemplateFolder = ReplicatedStorage:FindFirstChild("Effect")
+    if not effectTemplateFolder then return end
+    local template1 = effectTemplateFolder:FindFirstChild("AttackEffect")
+    if not template1 then return end
+
+    local effect1 = template1:Clone()
+    effect1.Parent = player.Character
+    effect1.Name = "AttackEffect"
+    effect1.CanCollide = false
+    effect1.Anchored = true
+    for _, particleEmitter in pairs(effect1:GetDescendants()) do
+        if particleEmitter:IsA("ParticleEmitter") then
+            particleEmitter.Enabled = false
+        end
+    end
+
+    local template2 = effectTemplateFolder:FindFirstChild("HitEffect")
+    if not template2 then return end
+
+    local effect2 = template2:Clone()
+    effect2.Parent = player.Character
+    effect2.Name = "HitEffect"
+    effect2.CanCollide = false
+    effect2.Anchored = true
+    for _, particleEmitter in pairs(effect2:GetDescendants()) do
+        if particleEmitter:IsA("ParticleEmitter") then
+            particleEmitter.Enabled = false
+        end
+    end
+end
+
+-- 播放挥舞动画（函数级注释）：
+-- 行为：从同名动画列表中随机选一条进行播放；
+--       根据期望冷却时间 cd 调整播放速度，使动画在 cd 秒内完成。
+-- 公式：播放速度 = 动画时长 / cd（cd越小越快，越大越慢）；
+-- 注意：需要预加载 GameConfig.AnimationMap["swing"] 为多个 AnimationTrack。
 function PlayerService:PlaySwingAnimation(player, cd)
     if not self.AnimationTracks[player.UserId] or not self.AnimationTracks[player.UserId]["swing"] then
         return
     end
-    
-    local animationTrack = self.AnimationTracks[player.UserId]["swing"]
+
+    local tracks = self.AnimationTracks[player.UserId]["swing"]
+    if typeof(tracks) ~= "table" or #tracks == 0 then
+        return
+    end
+
+    local animationTrack = tracks[math.random(1, #tracks)]
     animationTrack:Play()
-    
+
     -- 获取动画的总时长
     local animationLength = animationTrack.Length
-    
+
     -- 根据cd参数和动画时长计算播放速度
     -- 目标：让动画在cd秒内播放完成
-    local playbackSpeed = cd / animationLength
+    local playbackSpeed
+    if typeof(cd) == "number" and cd > 0 then
+        playbackSpeed = animationLength / cd
+    else
+        playbackSpeed = 1
+    end
     animationTrack:AdjustSpeed(playbackSpeed)
 
     ItemInterface.showAttackEffect(player)
@@ -498,33 +551,81 @@ end
 -- 播放挖掘动画函数（从下往上）
 -- @param player Player 玩家对象
 -- @param cd number 冷却时间，用于调整动画播放速度 (cd越小动画越快，cd越大动画越慢)
+-- 播放挖掘动画（函数级注释）：
+-- 行为：从同名动画列表中随机选一条进行播放；
+--       根据期望冷却时间 cd 调整播放速度，使动画在 cd 秒内完成。
+-- 公式：播放速度 = 动画时长 / cd（cd越小越快，越大越慢）。
 function PlayerService:PlayDigAnimation(player, cd)
     if not self.AnimationTracks[player.UserId] or not self.AnimationTracks[player.UserId]["dig"] then
         return
     end
-    
-    local animationTrack = self.AnimationTracks[player.UserId]["dig"]
+
+    local tracks = self.AnimationTracks[player.UserId]["dig"]
+    if typeof(tracks) ~= "table" or #tracks == 0 then
+        return
+    end
+
+    local animationTrack = tracks[math.random(1, #tracks)]
     animationTrack:Play()
-    
+
     -- 获取动画的总时长
     local animationLength = animationTrack.Length
-    
+
     -- 根据cd参数和动画时长计算播放速度
     -- 目标：让动画在cd秒内播放完成
-    local playbackSpeed = cd / animationLength
+    local playbackSpeed
+    if typeof(cd) == "number" and cd > 0 then
+        playbackSpeed = animationLength / cd
+    else
+        playbackSpeed = 1
+    end
     animationTrack:AdjustSpeed(playbackSpeed)
 end
 
+-- 按动画名随机播放（函数级注释）：
+-- @param player Player 玩家对象
+-- @param animationName string 动画名（需在 GameConfig.AnimationMap 中存在）
+-- @param cd number 期望动画完成时长（秒），用于计算播放速度；
+-- 行为：从该动画名下预加载的多个 AnimationTrack 中随机选择一条播放，
+--       并按公式 speed = Length / cd 调整播放速度使其在 cd 秒内完成。
+function PlayerService:PlayAnimationByNameRandom(player, animationName, cd)
+    local userId = player and player.UserId
+    if not userId or not self.AnimationTracks[userId] then return end
+    local tracks = self.AnimationTracks[userId][animationName]
+    if typeof(tracks) ~= "table" or #tracks == 0 then return end
+
+    local track = tracks[math.random(1, #tracks)]
+    track:Play()
+
+    local length = track.Length
+    local speed
+    if typeof(cd) == "number" and cd > 0 then
+        speed = length / cd
+    else
+        speed = 1
+    end
+    track:AdjustSpeed(speed)
+end
+
+-- 播放动画统一入口（函数级注释）：
+-- @param player Player 玩家
+-- @param animationName string 动画名（支持同名下多动画随机播放）
+-- @param soundName string 声音资源名（角色下预置的音效）
+-- @param cd number 冷却时长，控制动画播放速度（动画在 cd 秒内完成）
+-- 行为：调用 PlayAnimationByNameRandom 实现按名随机播放；
+--       非 "dig" 动画保持原有调用 ItemInterface.showAttackEffect(player)。
 function PlayerService:playAnimation(player, animationName, soundName, cd)
     local character = player.Character
     if not character then return end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    if animationName == "dig" then
-        self:PlayDigAnimation(player, cd)
-    else
-        self:PlaySwingAnimation(player, cd)
+    -- 按名随机播放（支持同名多轨）
+    self:PlayAnimationByNameRandom(player, animationName, cd)
+
+    -- 非挖掘动作保留命中特效触发
+    if animationName ~= "dig" then
+        ItemInterface.showAttackEffect(player)
     end
 
     local music = character:FindFirstChild(soundName)
@@ -533,12 +634,23 @@ function PlayerService:playAnimation(player, animationName, soundName, cd)
     end
 end
 
+-- 断开并清理动画标记事件连接（函数级注释）：
+-- @param player Player 玩家
+-- 行为：遍历 AnimationMarkerConns[userId][animName][markerName] 的连接数组，逐个断开；
+-- 结构兼容：既兼容旧版单连接字典，也支持新版每轨道多连接列表。
 function  PlayerService:RemoveAnimationMarker(player)
-    if self.AnimationMarkerConns[player.UserId] then
-        for _, markers in pairs(self.AnimationMarkerConns[player.UserId]) do
-            for _, conn in pairs(markers) do
-                if typeof(conn) == "RBXScriptConnection" then
-                    conn:Disconnect()
+    local userConns = self.AnimationMarkerConns[player.UserId]
+    if userConns then
+        for _, markers in pairs(userConns) do
+            for _, connOrList in pairs(markers) do
+                if typeof(connOrList) == "RBXScriptConnection" then
+                    connOrList:Disconnect()
+                elseif typeof(connOrList) == "table" then
+                    for _, conn in ipairs(connOrList) do
+                        if typeof(conn) == "RBXScriptConnection" then
+                            conn:Disconnect()
+                        end
+                    end
                 end
             end
         end

@@ -404,27 +404,27 @@ function ItemService:KnitInit()
 end
 
 function ItemService:KnitStart()
-    -- self:initItems()
-    -- print("物品总价值", self.TotalValue)
-    task.spawn(function()
-        local itemTemp = self:CreateItem(204, Vector3.new(353, -1.2, -250), GameConfig.GetItemAttribute(), false)
-        if itemTemp then
-            table.insert(self.Items, itemTemp)
-        end
+    self:initItems()
+    print("物品总价值", self.TotalValue)
+    -- task.spawn(function()
+    --     local itemTemp = self:CreateItem(204, Vector3.new(353, -1.2, -250), GameConfig.GetItemAttribute(), false)
+    --     if itemTemp then
+    --         table.insert(self.Items, itemTemp)
+    --     end
 
-        task.delay(5, function()
-            for _, item in pairs(self.Items) do
-                if item:IsA("BasePart") then
-                    -- 设置Part的锚固为false
-                    item.Anchored = true
-                elseif item:IsA("Model") then
-                    if item.PrimaryPart then
-                        item.PrimaryPart.Anchored = true
-                    end
-                end
-            end
-        end)
-    end)
+    --     task.delay(5, function()
+    --         for _, item in pairs(self.Items) do
+    --             if item:IsA("BasePart") then
+    --                 -- 设置Part的锚固为false
+    --                 item.Anchored = true
+    --             elseif item:IsA("Model") then
+    --                 if item.PrimaryPart then
+    --                     item.PrimaryPart.Anchored = true
+    --                 end
+    --             end
+    --         end
+    --     end)
+    -- end)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute(), false)
     -- self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute(), false)

@@ -375,83 +375,50 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
         tool.TextureId = itemInfo.Icon
     end
 
-    local handle = nil
+    -- 处理 Model 类型的模板
+    local templateModel = template:Clone()
     
-    -- 根据模板类型处理（Model 或 Part）
-    if template:IsA("Model") then
-        -- 处理 Model 类型的模板
-        local templateModel = template:Clone()
-        
-        -- 确保模型有 PrimaryPart，这是作为 Handle 的关键
-        handle = templateModel.PrimaryPart
+    -- 确保模型有 PrimaryPart，这是作为 Handle 的关键
+    local handle = templateModel.PrimaryPart
+    if not handle then
+        warn("Warning: Tool template '" .. itemInfo.Item .. "' does not have a PrimaryPart set.")
+        -- 备用方案：选择第一个找到的 BasePart
+        handle = templateModel:FindFirstChildOfClass("BasePart")
         if not handle then
-            warn("Warning: Tool template '" .. itemInfo.Item .. "' does not have a PrimaryPart set.")
-            -- 备用方案：选择第一个找到的 BasePart
-            handle = templateModel:FindFirstChildOfClass("BasePart")
-            if not handle then
-                warn("Error: Tool template '" .. itemInfo.Item .. "' contains no parts to use as a handle.")
-                return
-            end
+            warn("Error: Tool template '" .. itemInfo.Item .. "' contains no parts to use as a handle.")
+            return
         end
+    end
 
-        -- 遍历模型中的所有部件
-        for _, part in ipairs(templateModel:GetDescendants()) do
-            if part:IsA("BasePart") then
-                -- 解除所有部件的锚定
-                part.Anchored = false
-                -- 将除 PrimaryPart 之外的所有部件焊接到 PrimaryPart
-                if part ~= handle then
-                    local weld = Instance.new("WeldConstraint")
-                    weld.Part0 = handle
-                    weld.Part1 = part
-                    weld.Parent = handle
-                end
-            end
-        end
-        
-        -- 将 Handle 命名为 "Handle"，这是 Tool 识别握柄的要求
-        handle.Name = "Handle"
-        handle.Parent = tool
-
-        -- 将模型中除了Handle之外的其他子项也移动到Tool下
-        for _, child in ipairs(templateModel:GetChildren()) do
-            if child ~= handle then
-                child.Parent = tool
-            end
-        end
-
-        -- 销毁空的模板模型
-        templateModel:Destroy()
-    elseif template:IsA("BasePart") then
-        -- 处理 Part 类型的模板
-        handle = template:Clone()
-        handle.Name = "Handle"
-        handle.Anchored = false
-        handle.Parent = tool
-        
-        -- 遍历Part下的所有子Part并焊接到Handle
-        for _, part in ipairs(handle:GetDescendants()) do
-            if part:IsA("BasePart") and part ~= handle then
-                -- 解除子Part的锚定
-                part.Anchored = false
-                -- 将子Part焊接到Handle
+    -- 遍历模型中的所有部件
+    for _, part in ipairs(templateModel:GetDescendants()) do
+        if part:IsA("BasePart") then
+            -- 解除所有部件的锚定
+            part.CanCollide = false
+            part.Anchored = false
+            -- 将除 PrimaryPart 之外的所有部件焊接到 PrimaryPart
+            if part ~= handle then
                 local weld = Instance.new("WeldConstraint")
                 weld.Part0 = handle
                 weld.Part1 = part
                 weld.Parent = handle
             end
         end
-
-        -- 将模型中除了Handle之外的其他子项也移动到Tool下
-        for _, child in ipairs(handle:GetChildren()) do
-            if child ~= handle then
-                child.Parent = tool
-            end
-        end
-    else
-        warn("Error: Tool template '" .. itemInfo.Item .. "' is neither a Model nor a BasePart.")
-        return
     end
+    
+    -- 将 Handle 命名为 "Handle"，这是 Tool 识别握柄的要求
+    handle.Name = "Handle"
+    handle.Parent = tool
+
+    -- 将模型中除了Handle之外的其他子项也移动到Tool下
+    for _, child in ipairs(templateModel:GetChildren()) do
+        if child ~= handle then
+            child.Parent = tool
+        end
+    end
+
+    -- 销毁空的模板模型
+    templateModel:Destroy()
 
     -- 直接设置Tool的Grip属性来控制握持方向
     if itemInfo.ItemId == 202 then
@@ -522,9 +489,9 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
         self:SendToolData(player)
 
         if itemInfo.Type == GameConfig.ItemType.Weapon then    -- 进攻类
-            if itemInfo.ItemId == 202 then
+            if itemInfo.ItemId == 203 then
                 Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD)
-            elseif itemInfo.ItemId == 203 then
+            elseif itemInfo.ItemId == 202 then
                 Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
             else
                 Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)

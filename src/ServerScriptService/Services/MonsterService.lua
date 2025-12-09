@@ -229,7 +229,7 @@ function MonsterService:KillMonster(player, monster)
         return
     end
     Knit.GetService("QuestService"):OnNPCKilled(player, tostring(monsterId))
-    Knit.GetService("ClientUIService"):ShowTipAll(string.format("%s Killed the monster %s", player.Name, monsterInfo.DisplayName))
+    --Knit.GetService("ClientUIService"):ShowTipAll(string.format("%s Killed the monster %s", player.Name, monsterInfo.DisplayName))
 end
 
 --local index = 0

@@ -11,21 +11,59 @@ local localPlayer = Players.LocalPlayer
 -- @function createAnimationsFromIds
 -- @param ids {number|string}[] 动画ID数组（支持纯数字或带rbxassetid://的字符串）
 -- @return Animation[] 返回创建好的 Animation 实例数组
+-- 规范化动画ID并创建 Animation 列表（函数级注释）：
+-- @return Animation[]
+-- 行为：遍历 GameConfig.AnimationMap，支持如下输入格式：
+-- 1) 字符串："rbxassetid://123"、"123"、"http(s)://...asset?id=123"
+-- 2) 数字：123
+-- 3) 数组：{ "rbxassetid://123", "456" }（同名多动画）
+-- 将所有有效ID转换为 Animation 实例并返回，用于后续预加载与预热。
 local function createAnimationsFromIds()
+    local function normalizeId(id)
+        if typeof(id) == "number" then
+            return "rbxassetid://" .. tostring(id)
+        elseif typeof(id) == "string" then
+            local direct = id:match("^rbxassetid://(%d+)$")
+            if direct then
+                return "rbxassetid://" .. direct
+            end
+            local fromUrl = id:match("[?&]id=(%d+)")
+            if fromUrl then
+                return "rbxassetid://" .. fromUrl
+            end
+            local plain = id:match("^(%d+)$")
+            if plain then
+                return "rbxassetid://" .. plain
+            end
+            warn("[AnimationPreload] 无效的动画ID格式:", id)
+            return nil
+        else
+            warn("[AnimationPreload] 不支持的动画ID类型:", typeof(id))
+            return nil
+        end
+    end
+
     local animations = {}
-    for animName, animId in pairs(GameConfig.AnimationMap) do
-        local anim = Instance.new("Animation")
-        if typeof(animId) == "string" then
-            if animId:match("^rbxassetid://") then
-                anim.AnimationId = animId
-            else
-                local normalized = animId:gsub("/", "")
-                anim.AnimationId = "rbxassetid://" .. normalized
+    for animName, value in pairs(GameConfig.AnimationMap) do
+        if typeof(value) == "table" then
+            for _, id in ipairs(value) do
+                local normalized = normalizeId(id)
+                if normalized then
+                    local anim = Instance.new("Animation")
+                    anim.Name = animName
+                    anim.AnimationId = normalized
+                    table.insert(animations, anim)
+                end
             end
         else
-            anim.AnimationId = "rbxassetid://" .. tostring(animId)
+            local normalized = normalizeId(value)
+            if normalized then
+                local anim = Instance.new("Animation")
+                anim.Name = animName
+                anim.AnimationId = normalized
+                table.insert(animations, anim)
+            end
         end
-        table.insert(animations, anim)
     end
     return animations
 end

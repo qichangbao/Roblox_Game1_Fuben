@@ -73,8 +73,8 @@ GameConfig.OverwhelmedWeight = {
 }
 
 GameConfig.AnimationMap = {
-    swing = "rbxassetid://116313478364741",
-    dig = "rbxassetid://106509260307106",
+    swing = {"rbxassetid://122275399055808", "rbxassetid://106851209030806"},
+    dig = {"rbxassetid://133396559381410"},
 }
 
 GameConfig.LandName = "恐龙岛"

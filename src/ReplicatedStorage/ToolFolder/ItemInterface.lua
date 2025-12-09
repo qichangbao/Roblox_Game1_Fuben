@@ -64,21 +64,33 @@ local function _showHitEffect(player)
             end
         end
     end
-
-    -- 生成并摆放命中特效到边缘中心
-    local effectTemplateFolder = ReplicatedStorage:FindFirstChild("Effect")
-    if not effectTemplateFolder then return end
-    local template = effectTemplateFolder:FindFirstChild("HitEffect")
-    if not template then return end
-
-    local effect = template:Clone()
-    local effectContainer = workspace:FindFirstChild("Effect") or workspace
-    effect.Parent = effectContainer
+    local effect = character:FindFirstChild("HitEffect")
     -- 朝向前方，便于某些发射型或方向性特效对齐
     effect.CFrame = CFrame.lookAt(edgePos, edgePos + forward)
-    --game:GetService("Debris"):AddItem(effect, 0.5)
+    for _, particleEmitter in pairs(effect:GetDescendants()) do
+        if particleEmitter:IsA("ParticleEmitter") then
+            particleEmitter.Enabled = true
+            particleEmitter:Emit(30)
+        end
+    end
+
+    task.delay(1, function()
+        for _, particleEmitter in pairs(effect:GetDescendants()) do
+            if particleEmitter:IsA("ParticleEmitter") then
+                particleEmitter.Enabled = false
+            end
+        end
+    end)
 end
 
+-- 展示近战攻击的角色内置特效（函数级注释）：
+-- @param player Player 触发攻击的玩家
+-- 行为：在角色下查找 AttackEffect 模型/部件，
+--       按角色的水平朝向将特效摆到“攻击盒”最远边缘中心点。
+-- 细节：
+-- 1) 使用水平前向（忽略Y）避免抬头/低头造成高度偏差；
+-- 2) Model优先用 PivotTo，其次用 Ground2 或第一个 BasePart；
+-- 3) AttackEffect 存在焊接/附件时可能覆盖位置，应确保用于展示的部件 Anchored。
 function ItemInterface.showAttackEffect(player)
     local character = player and player.Character
     if not character then return end
@@ -86,59 +98,36 @@ function ItemInterface.showAttackEffect(player)
     local hrp = character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- 查找当前装备的 Tool
-    local equippedTool = nil
-    for _, child in ipairs(character:GetChildren()) do
-        if child:IsA("Tool") then
-            equippedTool = child
-            break
-        end
-    end
-
     -- 计算攻击范围的最远边缘位置
     local pos = hrp.Position
     local forward = hrp.CFrame.LookVector
-    local edgePos = pos
 
-    if equippedTool then
-        local itemId = equippedTool:GetAttribute("ItemId")
-        if itemId then
-            local weaponInfo = WeaponConfig:GetByItemId(itemId)
-            if weaponInfo and weaponInfo.Position then
-                local detectionRange = weaponInfo.Position.X
-                if typeof(detectionRange) == "number" and detectionRange > 0 then
-                    edgePos = pos + forward * detectionRange
-                end
-            end
+    -- 在角色下查找 AttackEffect（避免误查 Player 根节点）·
+    local effect = character:FindFirstChild("AttackEffect")
+    if not effect then return end
+    -- 水平前向（忽略Y抬头/低头），更稳定的朝向
+    local horizForward = Vector3.new(forward.X, 0, forward.Z)
+    if horizForward.Magnitude > 0 then
+        horizForward = horizForward.Unit
+    else
+        horizForward = forward
+    end
+    effect.CFrame = CFrame.lookAt(pos, pos + horizForward)
+
+    for _, particleEmitter in pairs(effect:GetDescendants()) do
+        if particleEmitter:IsA("ParticleEmitter") then
+            particleEmitter.Enabled = true
+            particleEmitter:Emit(30)
         end
     end
 
-    -- 生成并摆放命中特效到边缘中心
-    local effectTemplateFolder = ReplicatedStorage:FindFirstChild("Effect")
-    if not effectTemplateFolder then return end
-    local template = effectTemplateFolder:FindFirstChild("AttackEffect")
-    if not template then return end
-
-    local effect = template:Clone()
-    local effectContainer = workspace:FindFirstChild("Effect") or workspace
-    effect.Parent = effectContainer
-    -- 朝向前方，便于某些发射型或方向性特效对齐
-    effect.CFrame = CFrame.lookAt(edgePos, edgePos + forward)
-    
-    -- 立即触发粒子发射，避免依赖 Enabled 与 Rate 的延迟（函数级注释）
-    -- 行为：查找所有 ParticleEmitter，关闭持续发射，仅进行一次性 Burst。
-    -- 数量来源：优先读取发射器属性 `EmitCount` 或 `Burst`（可自定义为 Attribute），
-    --          若无则使用默认值 30。
-    task.defer(function()
-        for _, d in ipairs(effect:GetDescendants()) do
-            if d:IsA("ParticleEmitter") then
-                local count = d:GetAttribute("EmitCount") or d:GetAttribute("Burst") or 30
-                d.Enabled = false
-                d:Emit(tonumber(count) or 30)
+    task.delay(1, function()
+        for _, particleEmitter in pairs(effect:GetDescendants()) do
+            if particleEmitter:IsA("ParticleEmitter") then
+                particleEmitter.Enabled = false
             end
         end
     end)
-    --game:GetService("Debris"):AddItem(effect, 1)
 end
 
 local function _takeDamage(player, hitCharacter, damage)
