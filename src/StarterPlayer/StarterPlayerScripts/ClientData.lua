@@ -36,7 +36,7 @@ local function setInitData(data)
     Knit.GetController("UIController").ChangeGoldUI:Fire(ClientData.Gold)
     Knit.GetController("UIController").UpdateToolUI:Fire(ClientData.ToolData)
     Knit.GetController("UIController").UpdateEscapeTask:Fire(ClientData.CurEscapeTask, ClientData.EscapeTask)
-    Knit.GetController("UIController").ShowStartGameUI:Fire(ClientData.Difficulty) -- 显示开始游戏UI
+    Knit.GetController("UIController").ShowGameStartCG:Fire()
 
     local land = Interface.safeWaitPart(game.Workspace, ClientData.IslandName)
     local Special = Interface.safeWaitPart(land, "Special")

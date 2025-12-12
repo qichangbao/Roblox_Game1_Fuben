@@ -498,7 +498,7 @@ function ChestShowcaseSystem.showcaseChest(chest, index, totalChests)
             Atmosphere.Density = 0.6
             
             -- 清除全局标志
-            _G.ChestShowcasePlaying = false
+            _G.CGPlaying = false
             
             print("[宝箱展示] 最后一个宝箱展示完全完成")
         end
@@ -544,7 +544,7 @@ function ChestShowcaseSystem.start()
     local camera = workspace.CurrentCamera
     
     -- 设置全局标志，防止其他摄像头脚本干扰
-    _G.ChestShowcasePlaying = true
+    _G.CGPlaying = true
     
     -- 设置摄像头为脚本控制模式
     camera.CameraType = Enum.CameraType.Scriptable
@@ -568,7 +568,7 @@ function ChestShowcaseSystem.start()
     
     -- 展示完成，切换回玩家视角（只有当全局标志还存在时才调用，说明没有宝箱或者普通宝箱）
     -- 注释掉自动切换，因为最后一个宝箱的第四阶段会自己处理摄像头恢复
-    -- if SHOWCASE_CONFIG.autoSwitchToPlayer and _G.ChestShowcasePlaying then
+    -- if SHOWCASE_CONFIG.autoSwitchToPlayer and _G.CGPlaying then
     --     task.wait(0.1) -- 稍微等待一下
     --     ChestShowcaseSystem.switchToPlayerView()
     -- end
@@ -620,7 +620,7 @@ function ChestShowcaseSystem.switchToPlayerView()
     Atmosphere.Density = 0.6
     
     -- 清除全局标志
-    _G.ChestShowcasePlaying = false
+    _G.CGPlaying = false
     
     print("[宝箱展示] 摄像头已回归玩家视角")
 end
@@ -660,7 +660,7 @@ local function createTestButton()
     -- 按钮点击事件
     testButton.MouseButton1Click:Connect(function()
         -- 检查是否已经在播放动画
-        if _G.ChestShowcasePlaying then
+        if _G.CGPlaying then
             print("已有摄像头动画在播放中，请等待完成")
             return
         end
