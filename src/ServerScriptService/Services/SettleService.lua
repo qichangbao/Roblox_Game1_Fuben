@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local DesignConfig = require(ReplicatedStorage:WaitForChild('ConfigFolder'):WaitForChild('DesignConfig'))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local SettleService = Knit.CreateService({
@@ -196,10 +197,11 @@ function SettleService:Settle(player, needCheckPos, isForceLose)
     local killMonsters = Knit.GetService("MonsterService"):GetKillMonsters(player)
     if not isForceLose and isSuccess then
         -- 检查每个触发Model
-		local isOnBoat = Interface.isPlayerOnBoat(player, Knit.GetService("IslandService"):GetIslandName())
-        if needCheckPos and not isOnBoat then
-            return false
-        end
+		local islandId = Knit.GetService("IslandService"):GetIslandId()
+		if not islandId then return false end
+		local mapConfig = DesignConfig:GetByMapId(islandId)
+		if not mapConfig then return false end
+		local isOnBoat = Interface.isPlayerOnBoat(player, mapConfig.MapName)
         if isOnBoat then
             escapeItems, totalValue, totalTime = succ(player)
         else

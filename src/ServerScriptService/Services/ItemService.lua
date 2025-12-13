@@ -4,10 +4,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
-local PosConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PosConfig"))
+local DesignResConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignResConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
-local PlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PlanConfig"))
-local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local ItemWorkspaceFolder = workspace:WaitForChild("Item")
 if not ItemWorkspaceFolder then
@@ -43,7 +41,7 @@ function ItemService:CreateXuanCaiChestEffect(item)
     effect:PivotTo(CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)))
 end
 
-function ItemService:CreateItemNoProximityPrompt(itemId, position, attribute, isAnchored)
+function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, attribute, isAnchored)
     if itemId == 0 then
         return
     end
@@ -74,6 +72,7 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, attribute, is
         item:PivotTo(CFrame.new(Vector3.new(position.X, position.Y + item.PrimaryPart.Size.Y / 2, position.Z)))
     end
     item:SetAttribute("ItemId", itemId)
+    item:SetAttribute("DropGroup", dropGroup or 0)
     if attribute then
         attribute.IsEquipped = 0
     end
@@ -99,8 +98,8 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, attribute, is
 end
 
 -- 创建物品
-function ItemService:CreateItem(itemId, position, attribute, isAnchored)
-    local item, itemInfo = self:CreateItemNoProximityPrompt(itemId, position, attribute, isAnchored)
+function ItemService:CreateItem(itemId, position, dropGroup, attribute, isAnchored)
+    local item, itemInfo = self:CreateItemNoProximityPrompt(itemId, position, dropGroup, attribute, isAnchored)
     if not item or not itemInfo then
         return
     end
@@ -145,7 +144,7 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     proximityPrompt.Triggered:Connect(function(player)
         if itemInfo.Type == GameConfig.ItemType.Chest then
             -- 宝箱类物品，调用SpecialItemService处理奖励
-            Knit.GetService("SpecialItemService"):OpenChest(player, item, itemInfo)
+            Knit.GetService("SpecialItemService"):OpenChest(player, item)
             return
         elseif itemInfo.Type == GameConfig.ItemType.Mound then
             --  mound 类物品不能拾取
@@ -175,6 +174,7 @@ function ItemService:CreateItem(itemId, position, attribute, isAnchored)
     proximityPrompt.PromptButtonHoldEnded:Connect(function(player)
     end)
 
+    table.insert(self.Items, item)
     return item
 end
 
@@ -297,41 +297,6 @@ function ItemService:CreateItemByPlan(planData, position, isAnchored)
     end
 end
 
-function ItemService:initItems()
-    local posHasItem = {}
-    local pos = PosConfig:GetAll()
-    -- 随机打乱数组
-    local posArray = Interface.randomTable(pos)
-    for _, posData in pairs(posArray) do
-        local posKey = Vector3.new(math.floor(posData.Position.X), math.floor(posData.Position.Y), math.floor(posData.Position.Z))
-        if posHasItem[posKey] then
-            print("位置已存在物品", posKey)
-            continue
-        end
-
-        local planData = PlanConfig:GetByPlanId(posData.PlanId)
-        if not planData then
-            continue
-        end
-
-        local item = self:CreateItemByPlan(planData, posData.Position, false)
-        if item then
-            posHasItem[posKey] = true
-        end
-    end
-
-    for _, item in pairs(self.Items) do
-        if item:IsA("BasePart") then
-            -- 设置Part的锚固为false
-            item.Anchored = true
-        elseif item:IsA("Model") then
-            if item.PrimaryPart then
-                item.PrimaryPart.Anchored = true
-            end
-        end
-    end
-end
-
 -- 查找最近的物品
 -- @param player: 玩家
 -- @return item: 最近的物品
@@ -400,41 +365,66 @@ function ItemService.Client:GetItems()
     return self.Server:GetItems()
 end
 
+function ItemService:CreateInitItem(data)
+    if data.Refresh == 2 then
+        if math.random(10000) > data.Probability then return end
+    end
+
+    self:CreateItem(data.CanisterId, data.Position, data.DropGroup, GameConfig.GetItemAttribute(), false)
+end
+
+function ItemService:initItems()
+    if #self.Items > 0 then
+        return
+    end
+    
+    task.spawn(function()
+        local islandId = Knit.GetService("IslandService"):GetIslandId()
+        local resConfig = DesignResConfig:GetAll()
+        for _, config in ipairs(resConfig) do
+            if config.MapId == islandId then
+                self:CreateInitItem(config)
+            end
+        end
+
+        -- task.spawn(function()
+        --     local itemTemp = self:CreateItem(204, Vector3.new(353, -1.2, -250), GameConfig.GetItemAttribute(), false)
+        --     if itemTemp then
+        --         table.insert(self.Items, itemTemp)
+        --     end
+
+        --     task.delay(5, function()
+        --         for _, item in pairs(self.Items) do
+        --             if item:IsA("BasePart") then
+        --                 -- 设置Part的锚固为false
+        --                 item.Anchored = true
+        --             elseif item:IsA("Model") then
+        --                 if item.PrimaryPart then
+        --                     item.PrimaryPart.Anchored = true
+        --                 end
+        --             end
+        --         end
+        --     end)
+        -- end)
+        -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute(), false)
+        -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute(), false)
+        -- self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute(), false)
+        -- self:CreateItem(1032, Vector3.new(353, -1.5, -190), GameConfig.GetItemAttribute(), false)
+        -- self:CreateItem(1032, Vector3.new(353, -1.5, -200), GameConfig.GetItemAttribute(), false)
+        -- self:CreateItem(1032, Vector3.new(353, -1.5, -210), GameConfig.GetItemAttribute(), false)
+        -- self:CreateItem(1032, Vector3.new(353, -1.5, -220), GameConfig.GetItemAttribute(), false)
+        -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230), GameConfig.GetItemAttribute(), false)
+        -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute(), false)
+        -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
+        
+        print("物品总价值", self.TotalValue)
+    end)
+end
+
 function ItemService:KnitInit()
 end
 
 function ItemService:KnitStart()
-    self:initItems()
-    print("物品总价值", self.TotalValue)
-    -- task.spawn(function()
-    --     local itemTemp = self:CreateItem(204, Vector3.new(353, -1.2, -250), GameConfig.GetItemAttribute(), false)
-    --     if itemTemp then
-    --         table.insert(self.Items, itemTemp)
-    --     end
-
-    --     task.delay(5, function()
-    --         for _, item in pairs(self.Items) do
-    --             if item:IsA("BasePart") then
-    --                 -- 设置Part的锚固为false
-    --                 item.Anchored = true
-    --             elseif item:IsA("Model") then
-    --                 if item.PrimaryPart then
-    --                     item.PrimaryPart.Anchored = true
-    --                 end
-    --             end
-    --         end
-    --     end)
-    -- end)
-    -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute(), false)
-    -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute(), false)
-    -- self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute(), false)
-    -- self:CreateItem(1032, Vector3.new(353, -1.5, -190), GameConfig.GetItemAttribute(), false)
-    -- self:CreateItem(1032, Vector3.new(353, -1.5, -200), GameConfig.GetItemAttribute(), false)
-    -- self:CreateItem(1032, Vector3.new(353, -1.5, -210), GameConfig.GetItemAttribute(), false)
-    -- self:CreateItem(1032, Vector3.new(353, -1.5, -220), GameConfig.GetItemAttribute(), false)
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230), GameConfig.GetItemAttribute(), false)
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute(), false)
-    -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
 end
 
 return ItemService

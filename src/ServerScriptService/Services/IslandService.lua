@@ -6,19 +6,19 @@ local IslandService = Knit.CreateService({
     Client = {
     },
 
-    IslandName = "",
+    IslandId = 0,
 })
 
-function IslandService:SetIslandName(islandName)
-    self.IslandName = islandName
+function IslandService:SetIslandId(islandId)
+    self.IslandId = islandId
 end
 
-function IslandService:GetIslandName()
-    return self.IslandName
+function IslandService:GetIslandId()
+    return self.IslandId
 end
 
-function IslandService.Client:GetIslandName()
-    return self.Server:GetIslandName()
+function IslandService.Client:GetIslandId()
+    return self.Server:GetIslandId()
 end
 
 function IslandService:KnitInit()

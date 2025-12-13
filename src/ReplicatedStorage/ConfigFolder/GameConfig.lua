@@ -34,12 +34,6 @@ GameConfig.NpcUIType = {
     Quest = 4,      -- 任务
 }
 
-GameConfig.Difficulty = {
-    Easy = 1,           -- 简单
-    Difficulty = 2,     -- 困难
-    HellDifficulty = 3, -- 地狱
-}
-
 GameConfig.TalentType = {
     WalkSpeed = 1,      -- 移动
     MaxHealth = 2,      -- 最大生命值
@@ -77,7 +71,7 @@ GameConfig.AnimationMap = {
     dig = {"rbxassetid://133396559381410"},
 }
 
-GameConfig.LandName = "恐龙岛"
+GameConfig.IsLandId = 101
 GameConfig.TeleportPartNames = {"Boat"}-- 触发传送的model名称
 GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
 GameConfig.MAIN_SLOT_NUM = 3        -- 主工具栏插槽数量
@@ -86,8 +80,6 @@ GameConfig.BAG_NUM = 3
 GameConfig.Item_DragTime = 0.3      -- 物品拖拽响应事件
 GameConfig.AdditionalBackpackId = 302 -- 额外的背包ID
 GameConfig.MaxTurnInItemNum = 18    -- 最大可提交物品数量
-GameConfig.DefaultEscapeTask = 50  -- 默认的撤离任务
-GameConfig.DefaultEscapeTime = 15 * 60 + 20   -- 默认的撤离时间
 GameConfig.Real_To_Game_Second = 96-- 现实1秒 = 游戏96秒
 GameConfig.Overwhelmed = 15         -- 负重
 GameConfig.Luck = 0                 -- 幸运值

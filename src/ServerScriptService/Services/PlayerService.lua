@@ -8,6 +8,8 @@ local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Kn
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local TalentTreeConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("TalentTreeConfig"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
+local ConstantConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ConstantConfig"))
+local DesignConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 local ItemInterface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("ItemInterface"))
 
@@ -226,45 +228,25 @@ function PlayerService:GetInitData(player)
         InitCriticalProbability = GameConfig.CriticalProbability,   -- 初始暴击几率
     }
 
-    local islandName = GameConfig.LandName
-    local hasEscapeTask = false
-    local hasEscapeTime = false
-    local difficulty = GameConfig.Difficulty.Easy
+    local islandId = GameConfig.IsLandId
+    local playerCount = #Players:GetPlayers()
     -- 获取传送数据
     local joinData = player:GetJoinData()
     if joinData and joinData.TeleportData then
         local localTeleportData = joinData.TeleportData
-        islandName = localTeleportData.IslandName or GameConfig.LandName
-
-        difficulty = localTeleportData.Difficulty or GameConfig.Difficulty.Easy
-        local TaskService = Knit.GetService("TaskService")
-        if not TaskService:GetIsInit() then
-            if localTeleportData.EscapeTask then
-                TaskService:InitEscapeTask(localTeleportData.EscapeTask)
-                hasEscapeTask = true
-            end
-
-            if localTeleportData.EscapeTime then
-                TaskService:InitEscapeTime(localTeleportData.EscapeTime)
-                hasEscapeTime = true
-            end
-        else
-            hasEscapeTask = true
-            hasEscapeTime = true
-        end
+        islandId = localTeleportData.IslandId or islandId
+        playerCount = localTeleportData.PlayerCount or playerCount
     else
         print(string.format("玩家 %s 没有传送数据", player.Name))
     end
 
-    Knit.GetService("IslandService"):SetIslandName(islandName)
+    Knit.GetService("IslandService"):SetIslandId(islandId)
     
-    if not hasEscapeTask then
-        Knit.GetService("TaskService"):InitEscapeTask(GameConfig.DefaultEscapeTask)
-    end
-
-    if not hasEscapeTime then
-        Knit.GetService("TaskService"):InitEscapeTime(GameConfig.DefaultEscapeTime)
-    end
+    local mapConfig = DesignConfig:GetByMapId(islandId)
+    local effect1 = ConstantConfig:GetByID(1).Effect1
+    local escapeTask = mapConfig.DesignTarget * effect1[playerCount][2] / 10000
+    Knit.GetService("TaskService"):InitEscapeTask(escapeTask)
+    Knit.GetService("TaskService"):InitEscapeTime(mapConfig.EvacuateTime)
 
     local gold = Knit.GetService("GoldService"):GetGoldData(player)
     local inventoryData = Knit.GetService("InventoryService"):GetInventoryData(player)
@@ -277,28 +259,24 @@ function PlayerService:GetInitData(player)
             self.AttributeData[player.UserId].Overwhelmed += itemInfo.Weight
         end
     end
-    local equipmentData = Knit.GetService("EquipmentService"):GetEquipmentData(player)
     local talentData = Knit.GetService("TalentService"):GetTalentData(player)
     self.TalentData[player.UserId] = talentData
     self:InitPlayerTalent(player, talentData)
-    local questData = Knit.GetService("QuestService"):GetPlayerQuests(player)
     self.AttributeData[player.UserId].InitMaxOverwhelmed = GameConfig.Overwhelmed
     self:UpdateOverwhelmed(player)
-    local isFirstLoginFuben = Knit.GetService("DBService"):Get(player.UserId, "IsFirstLoginFuben")
-    local escapeTask = Knit.GetService("TaskService"):GetEscapeTask()
-    local escapeTime = Knit.GetService("TaskService"):GetEscapeTime()
+
+    Knit.GetService("MonsterService"):initMonsters(player)
+    Knit.GetService("ItemService"):initItems(player)
 
     return {
+        IslandId = islandId,
+        PlayerCount = playerCount,
         Gold = gold,
         Inventory = inventoryData,
         ToolData = tool,
-        EquipmentData = equipmentData,
-        EscapeTask = escapeTask,
-        EscapeTime = escapeTime,
-        Difficulty = difficulty,
-        IsFirstLoginFuben = isFirstLoginFuben,
-        IslandName = islandName,
-        QuestData = questData,
+        EquipmentData = Knit.GetService("EquipmentService"):GetEquipmentData(player),
+        IsFirstLoginFuben = Knit.GetService("DBService"):Get(player.UserId, "IsFirstLoginFuben"),
+        QuestData = Knit.GetService("QuestService"):GetPlayerQuests(player),
     }
 end
 

@@ -3,6 +3,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild('Packages'):WaitForChild('Knit'):waitForChild('Knit'))
 local Interface = require(ReplicatedStorage:WaitForChild('ToolFolder'):WaitForChild('Interface'))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild('GameConfig'))
+local ConstantConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ConstantConfig"))
+local DesignConfig = require(ReplicatedStorage:WaitForChild('ConfigFolder'):WaitForChild('DesignConfig'))
 local SimpleArrowNavigation = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("SimpleArrowNavigation"))
 
 local ClientData = {}
@@ -12,33 +14,35 @@ ClientData.ToolData = {}
 ClientData.BagData = {}
 ClientData.CurEscapeTask = 0    -- 当前完成的撤离任务
 ClientData.EscapeTask = 0       -- 目标完成撤离任务
-ClientData.Difficulty = GameConfig.Difficulty.Easy -- 难度
 ClientData.IsFirstLoginFuben = 0 -- 是否是第一次登录游戏
-ClientData.IslandName = GameConfig.LandName -- 岛屿名称
+ClientData.IslandId = GameConfig.IsLandId -- 岛屿ID
 ClientData.Overwhelmed = 0 -- 当前负重
 ClientData.MaxOverwhelmed = 0 -- 最大负重
+ClientData.PlayerCount = 0 -- 玩家人数
 
 local function setInitData(data)
     ClientData.Inventory = data.Inventory or {}
     ClientData.ToolData = data.ToolData or {}
-    ClientData.EscapeTask = data.EscapeTask or 0
-    ClientData.EscapeTime = data.EscapeTime or 0
-    ClientData.Difficulty = data.Difficulty or GameConfig.Difficulty.Easy -- 难度
     ClientData.IsFirstLoginFuben = data.IsFirstLoginFuben or 0 -- 是否是第一次登录游戏
     ClientData.Gold = data.Gold or 0 -- 金币
-    ClientData.IslandName = data.IslandName or GameConfig.LandName -- 岛屿名称
+    ClientData.IslandId = data.IslandId or GameConfig.IsLandId -- 岛屿ID
+    ClientData.PlayerCount = data.PlayerCount or 0 -- 玩家人数
+
+    local mapConfig = DesignConfig:GetByMapId(ClientData.IslandId)
+    if not mapConfig then return end
+    local effect1 = ConstantConfig:GetByID(1).Effect1
+    local escapeTask = mapConfig.DesignTarget * effect1[ClientData.PlayerCount][2] / 10000
+    ClientData.EscapeTask = escapeTask
+
     if ClientData.IsFirstLoginFuben == 0 then
         require(script.Parent:WaitForChild("PlayerGuide")):ShowGuide()
     end
-    -- local playerGui = Interface.safeWaitPart(game.Players.LocalPlayer, "PlayerGui")
-	-- local loadingUI = Interface.safeWaitPart(playerGui, "LoadingUI")
-    -- loadingUI.Enabled = false
     Knit.GetController("UIController").ChangeGoldUI:Fire(ClientData.Gold)
     Knit.GetController("UIController").UpdateToolUI:Fire(ClientData.ToolData)
     Knit.GetController("UIController").UpdateEscapeTask:Fire(ClientData.CurEscapeTask, ClientData.EscapeTask)
     Knit.GetController("UIController").ShowGameStartCG:Fire()
 
-    local land = Interface.safeWaitPart(game.Workspace, ClientData.IslandName)
+    local land = Interface.safeWaitPart(game.Workspace, mapConfig.MapName)
     local Special = Interface.safeWaitPart(land, "Special")
     local SpawnLocation = Interface.safeWaitPart(Special, "SpawnLocation")
     local spawnLocation1 = Interface.safeWaitPart(SpawnLocation, "SpawnLocation1")

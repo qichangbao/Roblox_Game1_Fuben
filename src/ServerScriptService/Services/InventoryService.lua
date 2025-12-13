@@ -702,7 +702,7 @@ function InventoryService:CreateItemToFloor(character, itemInfo, attribute)
     
     -- 通过ItemService创建物品
     local ItemService = Knit.GetService("ItemService")
-    ItemService:CreateItem(itemInfo.ItemId, dropPosition, attribute, true)
+    ItemService:CreateItem(itemInfo.ItemId, dropPosition, nil, attribute, true)
 end
 
 -- 丢弃工具实现

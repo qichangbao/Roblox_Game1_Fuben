@@ -542,7 +542,7 @@ end)
 local function updateData(data)
 	_questData = data
 	_inventoryData = {}
-    if GameConfig.LandName == "出生岛" then
+    if GameConfig.IsLandId == 100 then
         for _, itemData in pairs(_G.ClientData.Inventory) do
             if not _inventoryData[itemData.ItemId] then
                 _inventoryData[itemData.ItemId] = 1

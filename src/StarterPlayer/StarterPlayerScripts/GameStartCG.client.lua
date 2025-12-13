@@ -3,6 +3,7 @@ local Knit = require(ReplicatedStorage:WaitForChild('Packages'):WaitForChild('Kn
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local localPlayer = Players.LocalPlayer
+local DesignConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignConfig"))
 
 --[[
     展示开场CG：让船航行并跟随摄像机
@@ -14,7 +15,9 @@ local localPlayer = Players.LocalPlayer
     返回：void
 ]]
 local function ShowGameStartCG()
-    local land = workspace:FindFirstChild(_G.ClientData.IslandName)
+    local mapConfig = DesignConfig:GetByMapId(_G.ClientData.IslandId)
+    if not mapConfig then return end
+    local land = workspace:FindFirstChild(mapConfig.MapName)
     if not land then return end
     local Special = land:FindFirstChild("Special")
     if not Special then return end
@@ -66,7 +69,7 @@ local function ShowGameStartCG()
         curTime = curTime + dt
         if curTime >= 2 and not isShowBlackUI then
             isShowBlackUI = true
-            Knit.GetController("UIController").ShowBlackUI:Fire({Text = "即将到达恐龙岛", CallfuncMiddle = function()
+            Knit.GetController("UIController").ShowBlackUI:Fire({Text = string.format("Approaching %s", mapConfig.DesignName), CallfuncMiddle = function()
                 Boat:PivotTo(endCFrame)
                 character.Parent = workspace
                 camera.CameraType = originalCameraType
@@ -83,7 +86,7 @@ local function ShowGameStartCG()
                 end
 
                 task.delay(0.3, function()
-                    Knit.GetController("UIController").ShowStartGameUI:Fire(_G.ClientData.Difficulty) -- 显示开始游戏UI
+                    Knit.GetController("UIController").ShowStartGameUI:Fire() -- 显示开始游戏UI
                 end)
             end})
             return

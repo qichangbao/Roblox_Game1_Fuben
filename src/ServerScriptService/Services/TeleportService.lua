@@ -6,7 +6,7 @@ local TeleportService = game:GetService("TeleportService")
 local RunService = game:GetService("RunService")
 
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
-local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local DesignConfig = require(ReplicatedStorage:WaitForChild('ConfigFolder'):WaitForChild('DesignConfig'))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local TeleportServiceModule = Knit.CreateService {
@@ -111,7 +111,11 @@ function TeleportServiceModule:Escape(player, needCheckPos)
     
     if needCheckPos then
         -- 检查玩家是否在触发区域内
-        local isInTrigger = Interface.isPlayerOnBoat(player, Knit.GetService("IslandService"):GetIslandName())
+		local islandId = Knit.GetService("IslandService"):GetIslandId()
+		if not islandId then return false end
+		local mapConfig = DesignConfig:GetByMapId(islandId)
+		if not mapConfig then return false end
+        local isInTrigger = Interface.isPlayerOnBoat(player, mapConfig.MapName)
         if isInTrigger then
             return self:teleportToReserveServer(player, true)
         end

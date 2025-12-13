@@ -6,9 +6,7 @@ local Players = game:GetService("Players")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local MonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterConfig"))
 local AIManager = require(script.Parent.Parent:WaitForChild("AIManagerFolder"):WaitForChild("AIManager"))
-local MonsterPosConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterPosConfig"))
-local MonsterPlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterPlanConfig"))
-local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+local DesignMonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignMonsterConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local TweenService = game:GetService("TweenService")
 
@@ -229,21 +227,16 @@ function MonsterService:KillMonster(player, monster)
         return
     end
     Knit.GetService("QuestService"):OnNPCKilled(player, tostring(monsterId))
-    --Knit.GetService("ClientUIService"):ShowTipAll(string.format("%s Killed the monster %s", player.Name, monsterInfo.DisplayName))
 end
 
---local index = 0
-function MonsterService:CreateMonster(monsterId, position)
-    -- if monsterId ~= 30002 then
-    --     return
-    -- end
-    -- if index >= 1 then
-    --     return
-    -- end
-    -- index += 1
-    local monsterInfo = MonsterConfig:GetByMonsterId(monsterId)
+function MonsterService:CreateMonster(data)
+    if data.Refresh == 2 then
+        if math.random(10000) > data.Probability then return end
+    end
+
+    local monsterInfo = MonsterConfig:GetByMonsterId(data.MonsterId)
     if not monsterInfo then
-        warn("Monster not found: " .. monsterId)
+        warn("Monster not found: " .. data.MonsterId)
         return
     end
 
@@ -308,7 +301,7 @@ function MonsterService:CreateMonster(monsterId, position)
         end
     end
 
-    AIManager.new(monster, position, monsterInfo)
+    AIManager.new(monster, data.Position, monsterInfo)
 end
 
 -- 移除怪物
@@ -409,43 +402,26 @@ function MonsterService:ChaseCannel(npc)
     self.ChaseMonsters[npc.Name] = nil
 end
 
-function MonsterService:CreateMonsterByPlan(planData, position)
-    if type(planData.MonsterId) ~= "table" then
-        local random = math.random(1, 10000)
-        if random <= planData.Probability then
-            self:CreateMonster(planData.MonsterId, position)
-        end
-    else
-        for index, monsterId in pairs(planData.MonsterId) do
-            local random = math.random(1, 10000)
-            if random <= planData.Probability[index] then
-                self:CreateMonster(monsterId, position)
-            end
-        end
-    end
-end
-
 function MonsterService:initMonsters()
-    task.spawn(function()
-        local pos = MonsterPosConfig:GetAll()
-        -- 随机打乱数组
-        local posArray = Interface.randomTable(pos)
-        for _, posData in pairs(posArray) do
-            local planData = MonsterPlanConfig:GetByMonsterPlanId(posData.MonsterPlanId)
-            if not planData then
-                continue
-            end
+    if #self.Monsters > 0 then
+        return
+    end
 
-            self:CreateMonsterByPlan(planData, posData.Position)
+    task.spawn(function()
+        local islandId = Knit.GetService("IslandService"):GetIslandId()
+        local monstersConfig = DesignMonsterConfig:GetAll()
+        for _, config in ipairs(monstersConfig) do
+            if config.MapId == islandId then
+                self:CreateMonster(config)
+            end
         end
     end)
-end
-
-function MonsterService:KnitInit()
-    self:initMonsters()
     --self:CreateMonster(30001, Vector3.new(353, -0.7, -240))
     --self:CreateMonster(30002, Vector3.new(353, -0.7, -220))
     --self:CreateMonster(30003, Vector3.new(353, -0.7, -200))
+end
+
+function MonsterService:KnitInit()
 end
 
 -- 服务启动时的初始化

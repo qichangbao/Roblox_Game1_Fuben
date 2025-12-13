@@ -1,9 +1,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
-local PlanConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("PlanConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
+local DropTableConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DropTableConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local SpecialItemService = Knit.CreateService({
@@ -13,49 +13,63 @@ local SpecialItemService = Knit.CreateService({
     },
 })
 
--- 打开土堆
-function SpecialItemService:OpenMound(player, item)
-    if not player or not player.Parent then
-        return false
-    end
-    
-    local curItemId = item:GetAttribute("ItemId")
-    if curItemId ~= 601 then
-        return false
-    end
+function SpecialItemService:CreateDropItems(player, dropGroupId, position)
+    local dropTable = DropTableConfig:GetByID(dropGroupId)
+    if not dropTable then return false end
 
-    local itemInfo = ItemConfig:GetByItemId(curItemId)
-    if not itemInfo then
-        return false
-    end
-
-    local position = item:GetPivot().Position
-    Knit.GetService("ItemService"):RemoveItem(item)
-    Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
-    self:PlaySound(player, "OpenMound")
-
-    local plan = PlanConfig:GetByCanisterId(itemInfo.ItemId)
-    if not plan then
-        return false
-    end
-
-    local totalProbability = 0
-    for _, probability in pairs(plan.Probability) do
-        totalProbability += probability
+    -- 把掉落数据存在表中
+    local dropArray = {}
+    for _, info in ipairs(dropTable.dropInfo) do
+        local itemId = info[1]
+        local num = info[2]
+        local probability = info[3]
+        for _ = 1, num do
+            table.insert(dropArray, {itemId, probability})
+        end
     end
 
     local luck = Knit.GetService("PlayerService"):GetPlayerAttribute(player, "Luck") or 0
-    local random = math.random(1, math.max(totalProbability, 10000))
-    local curProbability = 0
-    for i, itemId in ipairs(plan.ItemId) do
-        curProbability += plan.Probability[i] + luck
-        if random <= curProbability then
-            Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
+    local curNum = 0
+    local dropNum = math.random(dropTable.minDrop or 0, dropTable.maxDrop or 0)
+    while curNum < dropNum do
+        if #dropArray == 0 then
             break
         end
+        for i = #dropArray, 1, -1 do
+            local info = dropArray[i]
+            if dropTable.type == 2 then
+                table.remove(dropArray, i)
+            end
+            local itemId = info[1]
+            local probability = info[2]
+            if math.random(1, 10000) <= probability then
+                Knit.GetService("ItemService"):CreateItem(itemId, position, nil, GameConfig.GetItemAttribute(), true)
+                curNum += 1
+                if curNum >= dropNum then
+                    break
+                end
+            end
+        end
     end
-    self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
+end
+
+-- 打开土堆
+function SpecialItemService:OpenMound(player, item)
+    if not player or not player.Parent then return false end
+    local curItemId = item:GetAttribute("ItemId")
+    if curItemId ~= 601 then return false end
+    local itemInfo = ItemConfig:GetByItemId(curItemId)
+    if not itemInfo then return false end
+
+    local position = item:GetPivot().Position
+    self:CreateDropItems(player, item:GetAttribute("DropGroup"), position)
+
+    Knit.GetService("ItemService"):RemoveItem(item)
+    Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
+    self:PlaySound(player, "OpenMound")
     
+    self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
+
     return true
 end
 
@@ -76,37 +90,12 @@ function SpecialItemService:OpenOre(player, item)
     end
 
     local position = item:GetPivot().Position
+    self:CreateDropItems(player, item:GetAttribute("DropGroup"), position)
+
     Knit.GetService("ItemService"):RemoveItem(item)
     Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
     self:PlaySound(player, "OpenOre")
     
-    local plan = PlanConfig:GetByCanisterId(itemInfo.ItemId)
-    if not plan then
-        return false
-    end
-
-    local luck = Knit.GetService("PlayerService"):GetPlayerAttribute(player, "Luck") or 0
-    if type(plan.ItemId) == "table" then
-        local totalProbability = 0
-        for _, probability in pairs(plan.Probability) do
-            totalProbability += probability
-        end
-
-        local random = math.random(1, math.max(totalProbability, 10000))
-        local curProbability = 0
-        for i, itemId in ipairs(plan.ItemId) do
-            curProbability += plan.Probability[i] + luck
-            if random <= curProbability then
-                Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
-                break
-            end
-        end
-    else
-        local random = math.random(1, 10000)
-        if random <= plan.Probability + luck then
-            Knit.GetService("ItemService"):CreateItem(plan.ItemId, position, GameConfig.GetItemAttribute(), true)
-        end
-    end
     self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
 end
 
@@ -188,13 +177,8 @@ function SpecialItemService:JitterOre(player, item)
     return true
 end
 
-function SpecialItemService:OpenChest(player, item, itemInfo)
+function SpecialItemService:OpenChest(player, item)
     if not player or not player.Parent then
-        return false
-    end
-    
-    local plan = PlanConfig:GetByCanisterId(itemInfo.ItemId)
-    if not plan then
         return false
     end
 
@@ -203,34 +187,14 @@ function SpecialItemService:OpenChest(player, item, itemInfo)
         XuanCaiChestEffect:Destroy()
     end
 
+    local position = item:GetPivot().Position
+    self:CreateDropItems(player, item:GetAttribute("DropGroup"), position)
+
     -- 播放开箱子动画
-    self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
     self:PlayChestOpenAnimation(item)
     self:PlaySound(player, "OpenChest")
 
-    local luck = Knit.GetService("PlayerService"):GetPlayerAttribute(player, "Luck") or 0
-    local position = item:GetPivot().Position
-    if type(plan.ItemId) == "table" then
-        local totalProbability = 0
-        for _, probability in pairs(plan.Probability) do
-            totalProbability += probability
-        end
-
-        local random = math.random(1, math.max(totalProbability, 10000))
-        local curProbability = 0
-        for i, itemId in ipairs(plan.ItemId) do
-            curProbability += plan.Probability[i] + luck
-            if random <= curProbability then
-                Knit.GetService("ItemService"):CreateItem(itemId, position, GameConfig.GetItemAttribute(), true)
-                break
-            end
-        end
-    else
-        local random = math.random(1, 10000)
-        if random <= plan.Probability + luck then
-            Knit.GetService("ItemService"):CreateItem(plan.ItemId, position, GameConfig.GetItemAttribute(), true)
-        end
-    end
+    self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
     
     return true
 end
