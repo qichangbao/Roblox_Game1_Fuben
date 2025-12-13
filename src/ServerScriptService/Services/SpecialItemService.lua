@@ -43,7 +43,7 @@ function SpecialItemService:CreateDropItems(player, dropGroupId, position)
             local itemId = info[1]
             local probability = info[2]
             if math.random(1, 10000) <= probability then
-                Knit.GetService("ItemService"):CreateItem(itemId, position, nil, GameConfig.GetItemAttribute(), true)
+                Knit.GetService("ItemService"):CreateItem(itemId, position, 0, GameConfig.GetItemAttribute(), true)
                 curNum += 1
                 if curNum >= dropNum then
                     break

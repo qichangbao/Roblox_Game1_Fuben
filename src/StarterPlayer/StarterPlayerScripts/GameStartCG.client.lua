@@ -69,12 +69,15 @@ local function ShowGameStartCG()
         curTime = curTime + dt
         if curTime >= 2 and not isShowBlackUI then
             isShowBlackUI = true
-            Knit.GetController("UIController").ShowBlackUI:Fire({Text = string.format("Approaching %s", mapConfig.DesignName), CallfuncMiddle = function()
+            Knit.GetController("UIController").ShowBlackUI:Fire({Show = true,
+            Text = string.format("Approaching %s", mapConfig.DesignName),
+            CallfuncMiddle = function()
                 Boat:PivotTo(endCFrame)
                 character.Parent = workspace
                 camera.CameraType = originalCameraType
                 camera.CameraSubject = originalCameraSubject or humanoid
-            end, CallfuncEnd = function()
+            end,
+            CallfuncEnd = function()
                 controls:Enable()
                 humanoid.WalkSpeed = originalWalkSpeed
                 humanoid.JumpPower = originalJumpPower

@@ -21,6 +21,8 @@ ClientData.MaxOverwhelmed = 0 -- 最大负重
 ClientData.PlayerCount = 0 -- 玩家人数
 
 local function setInitData(data)
+    task.wait(2)
+    Knit.GetController("UIController").ShowBlackUI:Fire({Show = false})
     ClientData.Inventory = data.Inventory or {}
     ClientData.ToolData = data.ToolData or {}
     ClientData.IsFirstLoginFuben = data.IsFirstLoginFuben or 0 -- 是否是第一次登录游戏
@@ -41,15 +43,6 @@ local function setInitData(data)
     Knit.GetController("UIController").UpdateToolUI:Fire(ClientData.ToolData)
     Knit.GetController("UIController").UpdateEscapeTask:Fire(ClientData.CurEscapeTask, ClientData.EscapeTask)
     Knit.GetController("UIController").ShowGameStartCG:Fire()
-
-    local land = Interface.safeWaitPart(game.Workspace, mapConfig.MapName)
-    local Special = Interface.safeWaitPart(land, "Special")
-    local SpawnLocation = Interface.safeWaitPart(Special, "SpawnLocation")
-    local spawnLocation1 = Interface.safeWaitPart(SpawnLocation, "SpawnLocation1")
-    workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-    if not workspace.CurrentCamera.CameraSubject then
-        workspace.CurrentCamera.CameraSubject = spawnLocation1
-    end
 end
 
 local function showMonsterChaseFlag(monster, isShow)

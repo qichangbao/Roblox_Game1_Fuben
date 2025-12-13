@@ -72,7 +72,7 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, at
         item:PivotTo(CFrame.new(Vector3.new(position.X, position.Y + item.PrimaryPart.Size.Y / 2, position.Z)))
     end
     item:SetAttribute("ItemId", itemId)
-    item:SetAttribute("DropGroup", dropGroup or 0)
+    item:SetAttribute("DropGroup", dropGroup)
     if attribute then
         attribute.IsEquipped = 0
     end
@@ -223,77 +223,6 @@ function ItemService:HandleItemPickup(player, item)
     else
         -- 添加失败，显示错误信息
         print(player.Name .. " 捡取失败: " .. (errorMessage or "未知错误"))
-    end
-end
-
--- 根据计划数据创建物品
--- @param planData: 计划数据
--- @param position: 物品位置
--- @param isAnchored: 是否固定物品
-function ItemService:CreateItemByPlan(planData, position, isAnchored)
-    if planData.CanisterId ~= 0 then    -- 宝箱类物品，调用ChestService处理奖励
-        local random = math.random(1, 10000)
-        local isCreate = false
-        if type(planData.ChestProbability) == "table" then
-            if random <= planData.ChestProbability[1] then
-                isCreate = true
-            end
-        else
-            if random <= planData.ChestProbability then
-                isCreate = true
-            end
-        end
-
-        if isCreate then
-            local item = self:CreateItem(planData.CanisterId, position, GameConfig.GetItemAttribute(), isAnchored)
-            if planData.CanisterId == 503 then
-                if type(planData.ItemId) == "table" then
-                    for i, itemIdTemp in pairs(planData.ItemId) do
-                        if itemIdTemp == 1035 then
-                            self:CreateXuanCaiChestEffect(item)
-                            break
-                        end
-                    end
-                else
-                    if planData.ItemId == 1035 then
-                        self:CreateXuanCaiChestEffect(item)
-                    end
-                end
-            end
-            if item then
-                table.insert(self.Items, item)
-            end
-            return item
-        end
-    else                                -- 普通物品
-        if type(planData.ItemId) ~= "table" then
-            local random = math.random(1, 10000)
-            if random <= planData.Probability then
-                local item = self:CreateItem(planData.ItemId, position, GameConfig.GetItemAttribute(), isAnchored)
-                if item then
-                    table.insert(self.Items, item)
-                end
-                return item
-            end
-        else
-            local totalProbability = 0
-            for _, probability in pairs(planData.Probability) do
-                totalProbability += probability
-            end
-
-            local random = math.random(1, math.max(totalProbability, 10000))
-            local curProbability = 0
-            for index, itemId in pairs(planData.ItemId) do
-                curProbability += planData.Probability[index]
-                if random <= curProbability then
-                    local item = self:CreateItem(itemId, position, GameConfig.GetItemAttribute(), isAnchored)
-                    if item then
-                        table.insert(self.Items, item)
-                    end
-                    return item
-                end
-            end
-        end
     end
 end
 
