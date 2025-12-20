@@ -9,8 +9,20 @@ local IslandService = Knit.CreateService({
     IslandId = 0,
 })
 
+local Map = game:GetService("ServerStorage"):WaitForChild("Map")
+
 function IslandService:SetIslandId(islandId)
-    self.IslandId = islandId
+    if self.IslandId == islandId then return end
+    if self.IslandId ~= 0 then
+        workspace:FindFirstChild(self.IslandId):Destroy()
+    end
+    local island = workspace:FindFirstChild(islandId)
+    if not island then
+        local newland = Map:FindFirstChild(islandId)
+        if not newland then return end
+        newland:Clone().Parent = workspace
+        self.IslandId = islandId
+    end
 end
 
 function IslandService:GetIslandId()

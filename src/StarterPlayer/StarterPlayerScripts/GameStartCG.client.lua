@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local localPlayer = Players.LocalPlayer
 local DesignConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignConfig"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
 --[[
     展示开场CG：让船航行并跟随摄像机
@@ -14,15 +15,11 @@ local DesignConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):Wait
     - 航行结束后恢复玩家与默认摄像机
     返回：void
 ]]
-local function ShowGameStartCG()
+local function ShowGameStartCG(playerUserIds)
     local mapConfig = DesignConfig:GetByMapId(_G.ClientData.IslandId)
     if not mapConfig then return end
-    local land = workspace:FindFirstChild(mapConfig.MapName)
-    if not land then return end
-    local Special = land:FindFirstChild("Special")
-    if not Special then return end
-    local Boat = Special:FindFirstChild("Boat")
-    if not Boat then return end
+    local boat = workspace:FindFirstChild(GameConfig.TeleportPartNames)
+    if not boat then return end
 
     if _G.CGPlaying then
         return
@@ -35,52 +32,86 @@ local function ShowGameStartCG()
         _G.CGPlaying = false
         return
     end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        _G.CGPlaying = false
+        return
+    end
 
-    character.Parent = Boat
+    Knit.GetController("UIController").ShowMainUI:Fire(false)
+
+    local moveSpeed = 60
+    local startCFrame = boat:GetAttribute("CGStartFrame")
+    local endCFrame = boat:GetAttribute("CGEndFrame")
+    local boatFrame = boat:GetPivot()
+    local hrpOffsetCF = {}
+    local players = {}
+    for _, playerUserId in ipairs(playerUserIds) do
+        local player = Players:GetPlayerByUserId(playerUserId)
+        if not player then continue end
+        table.insert(players, player)
+        local playerCharacter = player.Character or player.CharacterAdded:Wait()
+        local playerHumanoidRootPart = playerCharacter:FindFirstChild("HumanoidRootPart")
+        if not playerHumanoidRootPart then continue end
+        hrpOffsetCF[player.UserId] = boatFrame:ToObjectSpace(playerHumanoidRootPart.CFrame)
+    end
+
+    local function setPlayerFrame(current)
+        for _, player in ipairs(players) do
+            local playerCharacter = player.Character or player.CharacterAdded:Wait()
+            local playerHumanoidRootPart = playerCharacter:FindFirstChild("HumanoidRootPart")
+            if not playerHumanoidRootPart then continue end
+            playerHumanoidRootPart.CFrame = current * hrpOffsetCF[player.UserId]
+        end
+    end
+
+    boat:PivotTo(startCFrame)
+    setPlayerFrame(startCFrame)
 
     local camera = workspace.CurrentCamera
     local originalCameraType = camera.CameraType
     local originalCameraSubject = camera.CameraSubject
-    local originalWalkSpeed = humanoid.WalkSpeed
-    local originalJumpPower = humanoid.JumpPower
+    local originalCameraCFrame = camera.CFrame
 
     local playerModule = require(localPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
     local controls = playerModule:GetControls()
     controls:Disable()
-    humanoid.WalkSpeed = 0
-    humanoid.JumpPower = 0
+    local origAnchored = humanoidRootPart.Anchored
+    local origPlatformStand = humanoid.PlatformStand
+    humanoidRootPart.Anchored = true
+    humanoid.PlatformStand = true
 
     camera.CameraType = Enum.CameraType.Scriptable
 
-    local moveSpeed = 60
-    local startCFrame = Boat:GetAttribute("CGStartFrame")
-    local endCFrame = Boat:GetAttribute("CGEndFrame")
-
-    Boat:PivotTo(startCFrame)
-
-    local cameraOffset = Boat:GetAttribute("CGCameraOffsetFrame")
+    local cameraOffset = boat:GetAttribute("CGCameraOffsetFrame")
     local curTime = 0
+    local dbgTime = 0
     local isShowBlackUI = false
     local conn
     conn = RunService.RenderStepped:Connect(function(dt)
-        local current = Boat:GetPivot()
+        local current = boat:GetPivot()
         local toEnd = endCFrame.Position - current.Position
+        local dist = toEnd.Magnitude
         local step = moveSpeed * dt
         curTime = curTime + dt
+        dbgTime = dbgTime + dt
         if curTime >= 2 and not isShowBlackUI then
             isShowBlackUI = true
             Knit.GetController("UIController").ShowBlackUI:Fire({Show = true,
             Text = string.format("Approaching %s", mapConfig.DesignName),
             CallfuncMiddle = function()
-                Boat:PivotTo(endCFrame)
-                character.Parent = workspace
-                camera.CameraType = originalCameraType
-                camera.CameraSubject = originalCameraSubject or humanoid
+                Knit.GetService("BoatService"):Reset(endCFrame):andThen(function()
+                    Knit.GetController("UIController").ResetBoat:Fire()
+                end)
             end,
             CallfuncEnd = function()
+                camera.CameraType = originalCameraType
+                camera.CameraSubject = originalCameraSubject
+                camera.CFrame = originalCameraCFrame
+                
                 controls:Enable()
-                humanoid.WalkSpeed = originalWalkSpeed
-                humanoid.JumpPower = originalJumpPower
+                humanoidRootPart.Anchored = origAnchored
+                humanoid.PlatformStand = origPlatformStand
                 _G.CGPlaying = false
 
                 if conn then
@@ -89,15 +120,26 @@ local function ShowGameStartCG()
                 end
 
                 task.delay(0.3, function()
+                    Knit.GetController("UIController").ShowMainUI:Fire(true)
                     Knit.GetController("UIController").ShowStartGameUI:Fire() -- 显示开始游戏UI
                 end)
             end})
             return
         end
 
-        local newPos = current.Position + toEnd.Unit * step
+        local newPos
+        if dist > 1e-4 then
+            local dir = toEnd / dist
+            newPos = current.Position + dir * step
+            if (newPos - current.Position).Magnitude > dist then
+                newPos = endCFrame.Position
+            end
+        else
+            newPos = endCFrame.Position
+        end
         local newCFrame = CFrame.new(newPos) * current.Rotation
-        Boat:PivotTo(newCFrame)
+        boat:PivotTo(newCFrame)
+        setPlayerFrame(newCFrame)
 
         local camCFrame = newCFrame * cameraOffset
         camera.CFrame = CFrame.lookAt(camCFrame.Position, newCFrame.Position)
@@ -105,7 +147,7 @@ local function ShowGameStartCG()
 end
 
 Knit.OnStart():andThen(function()
-	Knit.GetController("UIController").ShowGameStartCG:Connect(function()
-        ShowGameStartCG()
+	Knit.GetController("UIController").ShowGameStartCG:Connect(function(playerUserIds)
+        ShowGameStartCG(playerUserIds)
 	end)
 end)

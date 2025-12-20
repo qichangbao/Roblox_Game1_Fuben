@@ -6,6 +6,8 @@ local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Kn
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local DesignResConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignResConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local DesignConfig = require(ReplicatedStorage:WaitForChild('ConfigFolder'):WaitForChild('DesignConfig'))
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local ItemWorkspaceFolder = workspace:WaitForChild("Item")
 if not ItemWorkspaceFolder then
@@ -29,7 +31,6 @@ local ItemService = Knit.CreateService {
     },
 
     Items = {},
-    TotalValue = 0,
 }
 
 -- 创建炫彩宝箱特效
@@ -72,7 +73,9 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, at
         item:PivotTo(CFrame.new(Vector3.new(position.X, position.Y + item.PrimaryPart.Size.Y / 2, position.Z)))
     end
     item:SetAttribute("ItemId", itemId)
-    item:SetAttribute("DropGroup", dropGroup)
+    if dropGroup then
+        item:SetAttribute("DropGroup", dropGroup)
+    end
     if attribute then
         attribute.IsEquipped = 0
     end
@@ -103,9 +106,6 @@ function ItemService:CreateItem(itemId, position, dropGroup, attribute, isAnchor
     if not item or not itemInfo then
         return
     end
-
-    -- 计算物品总价值
-    self.TotalValue = self.TotalValue + itemInfo.SellPrice
 
     -- 创建外发光
     local highlight = Instance.new("Highlight")
@@ -138,7 +138,7 @@ function ItemService:CreateItem(itemId, position, dropGroup, attribute, isAnchor
     proximityPrompt.GamepadKeyCode = Enum.KeyCode.ButtonX -- 手柄按键
     proximityPrompt.MaxActivationDistance = 10 -- 最大激活距离
     proximityPrompt.HoldDuration = itemInfo.PickTime -- 按住时间（0表示点击即可）
-    proximityPrompt.RequiresLineOfSight = true -- 是否需要视线可见
+    proximityPrompt.RequiresLineOfSight = false -- 是否需要视线可见
 
     -- 当玩家触发提示时
     proximityPrompt.Triggered:Connect(function(player)
@@ -189,27 +189,21 @@ end
 -- @param item: 要拾取的物品实例
 -- @param itemInfo: 物品配置信息
 function ItemService:HandleItemPickup(player, item)
-    if not player or not item then
-        warn("HandleItemPickup: 参数不完整")
-        return
-    end
-    
-    -- 检查玩家是否死亡
+    if not player or not item then return end
     local character = player.Character
-    if not character then
-        return
-    end
-    
+    if not character then return end
     local humanoid = character:FindFirstChild("Humanoid")
-    if not humanoid or humanoid.Health <= 0 then
-        return
-    end
-    
-    -- 检查物品是否还存在
-    if not item.Parent then
-        return
-    end
+    if not humanoid or humanoid.Health <= 0 then return end
+    if not item.Parent then return end
 
+    local isGold = Interface.IsGold(item:GetAttribute("ItemId"))
+    if isGold then
+        local gold = item:GetAttribute("Gold")
+        Knit.GetService("TaskService"):UpdateEscapeTask(gold)
+        self.Items[item] = nil
+        item:Destroy()
+        return
+    end
     -- 尝试将物品添加到玩家背包
     local success, errorMessage = Knit.GetService("InventoryService"):GiveToolToPlayer(player, item)
     if success then
@@ -294,25 +288,78 @@ function ItemService.Client:GetItems()
     return self.Server:GetItems()
 end
 
-function ItemService:CreateInitItem(data)
-    if data.Refresh == 2 then
-        if math.random(10000) > data.Probability then return end
+function ItemService:DestroyAllItems()
+    for _, item in pairs(self.Items) do
+        self:RemoveItem(item)
     end
-
-    self:CreateItem(data.CanisterId, data.Position, data.DropGroup, GameConfig.GetItemAttribute(), false)
+    self.Items = {}
 end
 
-function ItemService:initItems()
+function ItemService:InitItems()
     if #self.Items > 0 then
         return
     end
     
     task.spawn(function()
         local islandId = Knit.GetService("IslandService"):GetIslandId()
+        local designConfig = DesignConfig:GetByMapId(islandId)
+        if not designConfig then return end
+
+        local resArray = {}
         local resConfig = DesignResConfig:GetAll()
         for _, config in ipairs(resConfig) do
             if config.MapId == islandId then
-                self:CreateInitItem(config)
+                if not resArray[config.Resource] then
+                    resArray[config.Resource] = {}
+                end
+                if not resArray[config.Resource][config.Refresh] then
+                    resArray[config.Resource][config.Refresh] = {}
+                end
+                table.insert(resArray[config.Resource][config.Refresh], config)
+            end
+        end
+
+        local resourceNum = designConfig.ResourceNum
+        for _, data in pairs(resourceNum) do
+            local resType = data[1]
+            local num = data[2]
+            if not resArray[resType] then continue end
+            if resArray[resType][1] then
+                for _, config in ipairs(resArray[resType][1]) do
+                    local modelId = config.CanisterId
+                    local gold
+                    if config.Resource == 1 then
+                        gold = math.random(config.GoldRange[1], config.GoldRange[2])
+                        modelId = Interface.GetGoldModelId(gold)
+                    end
+                    local item = self:CreateItem(modelId, config.Position, config.DropGroup, GameConfig.GetItemAttribute(), false)
+                    if gold and item then
+                        item:SetAttribute("Gold", gold)
+                    end
+                    num -= 1
+                    if num <= 0 then
+                        break
+                    end
+                end
+            end
+            if resArray[resType][2] then
+                Interface.randomTable(resArray[resType][2])
+                for _, config in ipairs(resArray[resType][2]) do
+                    local modelId = config.CanisterId
+                    local gold
+                    if config.Resource == 1 then
+                        gold = math.random(config.GoldRange[1], config.GoldRange[2])
+                        modelId = Interface.GetGoldModelId(gold)
+                    end
+                    local item =self:CreateItem(modelId, config.Position, config.DropGroup, GameConfig.GetItemAttribute(), false)
+                    if gold and item then
+                        item:SetAttribute("Gold", gold)
+                    end
+                    num -= 1
+                    if num <= 0 then
+                        break
+                    end
+                end
             end
         end
 
@@ -345,8 +392,6 @@ function ItemService:initItems()
         -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230), GameConfig.GetItemAttribute(), false)
         -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute(), false)
         -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
-        
-        print("物品总价值", self.TotalValue)
     end)
 end
 

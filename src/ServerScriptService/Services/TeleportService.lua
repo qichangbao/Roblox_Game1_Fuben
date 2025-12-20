@@ -115,7 +115,7 @@ function TeleportServiceModule:Escape(player, needCheckPos)
 		if not islandId then return false end
 		local mapConfig = DesignConfig:GetByMapId(islandId)
 		if not mapConfig then return false end
-        local isInTrigger = Interface.isPlayerOnBoat(player, mapConfig.MapName)
+        local isInTrigger = Interface.isPlayerOnBoat(player)
         if isInTrigger then
             return self:teleportToReserveServer(player, true)
         end

@@ -5,6 +5,7 @@ EquipmentConfig.Data = {
     [1] = {
         EquipId = 901,
         Type = 1,
+        DisplayName = "衣服",
         Quality = 1,
         Icon = "rbxassetid://108864196858289",
         AssetId = "rbxassetid://2067610595",
@@ -12,6 +13,7 @@ EquipmentConfig.Data = {
     [2] = {
         EquipId = 902,
         Type = 2,
+        DisplayName = "裤子",
         Quality = 1,
         Icon = "rbxassetid://108864196858289",
         AssetId = "rbxassetid://2067611839",
@@ -19,6 +21,7 @@ EquipmentConfig.Data = {
     [3] = {
         EquipId = 903,
         Type = 3,
+        DisplayName = "帽子",
         Quality = 1,
         Icon = "rbxassetid://108864196858289",
         AssetId = 1,
@@ -42,6 +45,15 @@ end
 function EquipmentConfig:GetByType(value)
     for i, item in pairs(self.Data) do
         if item.Type == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function EquipmentConfig:GetByDisplayName(value)
+    for i, item in pairs(self.Data) do
+        if item.DisplayName == value then
             return item
         end
     end

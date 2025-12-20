@@ -4,6 +4,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local UserInputService = game:GetService("UserInputService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local DropPoolConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DropPoolConfig"))
+local DropTableConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DropTableConfig"))
 local TweenService = game:GetService("TweenService")
 local ContentProvider = game:GetService("ContentProvider")
 
@@ -382,7 +384,7 @@ function Interface.checkPlayerOnModel(player, triggerModel)
     
     -- 从玩家脚下向下发射射线
     local rayOrigin = playerPosition + Vector3.new(0, 1, 0) -- 稍微抬高起点
-    local rayDirection = Vector3.new(0, -10, 0)
+    local rayDirection = Vector3.new(0, -30, 0)
     
     local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
     
@@ -409,21 +411,27 @@ end
 -- 检查玩家是否站在船上面
 -- @param player Player 要检查的玩家
 -- @return boolean 是否站在船上面
-function Interface.isPlayerOnBoat(player, islandName)
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-        return false
+function Interface.isPlayerOnBoat(player)
+    if not player or not player.Character then return false end
+    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    local boat = workspace:FindFirstChild(GameConfig.TeleportPartNames)
+    if not boat then return false end
+
+    local origin = hrp.Position + Vector3.new(0, 1, 0)
+    local direction = Vector3.new(0, -50, 0)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = { player.Character }
+
+    local result = workspace:Raycast(origin, direction, params)
+    if not result or not result.Instance then return false end
+
+    local hitPart = result.Instance
+    if hitPart:IsDescendantOf(boat) then
+        return true
     end
-    
-    local land = Interface.safeWaitPart(workspace, islandName)
-    local special = Interface.safeWaitPart(land, "Special")
-    -- 检查每个触发Model
-    for _, modelName in ipairs(GameConfig.TeleportPartNames) do
-        local triggerModel = Interface.safeWaitPart(special, modelName)
-        if triggerModel and triggerModel:IsA("Model") then
-            return Interface.checkPlayerOnModel(player, triggerModel)
-        end
-    end
-    
+
     return false
 end
 
@@ -723,6 +731,105 @@ function Interface.AnimateUIShowScale(guiObject, opts)
     end)
 
     return scale, tween
+end
+
+-- 获取掉落物品
+function Interface.GetDropItems(dropId)
+    local dropConfig = DropPoolConfig:GetByID(dropId)
+    if not dropConfig then return end
+
+    local dropTables = {}
+    if dropConfig.dropType == 1 then        -- 1为唯一掉落（多个里面按权重必定抽1个）
+        local totalProbability = 0
+        if #dropConfig.weight > 2 then
+            for _, weight in ipairs(dropConfig.weight) do
+                totalProbability = totalProbability + weight[2]
+            end
+            local randomNum = math.random(totalProbability)
+            local currentProbability = 0
+            for _, weight in ipairs(dropConfig.weight) do
+                currentProbability = currentProbability + weight[2]
+                if randomNum <= currentProbability then
+                    table.insert(dropTables, weight[1])
+                    break
+                end
+            end
+        else
+            table.insert(dropTables, dropConfig.weight[1])
+        end
+    elseif dropConfig.dropType == 2 then    -- 2为独立掉落（每一个为独立概率掉落互不影响）
+        if #dropConfig.weight > 2 then
+            for _, weight in ipairs(dropConfig.weight) do
+                if math.random(10000) <= weight[2] then
+                    table.insert(dropTables, weight[1])
+                end
+            end
+        else
+            if math.random(10000) <= dropConfig.weight[2] then
+                table.insert(dropTables, dropConfig.weight[1])
+            end
+        end
+    end
+
+    if #dropTables == 0 then return end
+
+    local itemArray = {}
+    for _, dropTableId in ipairs(dropTables) do
+        local dropTable = DropTableConfig:GetByID(dropTableId)
+        if not dropTable then continue end
+
+        -- 把掉落数据存在表中
+        local dropArray = {}
+        for _, info in ipairs(dropTable.dropInfo) do
+            local itemId = info[1]
+            local num = info[2]
+            local probability = info[3]
+            for _ = 1, num do
+                table.insert(dropArray, {itemId, probability})
+            end
+        end
+
+        local curNum = 0
+        local dropNum = math.random(dropTable.minDrop or 0, dropTable.maxDrop or 0)
+        while curNum < dropNum do
+            if #dropArray == 0 then
+                break
+            end
+            for i = #dropArray, 1, -1 do
+                local info = dropArray[i]
+                if dropTable.type == 2 then
+                    table.remove(dropArray, i)
+                end
+                local itemId = info[1]
+                local probability = info[2]
+                if math.random(1, 10000) <= probability then
+                    table.insert(itemArray, itemId)
+                    curNum += 1
+                    if curNum >= dropNum then
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    return itemArray
+end
+
+-- 获取金币模型名称
+function Interface.GetGoldModelId(gold)
+    if gold >= 100 then
+        return 1041
+    elseif gold >= 10 then
+        return 1040
+    else
+        return 1039
+    end
+end
+
+-- 是否为金币
+function Interface.IsGold(itemId)
+    return itemId == 1039 or itemId == 1040 or itemId == 1041
 end
 
 return Interface

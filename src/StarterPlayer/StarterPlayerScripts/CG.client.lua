@@ -674,9 +674,8 @@ end
 
 Knit.OnStart():andThen(function()
 	Knit.GetController("UIController").ShowCG:Connect(function()
-        if game:GetService("RunService"):IsStudio() then
-            return
-        end
+        if _G.ClientData.Test then return end
+
         while #AllItems == 0 do
             Knit.GetService("ItemService"):GetItems():andThen(function(items)
                 AllItems = items

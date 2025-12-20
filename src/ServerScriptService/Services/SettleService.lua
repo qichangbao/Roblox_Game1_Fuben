@@ -101,7 +101,7 @@ local function succ(player)
                 -- 工具栏1-3格只能带回除收集类物品以外的物品
                 if itemInfo.Type == GameConfig.ItemType.Collect then
                     task.spawn(function()
-                        Knit.GetService("ItemService"):CreateItem(data.ItemId, groundPosition, 0, true)
+                        Knit.GetService("ItemService"):CreateItem(data.ItemId, groundPosition, 0, data.Attribute, true)
                         task.wait(0.3)
                     end)
                     toolData[i] = {ItemId = 0, Attribute = GameConfig.GetItemAttribute()}
@@ -201,7 +201,7 @@ function SettleService:Settle(player, needCheckPos, isForceLose)
 		if not islandId then return false end
 		local mapConfig = DesignConfig:GetByMapId(islandId)
 		if not mapConfig then return false end
-		local isOnBoat = Interface.isPlayerOnBoat(player, mapConfig.MapName)
+		local isOnBoat = Interface.isPlayerOnBoat(player)
         if isOnBoat then
             escapeItems, totalValue, totalTime = succ(player)
         else

@@ -32,17 +32,41 @@ ConstantConfig.Data = {
     [2] = {
         ID = 2,
         Constant = "RunValue",
-        Desc = "奔跑值",
+        Desc = "初始体力值上限",
         Effect1 = 100,
     },
     [3] = {
         ID = 3,
         Constant = "RunRecoverEfficiency",
-        Desc = "奔跑恢复效率（秒_奔跑值）",
+        Desc = "（体力）耐力恢复【秒_（体力）耐力值】",
         Effect1 = {
             1,
             10
         },
+    },
+    [4] = {
+        ID = 4,
+        Constant = "VoteFastcCountdown",
+        Desc = "玩家投票进入下一层，快速倒计时/秒",
+        Effect1 = 30,
+    },
+    [5] = {
+        ID = 5,
+        Constant = "InitialHealth",
+        Desc = "初始生命",
+        Effect1 = 100,
+    },
+    [6] = {
+        ID = 6,
+        Constant = "InitialMovementSpeed",
+        Desc = "初始移动速度",
+        Effect1 = 16,
+    },
+    [7] = {
+        ID = 7,
+        Constant = "InitialSprintSpeed",
+        Desc = "初始奔跑速度",
+        Effect1 = 30,
     },
 }
 

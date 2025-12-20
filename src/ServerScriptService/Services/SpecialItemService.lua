@@ -3,7 +3,6 @@ local TweenService = game:GetService("TweenService")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
-local DropTableConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DropTableConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local SpecialItemService = Knit.CreateService({
@@ -13,43 +12,12 @@ local SpecialItemService = Knit.CreateService({
     },
 })
 
-function SpecialItemService:CreateDropItems(player, dropGroupId, position)
-    local dropTable = DropTableConfig:GetByID(dropGroupId)
-    if not dropTable then return false end
+function SpecialItemService:CreateDropItems(dropGroupId, position)
+    local itemArray = Interface.GetDropItems(dropGroupId)
+    if not itemArray then return false end
 
-    -- 把掉落数据存在表中
-    local dropArray = {}
-    for _, info in ipairs(dropTable.dropInfo) do
-        local itemId = info[1]
-        local num = info[2]
-        local probability = info[3]
-        for _ = 1, num do
-            table.insert(dropArray, {itemId, probability})
-        end
-    end
-
-    local luck = Knit.GetService("PlayerService"):GetPlayerAttribute(player, "Luck") or 0
-    local curNum = 0
-    local dropNum = math.random(dropTable.minDrop or 0, dropTable.maxDrop or 0)
-    while curNum < dropNum do
-        if #dropArray == 0 then
-            break
-        end
-        for i = #dropArray, 1, -1 do
-            local info = dropArray[i]
-            if dropTable.type == 2 then
-                table.remove(dropArray, i)
-            end
-            local itemId = info[1]
-            local probability = info[2]
-            if math.random(1, 10000) <= probability then
-                Knit.GetService("ItemService"):CreateItem(itemId, position, 0, GameConfig.GetItemAttribute(), true)
-                curNum += 1
-                if curNum >= dropNum then
-                    break
-                end
-            end
-        end
+    for _, itemId in ipairs(itemArray) do
+        Knit.GetService("ItemService"):CreateItem(itemId, position, 0, GameConfig.GetItemAttribute(), true)
     end
 end
 
@@ -62,7 +30,7 @@ function SpecialItemService:OpenMound(player, item)
     if not itemInfo then return false end
 
     local position = item:GetPivot().Position
-    self:CreateDropItems(player, item:GetAttribute("DropGroup"), position)
+    self:CreateDropItems(item:GetAttribute("DropGroup"), position)
 
     Knit.GetService("ItemService"):RemoveItem(item)
     Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
@@ -90,7 +58,7 @@ function SpecialItemService:OpenOre(player, item)
     end
 
     local position = item:GetPivot().Position
-    self:CreateDropItems(player, item:GetAttribute("DropGroup"), position)
+    self:CreateDropItems(item:GetAttribute("DropGroup"), position)
 
     Knit.GetService("ItemService"):RemoveItem(item)
     Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
@@ -188,7 +156,7 @@ function SpecialItemService:OpenChest(player, item)
     end
 
     local position = item:GetPivot().Position
-    self:CreateDropItems(player, item:GetAttribute("DropGroup"), position)
+    self:CreateDropItems(item:GetAttribute("DropGroup"), position)
 
     -- 播放开箱子动画
     self:PlayChestOpenAnimation(item)

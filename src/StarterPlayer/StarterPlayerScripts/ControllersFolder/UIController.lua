@@ -19,6 +19,7 @@ local UIController = Knit.CreateController {
 	UpdateToolUI = Signal.new(),
     UpdateBagUI = Signal.new(),
     InitTaskUI = Signal.new(),
+    UpdateEscapeTime = Signal.new(),
     UpdateTaskUI = Signal.new(),
     UpdateEscapeTask = Signal.new(),
     ShowAdditionalBackpackUI = Signal.new(),
@@ -40,6 +41,10 @@ local UIController = Knit.CreateController {
     PickUpItem = Signal.new(),
     ShowGameStartCG = Signal.new(),
     ShowBlackUI = Signal.new(),
+    ChooseEscape = Signal.new(),
+    ChooseNextIsland = Signal.new(),
+    ShowMainUI = Signal.new(),
+    ResetBoat = Signal.new(),
 }
 
 function UIController:KnitInit()

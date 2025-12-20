@@ -6,13 +6,44 @@ DesignConfig.Data = {
         DesignId = 1,
         DesignName = "新手海湾",
         MapId = 100,
-        MapName = "新手岛",
+        DisplayName = nil,
         MusicId = 100,
-        WeatherId = {
-            1,
-            100
+        WeatherId = 0,
+        DesignTarget = 78,
+        EvacuateTime = 3000,
+        ResourceNum = {
+            {
+                1,
+                3
+            },
+            {
+                2,
+                3
+            },
+            {
+                3,
+                3
+            },
+            {
+                4,
+                3
+            }
         },
-        DesignTarget = 100,
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [2] = {
+        DesignId = 2,
+        DesignName = "珊瑚浅滩",
+        MapId = 101,
+        DisplayName = nil,
+        MusicId = 101,
+        WeatherId = 0,
+        DesignTarget = 214,
         EvacuateTime = 300,
         ResourceNum = {
             {
@@ -39,48 +70,324 @@ DesignConfig.Data = {
             4
         },
     },
-    [2] = {
-        DesignId = 2,
-        DesignName = "珊瑚浅滩",
-        MapId = 101,
-        MapName = "恐龙岛",
-        MusicId = 101,
-        WeatherId = {
-            1,
-            100
-        },
-        DesignTarget = 200,
-        EvacuateTime = 300,
-        ResourceNum = nil,
-        Monster = nil,
-    },
     [3] = {
         DesignId = 3,
         DesignName = "迷雾海峡",
         MapId = 102,
-        MapName = nil,
+        DisplayName = nil,
         MusicId = 102,
-        WeatherId = {
+        WeatherId = 0,
+        DesignTarget = 429,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
             {
                 2,
-                90
+                5
             },
             {
                 3,
-                10
+                5
+            },
+            {
+                4,
+                5
             }
         },
-        DesignTarget = 300,
-        EvacuateTime = 300,
-        ResourceNum = nil,
-        Monster = nil,
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
     },
     [4] = {
         DesignId = 4,
         DesignName = "暴风海域",
         MapId = 103,
-        MapName = nil,
+        DisplayName = nil,
         MusicId = 103,
+        WeatherId = 0,
+        DesignTarget = 716,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [5] = {
+        DesignId = 5,
+        DesignName = "幽灵深渊",
+        MapId = 104,
+        DisplayName = nil,
+        MusicId = 104,
+        WeatherId = 0,
+        DesignTarget = 1078,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [6] = {
+        DesignId = 6,
+        DesignName = "赤焰裂谷",
+        MapId = 105,
+        DisplayName = nil,
+        MusicId = 105,
+        WeatherId = 0,
+        DesignTarget = 1569,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [7] = {
+        DesignId = 7,
+        DesignName = "废弃工厂",
+        MapId = 106,
+        DisplayName = nil,
+        MusicId = 106,
+        WeatherId = 0,
+        DesignTarget = 2168,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [8] = {
+        DesignId = 8,
+        DesignName = "极光冰窟",
+        MapId = 107,
+        DisplayName = nil,
+        MusicId = 107,
+        WeatherId = 0,
+        DesignTarget = 2883,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [9] = {
+        DesignId = 9,
+        DesignName = "铭文圣屿",
+        MapId = 108,
+        DisplayName = nil,
+        MusicId = 108,
+        WeatherId = 0,
+        DesignTarget = 3719,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [10] = {
+        DesignId = 10,
+        DesignName = "城堡要塞",
+        MapId = 109,
+        DisplayName = nil,
+        MusicId = 109,
+        WeatherId = {
+            1,
+            100
+        },
+        DesignTarget = 4683,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [11] = {
+        DesignId = 11,
+        DesignName = "新手海湾",
+        MapId = 110,
+        DisplayName = nil,
+        MusicId = 110,
+        WeatherId = {
+            1,
+            100
+        },
+        DesignTarget = 6031,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [12] = {
+        DesignId = 12,
+        DesignName = "珊瑚浅滩",
+        MapId = 111,
+        DisplayName = nil,
+        MusicId = 111,
         WeatherId = {
             {
                 2,
@@ -91,17 +398,82 @@ DesignConfig.Data = {
                 10
             }
         },
-        DesignTarget = 400,
+        DesignTarget = 7588,
         EvacuateTime = 300,
-        ResourceNum = nil,
-        Monster = nil,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
     },
-    [5] = {
-        DesignId = 5,
-        DesignName = "幽灵深渊",
-        MapId = 104,
-        MapName = nil,
-        MusicId = 104,
+    [13] = {
+        DesignId = 13,
+        DesignName = "迷雾海峡",
+        MapId = 112,
+        DisplayName = nil,
+        MusicId = 112,
+        WeatherId = {
+            {
+                2,
+                90
+            },
+            {
+                3,
+                10
+            }
+        },
+        DesignTarget = 9363,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [14] = {
+        DesignId = 14,
+        DesignName = "暴风海域",
+        MapId = 113,
+        DisplayName = nil,
+        MusicId = 113,
         WeatherId = {
             {
                 1,
@@ -112,10 +484,576 @@ DesignConfig.Data = {
                 10
             }
         },
-        DesignTarget = 500,
+        DesignTarget = 11366,
         EvacuateTime = 300,
-        ResourceNum = nil,
-        Monster = nil,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [15] = {
+        DesignId = 15,
+        DesignName = "幽灵深渊",
+        MapId = 114,
+        DisplayName = nil,
+        MusicId = 114,
+        WeatherId = 0,
+        DesignTarget = 13606,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [16] = {
+        DesignId = 16,
+        DesignName = "赤焰裂谷",
+        MapId = 115,
+        DisplayName = nil,
+        MusicId = 115,
+        WeatherId = 0,
+        DesignTarget = 16973,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [17] = {
+        DesignId = 17,
+        DesignName = "废弃工厂",
+        MapId = 116,
+        DisplayName = nil,
+        MusicId = 116,
+        WeatherId = 0,
+        DesignTarget = 20762,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [18] = {
+        DesignId = 18,
+        DesignName = "极光冰窟",
+        MapId = 117,
+        DisplayName = nil,
+        MusicId = 117,
+        WeatherId = 0,
+        DesignTarget = 24988,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [19] = {
+        DesignId = 19,
+        DesignName = "铭文圣屿",
+        MapId = 118,
+        DisplayName = nil,
+        MusicId = 118,
+        WeatherId = 0,
+        DesignTarget = 29667,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [20] = {
+        DesignId = 20,
+        DesignName = "城堡要塞",
+        MapId = 119,
+        DisplayName = nil,
+        MusicId = 119,
+        WeatherId = 0,
+        DesignTarget = 34812,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [21] = {
+        DesignId = 21,
+        DesignName = "新手海湾",
+        MapId = 120,
+        DisplayName = nil,
+        MusicId = 120,
+        WeatherId = 0,
+        DesignTarget = 41764,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [22] = {
+        DesignId = 22,
+        DesignName = "珊瑚浅滩",
+        MapId = 121,
+        DisplayName = nil,
+        MusicId = 121,
+        WeatherId = 0,
+        DesignTarget = 49403,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [23] = {
+        DesignId = 23,
+        DesignName = "迷雾海峡",
+        MapId = 122,
+        DisplayName = nil,
+        MusicId = 122,
+        WeatherId = 0,
+        DesignTarget = 57749,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [24] = {
+        DesignId = 24,
+        DesignName = "暴风海域",
+        MapId = 123,
+        DisplayName = nil,
+        MusicId = 123,
+        WeatherId = 0,
+        DesignTarget = 66820,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [25] = {
+        DesignId = 25,
+        DesignName = "幽灵深渊",
+        MapId = 124,
+        DisplayName = nil,
+        MusicId = 124,
+        WeatherId = 0,
+        DesignTarget = 76637,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [26] = {
+        DesignId = 26,
+        DesignName = "赤焰裂谷",
+        MapId = 125,
+        DisplayName = nil,
+        MusicId = 125,
+        WeatherId = 0,
+        DesignTarget = 89044,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [27] = {
+        DesignId = 27,
+        DesignName = "废弃工厂",
+        MapId = 126,
+        DisplayName = nil,
+        MusicId = 126,
+        WeatherId = 0,
+        DesignTarget = 102445,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [28] = {
+        DesignId = 28,
+        DesignName = "极光冰窟",
+        MapId = 127,
+        DisplayName = nil,
+        MusicId = 127,
+        WeatherId = 0,
+        DesignTarget = 116864,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [29] = {
+        DesignId = 29,
+        DesignName = "铭文圣屿",
+        MapId = 128,
+        DisplayName = nil,
+        MusicId = 128,
+        WeatherId = 0,
+        DesignTarget = 132325,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
+    },
+    [30] = {
+        DesignId = 30,
+        DesignName = "城堡要塞",
+        MapId = 129,
+        DisplayName = nil,
+        MusicId = 129,
+        WeatherId = 0,
+        DesignTarget = 148850,
+        EvacuateTime = 300,
+        ResourceNum = {
+            {
+                1,
+                5
+            },
+            {
+                2,
+                5
+            },
+            {
+                3,
+                5
+            },
+            {
+                4,
+                5
+            }
+        },
+        Monster = {
+            1,
+            2,
+            3,
+            4
+        },
     },
 }
 
@@ -151,9 +1089,9 @@ function DesignConfig:GetByMapId(value)
     return nil
 end
 
-function DesignConfig:GetByMapName(value)
+function DesignConfig:GetByDisplayName(value)
     for i, item in pairs(self.Data) do
-        if item.MapName == value then
+        if item.DisplayName == value then
             return item
         end
     end

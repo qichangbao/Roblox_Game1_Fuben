@@ -234,6 +234,8 @@ function MonsterService:CreateMonster(data)
         if math.random(10000) > data.Probability then return end
     end
 
+    if not data.MonsterId then return end
+
     local monsterInfo = MonsterConfig:GetByMonsterId(data.MonsterId)
     if not monsterInfo then
         warn("Monster not found: " .. data.MonsterId)
@@ -402,7 +404,14 @@ function MonsterService:ChaseCannel(npc)
     self.ChaseMonsters[npc.Name] = nil
 end
 
-function MonsterService:initMonsters()
+function MonsterService:DestroyAllMonsters()
+    for _, monster in pairs(self.Monsters) do
+        self:MonsterRemoved(monster)
+    end
+    self.Monsters = {}
+end
+
+function MonsterService:InitMonsters()
     if #self.Monsters > 0 then
         return
     end

@@ -8,12 +8,14 @@ local DesignConfig = require(ReplicatedStorage:WaitForChild('ConfigFolder'):Wait
 local SimpleArrowNavigation = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("SimpleArrowNavigation"))
 
 local ClientData = {}
+ClientData.Test = true
 ClientData.Gold = 0
 ClientData.Inventory = {}
 ClientData.ToolData = {}
 ClientData.BagData = {}
 ClientData.CurEscapeTask = 0    -- 当前完成的撤离任务
 ClientData.EscapeTask = 0       -- 目标完成撤离任务
+ClientData.EscapeTime = 0       -- 目标完成撤离时间
 ClientData.IsFirstLoginFuben = 0 -- 是否是第一次登录游戏
 ClientData.IslandId = GameConfig.IsLandId -- 岛屿ID
 ClientData.Overwhelmed = 0 -- 当前负重
@@ -21,7 +23,9 @@ ClientData.MaxOverwhelmed = 0 -- 最大负重
 ClientData.PlayerCount = 0 -- 玩家人数
 
 local function setInitData(data)
-    task.wait(2)
+	if not _G.ClientData.Test then
+		task.wait(2)
+	end
     Knit.GetController("UIController").ShowBlackUI:Fire({Show = false})
     ClientData.Inventory = data.Inventory or {}
     ClientData.ToolData = data.ToolData or {}
@@ -42,7 +46,15 @@ local function setInitData(data)
     Knit.GetController("UIController").ChangeGoldUI:Fire(ClientData.Gold)
     Knit.GetController("UIController").UpdateToolUI:Fire(ClientData.ToolData)
     Knit.GetController("UIController").UpdateEscapeTask:Fire(ClientData.CurEscapeTask, ClientData.EscapeTask)
-    Knit.GetController("UIController").ShowGameStartCG:Fire()
+    if _G.ClientData.Test then
+        Knit.GetController("UIController").ShowStartGameUI:Fire()
+    else
+        local playerUserIds = {}
+        for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+            table.insert(playerUserIds, player.UserId)
+        end
+        Knit.GetController("UIController").ShowGameStartCG:Fire(playerUserIds)
+    end
 end
 
 local function showMonsterChaseFlag(monster, isShow)
@@ -116,10 +128,17 @@ local function init()
             sound:Play()
         end)
 
+        Knit.GetService("TaskService").UpdateEscapeTime:Connect(function(escapeTime)
+            ClientData.EscapeTime = escapeTime
+            Knit.GetController("UIController").UpdateEscapeTime:Fire(escapeTime)
+        end)
         Knit.GetService("TaskService").UpdateEscapeTask:Connect(function(curEscapeTask, escapeTask)
             ClientData.CurEscapeTask = curEscapeTask
             ClientData.EscapeTask = escapeTask
             Knit.GetController("UIController").UpdateEscapeTask:Fire(curEscapeTask, escapeTask)
+        end)
+        Knit.GetService("TaskService").GotoNextIsland:Connect(function(gotoNextIslandPlayers)
+            Knit.GetController("UIController").ShowGameStartCG:Fire(gotoNextIslandPlayers)
         end)
 
         Knit.GetService("ClientUIService").ShowTip:Connect(function(tip)
@@ -211,6 +230,13 @@ local function init()
 
         Knit.GetService("SpecialItemService").ShakeCarame:Connect(function(info)
             Knit.GetController("UIController").ShakeCarame:Fire(info)
+        end)
+
+        Knit.GetService("BoatService").ChooseEscape:Connect(function()
+            Knit.GetController("UIController").ChooseEscape:Fire()
+        end)
+        Knit.GetService("BoatService").ChooseNextIsland:Connect(function()
+            Knit.GetController("UIController").ChooseNextIsland:Fire()
         end)
     end)
 end

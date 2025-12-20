@@ -13,12 +13,17 @@ local DesignConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):Wait
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 local ItemInterface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("ItemInterface"))
 
+local _initHealth = ConstantConfig:GetByIndex(5).Effect1
+local _initWalkSpeed = ConstantConfig:GetByIndex(6).Effect1
+local _initRunSpeed = ConstantConfig:GetByIndex(7).Effect1
+
 local PlayerService = Knit.CreateService {
 	Name = "PlayerService",
 	Client = {
         UpdateOverwhelmed = Knit.CreateSignal(),-- 更新负重信号
 	},
 
+    PlayerCount = 0,   -- 玩家人数
     TalentData = {},   -- 玩家能力数据
     AnimationTracks = {},-- 玩家动画轨道
     FallData = {},      -- 存储玩家下落数据
@@ -43,6 +48,9 @@ function PlayerService:KnitStart()
             local humanoid = character:WaitForChild("Humanoid")
             humanoid.AutoJumpEnabled = false
             humanoid.UseJumpPower = true
+            humanoid.Health = _initHealth
+            humanoid.MaxHealth = _initHealth
+            humanoid.WalkSpeed = _initWalkSpeed
             humanoid:SetAttribute("InitHealth", humanoid.Health)
             humanoid:SetAttribute("InitWalkSpeed", humanoid.WalkSpeed)
             humanoid:SetAttribute("InitJumpPower", humanoid.JumpPower)
@@ -229,13 +237,13 @@ function PlayerService:GetInitData(player)
     }
 
     local islandId = GameConfig.IsLandId
-    local playerCount = #Players:GetPlayers()
+    self.PlayerCount = #Players:GetPlayers()
     -- 获取传送数据
     local joinData = player:GetJoinData()
     if joinData and joinData.TeleportData then
         local localTeleportData = joinData.TeleportData
         islandId = localTeleportData.IslandId or islandId
-        playerCount = localTeleportData.PlayerCount or playerCount
+        self.PlayerCount = localTeleportData.PlayerCount or self.PlayerCount
     else
         print(string.format("玩家 %s 没有传送数据", player.Name))
     end
@@ -244,9 +252,9 @@ function PlayerService:GetInitData(player)
     
     local mapConfig = DesignConfig:GetByMapId(islandId)
     local effect1 = ConstantConfig:GetByID(1).Effect1
-    local escapeTask = mapConfig.DesignTarget * effect1[playerCount][2] / 10000
+    local escapeTask = mapConfig.DesignTarget * effect1[self.PlayerCount][2] / 10000
     Knit.GetService("TaskService"):InitEscapeTask(escapeTask)
-    Knit.GetService("TaskService"):InitEscapeTime(mapConfig.EvacuateTime)
+    Knit.GetService("TaskService"):SetEscapeTime(mapConfig.EvacuateTime)
 
     local gold = Knit.GetService("GoldService"):GetGoldData(player)
     local inventoryData = Knit.GetService("InventoryService"):GetInventoryData(player)
@@ -265,12 +273,12 @@ function PlayerService:GetInitData(player)
     self.AttributeData[player.UserId].InitMaxOverwhelmed = GameConfig.Overwhelmed
     self:UpdateOverwhelmed(player)
 
-    Knit.GetService("MonsterService"):initMonsters(player)
-    Knit.GetService("ItemService"):initItems(player)
+    Knit.GetService("MonsterService"):InitMonsters(player)
+    Knit.GetService("ItemService"):InitItems(player)
 
     return {
         IslandId = islandId,
-        PlayerCount = playerCount,
+        PlayerCount = self.PlayerCount,
         Gold = gold,
         Inventory = inventoryData,
         ToolData = tool,
@@ -831,6 +839,10 @@ end
 function PlayerService:GetPlayerAttribute(player, attributeName)
     if not player or not attributeName or not self.AttributeData[player.UserId][attributeName] then return nil end
     return self.AttributeData[player.UserId][attributeName]
+end
+
+function PlayerService:GetPlayerCount()
+    return self.PlayerCount
 end
 
 return PlayerService

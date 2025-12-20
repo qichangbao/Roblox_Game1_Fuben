@@ -162,7 +162,7 @@ local function _takeDamage(player, hitCharacter, damage)
 		if not islandId then return end
 		local mapConfig = DesignConfig:GetByMapId(islandId)
 		if not mapConfig then return end
-		local isOnBoat = Interface.isPlayerOnBoat(player, mapConfig.MapName)
+		local isOnBoat = Interface.isPlayerOnBoat(player)
 		if isOnBoat then return end
 		_showHitEffect(player)
 		Interface.decHp(hitCharacter, normalDamage, isCrit)

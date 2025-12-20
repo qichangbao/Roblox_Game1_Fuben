@@ -20,12 +20,6 @@ WeaponConfig.Coordinates = {
         ItemId = 203,
         Damage = 10,
     },
-    [4] = {
-        Index = 4,
-        Position = Vector3.new(3, 3, 5),
-        ItemId = 204,
-        Damage = 10,
-    },
 }
 
 -- 辅助函数
