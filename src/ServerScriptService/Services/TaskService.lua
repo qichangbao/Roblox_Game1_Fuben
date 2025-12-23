@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 local DesignConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignConfig"))
-local ConstantConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ConstantConfig"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
 local TaskService = Knit.CreateService {
 	Name = "TaskService",
@@ -20,6 +20,7 @@ local TaskService = Knit.CreateService {
     EscapeTime = 0,
     IsOver = false,
     IsInit = false,
+    CurIslandLevel = 0,
 }
 
 function TaskService:KnitInit()
@@ -116,6 +117,11 @@ function TaskService:UpdateEscapeTime(curEscapeTime)
                     if nextIslandId then
                         self.Client.GotoNextIsland:Fire(player, gotoNextIslandPlayers)
                         isGotoNextIsland = true
+                        if self.CurIslandLevel > Knit.GetService("DBService"):Get(player.UserId, "MaxIslandLevel") then
+                            Knit.GetService("DBService"):Set(player.UserId, "MaxIslandLevel", self.CurIslandLevel)
+                            Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.IslandLevel, self.CurIslandLevel)
+                        end
+                        self.CurIslandLevel += 1
                     else
                         SettleService:Settle(player, false, true)
                     end

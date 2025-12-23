@@ -54,6 +54,7 @@ GameConfig.TaskType = {
     Composite = 7,            -- 复合型任务
 }
 
+-- 地图标志类型枚举
 GameConfig.MapFlagType = {
     None = 0,
     JiHe = 1,           -- 集合
@@ -61,14 +62,47 @@ GameConfig.MapFlagType = {
     WuZi = 3,           -- 物资
 }
 
+-- 超重负重枚举
 GameConfig.OverwhelmedWeight = {
     Normal = 15,        -- 正常负重
     Overweight = 40,    -- 超重负重
 }
 
+-- 角色动画枚举
 GameConfig.AnimationMap = {
     swing = {"rbxassetid://122275399055808", "rbxassetid://106851209030806"},
     dig = {"rbxassetid://133396559381410"},
+}
+
+-- 职业升级成本枚举
+GameConfig.JobUpgradeCost = {
+    Gold = 1,                   -- 金币获得_数量
+    RobCoins = 2,               -- 罗布币_消耗数量
+}
+
+-- 职业解锁条件枚举
+GameConfig.JobUnlockCondition = {
+    Gold = 1,                   -- 金币获得_数量
+    IslandLevel = 2,            -- 达到岛屿_第几关
+    Relive = 3,                 -- 复活_次数
+    Escape = 4,                 -- 撤离_次数
+    RobCoins = 5,               -- 罗布币_消耗数量
+    DamageNoWeapon = 6,         -- 伤害（无指定武器_伤害值）
+    DamageNoWeaponNum = 7,      -- 伤害（无指定武器_数量）
+    DamageMonster = 8,          -- 伤害（怪物ID_伤害值）
+    DamageMonsterNum = 9,       -- 伤害（怪物ID_数量）
+    CollectItemNum = 10,        -- 收集（道具_数量）
+    HealItemNum = 11,           -- 治疗（治疗道具_值/数量）
+    SaveTeammateNum = 12,       -- 救人（队友_次数）
+}
+
+-- 职业属性枚举
+GameConfig.JobAttributeType = {
+    Attribute = 1,              -- 属性
+    Backpack = 100,             -- 背包容量
+    FreeRelive = 101,           -- 免费复活次数
+    DoubleDamage = 102,         -- 双倍伤害
+    KillMonsterDoubleDrop = 103, -- 击杀怪物双倍掉落
 }
 
 GameConfig.IsLandId = 101

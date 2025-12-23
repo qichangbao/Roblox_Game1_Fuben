@@ -4,6 +4,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 
 local PurchaseService = Knit.CreateService({
     Name = 'PurchaseService',
@@ -44,6 +45,12 @@ local function processReceipt(receiptInfo)
     -- 清理已处理的购买请求
     PendingPurchases[receiptInfo.PlayerId] = nil
     Knit.GetService("ReviveService"):BuyReviveByRob(player)
+
+    -- 更新玩家的rob币数量
+    Knit.GetService('DBService'):Update(player.UserId, "TotalRobCoins", function(robCoins)
+        return robCoins + receiptInfo.CurrencySpent
+    end)
+    Knit.GetService('JobService'):TriggerJob(player, GameConfig.JobUnlockCondition.RobCoins, Knit.GetService('DBService'):Get(player.UserId, "TotalRobCoins"))
     
     return Enum.ProductPurchaseDecision.PurchaseGranted
 end

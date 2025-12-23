@@ -156,6 +156,10 @@ local function _takeDamage(player, hitCharacter, damage)
 		if targetHumanoid.Health <= 0 then
             Knit.GetService("MonsterService"):KillMonster(player, hitCharacter)
 		end
+		Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.DamageNoWeapon, normalDamage)
+		Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.DamageNoWeaponNum, 1)
+		Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.DamageMonster, {monsterId = targetHumanoid:GetAttribute("MonsterId"), count = normalDamage})
+		Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.DamageMonsterNum, {monsterId = targetHumanoid:GetAttribute("MonsterId"), count = 1})
 		return true
 	elseif humanoidType == GameConfig.HumanoidType.Player then
 		local islandId = Knit.GetService("IslandService"):GetIslandId()

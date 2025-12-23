@@ -179,6 +179,7 @@ function PlayerService:KnitStart()
         Knit.GetService("ReviveService"):PlayerRemoved(player)
         Knit.GetService("TaskService"):PlayerRemoved(player)
         Knit.GetService("EquipmentService"):PlayerRemoved(player)
+        Knit.GetService("JobService"):PlayerRemoved(player)
 
         Knit.GetService("DBService"):PlayerRemoved(player)
     end
@@ -204,6 +205,7 @@ end
 function PlayerService:GetInitData(player)
     Knit.GetService("DBService"):PlayerAdded(player)
 
+    Knit.GetService("JobService"):PlayerAdded(player)
     Knit.GetService("EquipmentService"):PlayerAdded(player)
     Knit.GetService("GoldService"):PlayerAdded(player)
     Knit.GetService("InventoryService"):PlayerAdded(player)

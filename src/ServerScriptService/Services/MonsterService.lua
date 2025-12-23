@@ -248,13 +248,13 @@ function MonsterService:CreateMonster(data)
         return
     end
     
-    local part = folder:FindFirstChild(monsterInfo.Model)
-    if not part then
+    local model = folder:FindFirstChild(monsterInfo.Model)
+    if not model then
         warn("Monster model not found: " .. monsterInfo.Model)
         return
     end
 
-    local monster = part:Clone()
+    local monster = model:Clone()
     monster.Parent = MonsterWorkspaceFolder
     monster.Name = monsterInfo.Model .."_" .. tick()
     table.insert(self.Monsters, monster)
@@ -416,16 +416,17 @@ function MonsterService:InitMonsters()
         return
     end
 
-    task.spawn(function()
-        local islandId = Knit.GetService("IslandService"):GetIslandId()
-        local monstersConfig = DesignMonsterConfig:GetAll()
-        for _, config in ipairs(monstersConfig) do
-            if config.MapId == islandId then
-                self:CreateMonster(config)
-            end
-        end
-    end)
-    --self:CreateMonster(30001, Vector3.new(353, -0.7, -240))
+    -- task.spawn(function()
+    --     local islandId = Knit.GetService("IslandService"):GetIslandId()
+    --     local monstersConfig = DesignMonsterConfig:GetAll()
+    --     for _, config in ipairs(monstersConfig) do
+    --         if config.MapId == islandId then
+    --             self:CreateMonster(config)
+    --         end
+    --     end
+    -- end)
+    local config = {Refresh = 1, MonsterId = 30004, Position = Vector3.new(353, -0.7, -240)}
+    self:CreateMonster(config)
     --self:CreateMonster(30002, Vector3.new(353, -0.7, -220))
     --self:CreateMonster(30003, Vector3.new(353, -0.7, -200))
 end

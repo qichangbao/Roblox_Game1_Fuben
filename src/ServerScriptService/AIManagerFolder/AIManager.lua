@@ -20,6 +20,7 @@ function AIManager.new(npc, position, monsterInfo)
 
     local Humanoid = self.NPC:FindFirstChildOfClass("Humanoid")
     if Humanoid then
+        Humanoid:SetAttribute("MonsterId", monsterInfo.MonsterId)
         -- 监听死亡状态
         Humanoid.Died:Connect(function()
             self:SetState("Dead")

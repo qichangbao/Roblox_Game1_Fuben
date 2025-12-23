@@ -95,6 +95,11 @@ function ReviveService:RevivePlayer(player)
     player:LoadCharacter()
     player.Character:PivotTo(CFrame.new(frame.Position))
     self.PlayerReviveCount[player.UserId] += 1
+
+    Knit.GetService("DBService"):Update(player.UserId, "ByReviveCount", function(ByReviveCount)
+        return ByReviveCount + 1
+    end)
+    Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.Relive, Knit.GetService("DBService"):Get(player.UserId, "ByReviveCount"))
     return 2
 end
 
@@ -119,6 +124,11 @@ function ReviveService:BuyReviveByRob(player)
     player.Character:PivotTo(frame)
     self.PlayerReviveCount[player.UserId] += 1
     Knit.GetService("ClientUIService"):HideSingleUI(player, "MessageBoxUI")
+
+    Knit.GetService("DBService"):Update(player.UserId, "ByReviveCount", function(ByReviveCount)
+        return ByReviveCount + 1
+    end)
+    Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.Relive, Knit.GetService("DBService"):Get(player.UserId, "ByReviveCount"))
 end
 
 -- 取消购买复活
