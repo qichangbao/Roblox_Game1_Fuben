@@ -8,14 +8,12 @@ local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Kn
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local TalentTreeConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("TalentTreeConfig"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
-local ConstantConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ConstantConfig"))
 local DesignConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignConfig"))
+local ConstantConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ConstantConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 local ItemInterface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("ItemInterface"))
-
-local _initHealth = ConstantConfig:GetByIndex(5).Effect1
-local _initWalkSpeed = ConstantConfig:GetByIndex(6).Effect1
-local _initRunSpeed = ConstantConfig:GetByIndex(7).Effect1
+local HeroConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("HeroConfig"))
+local PlayerAttribute = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("PlayerAttribute"))
 
 local PlayerService = Knit.CreateService {
 	Name = "PlayerService",
@@ -48,15 +46,11 @@ function PlayerService:KnitStart()
             local humanoid = character:WaitForChild("Humanoid")
             humanoid.AutoJumpEnabled = false
             humanoid.UseJumpPower = true
-            humanoid.Health = _initHealth
-            humanoid.MaxHealth = _initHealth
-            humanoid.WalkSpeed = _initWalkSpeed
-            humanoid:SetAttribute("InitHealth", humanoid.Health)
-            humanoid:SetAttribute("InitWalkSpeed", humanoid.WalkSpeed)
-            humanoid:SetAttribute("InitJumpPower", humanoid.JumpPower)
-            humanoid:SetAttribute("InitMaxHealth", humanoid.MaxHealth)
+            humanoid.Health = GameConfig.PlayerInitAttribute.Health
+            humanoid.MaxHealth = GameConfig.PlayerInitAttribute.Health
+            humanoid.WalkSpeed = GameConfig.PlayerInitAttribute.WalkSpeed
+            humanoid.JumpPower = GameConfig.PlayerInitAttribute.JumpPower
             
-            self:InitPlayerTalent(player, self.TalentData[player.UserId])
             self:InitAnimEffect(player)
 
             -- 如果之前已有标记连接，先清理（例如角色重生）
@@ -228,14 +222,7 @@ function PlayerService:GetInitData(player)
     }
 
     self.AttributeData[player.UserId] = {
-        Overwhelmed = 0,                                            -- 负重
-        InitMaxOverwhelmed = GameConfig.Overwhelmed,                -- 初始负重
-        Luck = GameConfig.Luck,                                    -- 幸运值
-        InitLuck = GameConfig.Luck,                                 -- 初始幸运值
-        Attack = GameConfig.Attack,                                 -- 攻击力
-        InitAttack = GameConfig.Attack,                             -- 初始攻击力
-        CriticalProbability = GameConfig.CriticalProbability,       -- 暴击几率
-        InitCriticalProbability = GameConfig.CriticalProbability,   -- 初始暴击几率
+        Weight = 0,        -- 负重
     }
 
     local islandId = GameConfig.IsLandId
@@ -253,7 +240,7 @@ function PlayerService:GetInitData(player)
     Knit.GetService("IslandService"):SetIslandId(islandId)
     
     local mapConfig = DesignConfig:GetByMapId(islandId)
-    local effect1 = ConstantConfig:GetByID(1).Effect1
+    local effect1 = ConstantConfig:GetByConstant("CopyPersonnelTarget").Effect1
     local escapeTask = mapConfig.DesignTarget * effect1[self.PlayerCount][2] / 10000
     Knit.GetService("TaskService"):InitEscapeTask(escapeTask)
     Knit.GetService("TaskService"):SetEscapeTime(mapConfig.EvacuateTime)
@@ -261,18 +248,20 @@ function PlayerService:GetInitData(player)
     local gold = Knit.GetService("GoldService"):GetGoldData(player)
     local inventoryData = Knit.GetService("InventoryService"):GetInventoryData(player)
     local tool = Knit.GetService("InventoryService"):GetToolData(player)
-    self.AttributeData[player.UserId].Overwhelmed = 0
+    self.AttributeData[player.UserId].Weight = 0
     for _, toolData in ipairs(tool) do
         local itemId = toolData.ItemId
         local itemInfo = ItemConfig:GetByItemId(itemId)
         if itemInfo then
-            self.AttributeData[player.UserId].Overwhelmed += itemInfo.Weight
+            self.AttributeData[player.UserId].Weight += itemInfo.Weight
         end
     end
-    local talentData = Knit.GetService("TalentService"):GetTalentData(player)
-    self.TalentData[player.UserId] = talentData
-    self:InitPlayerTalent(player, talentData)
-    self.AttributeData[player.UserId].InitMaxOverwhelmed = GameConfig.Overwhelmed
+    local curJobId = Knit.GetService("DBService"):Get(player.UserId, "CurJobId") or 0
+    self:SetJobModel(player, curJobId)
+    self:RefreshAllPlayerAttribute(player)
+    -- local talentData = Knit.GetService("TalentService"):GetTalentData(player)
+    -- self.TalentData[player.UserId] = talentData
+    -- self:InitPlayerTalent(player, talentData)
     self:UpdateOverwhelmed(player)
 
     Knit.GetService("MonsterService"):InitMonsters(player)
@@ -287,6 +276,7 @@ function PlayerService:GetInitData(player)
         EquipmentData = Knit.GetService("EquipmentService"):GetEquipmentData(player),
         IsFirstLoginFuben = Knit.GetService("DBService"):Get(player.UserId, "IsFirstLoginFuben"),
         QuestData = Knit.GetService("QuestService"):GetPlayerQuests(player),
+        CurJobId = Knit.GetService("DBService"):Get(player.UserId, "CurJobId") or 0,
     }
 end
 
@@ -297,177 +287,319 @@ function PlayerService.Client:GetInitData(player)
     return self.Server:GetInitData(player)
 end
 
--- 初始化玩家能力
--- @param player Player 玩家
--- @param talent table 能力数据
-function PlayerService:InitPlayerTalent(player, talent)
-    if not talent then return end
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+-- 获取玩家攻击力
+-- @param player Player 请求数据的玩家
+-- @return number 玩家攻击力
+function PlayerService:GetAttack(player)
+    return PlayerAttribute.GetAttack(player)
+end
+
+-- 获取玩家负重
+-- @param player Player 请求数据的玩家
+-- @return number 玩家负重
+function PlayerService:GetWeight(player)
+    return PlayerAttribute.GetWeight(player)
+end
+
+-- 获取玩家幸运值
+-- @param player Player 请求数据的玩家
+-- @return number 玩家幸运值
+function PlayerService:GetLucky(player)
+    return PlayerAttribute.GetLucky(player)
+end
+
+-- 获取玩家暴击概率
+-- @param player Player 请求数据的玩家
+-- @return number 玩家暴击概率
+function PlayerService:GetCriticalProbability(player)
+    return PlayerAttribute.GetCriticalProbability(player)
+end
+
+-- 获取玩家暴击伤害
+-- @param player Player 请求数据的玩家
+-- @return number 玩家暴击伤害
+function PlayerService:GetCriticalValue(player)
+    return PlayerAttribute.GetCriticalValue(player)
+end
+
+function PlayerService:GetOfflineTime(player)
+    return self.OfflineTime[player.UserId] or 0
+end
+
+-- 设置玩家模型
+-- @param player Player 请求数据的玩家
+-- @param jobId number 玩家职业ID
+function PlayerService:SetJobModel(player, jobId)
+    if not player or not jobId then return end
+    if not player.Character then return end
+    local config = HeroConfig:GetById(tonumber(jobId))
+    if not config then return end
+    local model = config.Model
+    if not model then return end
+    local jobModel = ReplicatedStorage:FindFirstChild("JobModel"):FindFirstChild(model)
+    if not jobModel then return end
+    if jobModel:FindFirstChild("Shirt") then
+        player.Character.Shirt.ShirtTemplate = jobModel.Shirt.ShirtTemplate
+    end
+    if jobModel:FindFirstChild("Pants") then
+        player.Character.Pants.PantsTemplate = jobModel.Pants.PantsTemplate
+    end
+end
+
+-- 获取玩家移动速度
+-- @param player Player 请求数据的玩家
+-- @return number 玩家移动速度
+function PlayerService:GetWalkSpeed(player)
+    local walkSpeed = PlayerAttribute.GetWalkSpeed(player)
+    local weight = self.AttributeData[player.UserId].Weight
+    if weight >= GameConfig.OverwhelmedWeight.Overweight then
+        walkSpeed = walkSpeed * 0.3
+    elseif weight >= GameConfig.OverwhelmedWeight.Normal then
+        walkSpeed = walkSpeed * 0.7
+    end
+
+    return walkSpeed
+end
+
+-- 获取玩家跑步速度
+-- @param player Player 请求数据的玩家
+-- @return number 玩家跑步速度
+function PlayerService:GetRunSpeed(player)
+    local runSpeed = PlayerAttribute.GetRunSpeed(player)
+    local weight = self.AttributeData[player.UserId].Weight
+    if weight >= GameConfig.OverwhelmedWeight.Overweight then
+        runSpeed = runSpeed * 0.3
+    elseif weight >= GameConfig.OverwhelmedWeight.Normal then
+        runSpeed = runSpeed * 0.7
+    end
+
+    return runSpeed
+end
+
+-- 获取玩家跳跃高度
+-- @param player Player 请求数据的玩家
+-- @return number 玩家跳跃高度
+function PlayerService:GetJumpPower(player)
+    local jumpPower = PlayerAttribute.GetJumpPower(player)
+    local weight = self.AttributeData[player.UserId].Weight
+    if weight >= GameConfig.OverwhelmedWeight.Overweight then
+        jumpPower = jumpPower * 0.3
+    elseif weight >= GameConfig.OverwhelmedWeight.Normal then
+        jumpPower = jumpPower * 0.7
+    end
+
+    return jumpPower
+end
+
+-- 刷新玩家属性
+function PlayerService:RefreshPlayerAttribute(player, attributeName)
+    if not player or not player.Character then return end
+    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    for talentId, talentData in pairs(talent) do
-        local talentInfo = TalentTreeConfig:GetByTalentTreeId(tonumber(talentId))
-        if talentInfo then
-            if talentInfo.Type == GameConfig.TalentType.WalkSpeed then
-                local initWalkSpeed = player:GetAttribute("InitWalkSpeed")
-                if initWalkSpeed then
-                    local value = 0
-                    if talentInfo.ChildType == 1 then
-                        value = humanoid:GetAttribute("InitWalkSpeed") *  (1 + talentInfo.Value / 100)
-                    else
-                        value = humanoid:GetAttribute("InitWalkSpeed") +  talentInfo.Value
-                    end
-                    humanoid:SetAttribute("InitWalkSpeed", value)
-                end
-            elseif talentInfo.Type == GameConfig.TalentType.MaxHealth then
-                local initMaxHealth = humanoid:GetAttribute("InitMaxHealth")
-                if initMaxHealth then
-                    local value = 0
-                    if talentInfo.ChildType == 1 then
-                        value = humanoid:GetAttribute("InitMaxHealth") *  (1 + talentInfo.Value / 100)
-                    else
-                        value = humanoid:GetAttribute("InitMaxHealth") +  talentInfo.Value
-                    end
-                    humanoid:SetAttribute("InitMaxHealth", value)
-                end
-            elseif talentInfo.Type == GameConfig.TalentType.Jump then
-                local initJumpPower = player:GetAttribute("InitJumpPower")
-                if initJumpPower then
-                    local value = 0
-                    if talentInfo.ChildType == 1 then
-                        value = humanoid:GetAttribute("InitJumpPower") *  (1 + talentInfo.Value / 100)
-                    else
-                        value = humanoid:GetAttribute("InitJumpPower") +  talentInfo.Value
-                    end
-                    humanoid:SetAttribute("InitJumpPower", value)
-                end
-            elseif talentInfo.Type == GameConfig.TalentType.Overwhelmed then
-                local value = self.AttributeData[player.UserId].InitMaxOverwhelmed
-                if talentInfo.ChildType == 1 then
-                    value = value *  (1 + talentInfo.Value / 100)
-                else
-                    value = value +  talentInfo.Value
-                end
-                self.AttributeData[player.UserId].InitMaxOverwhelmed = value
-            elseif talentInfo.Type == GameConfig.TalentType.CriticalProbability then
-                local value = self.AttributeData[player.UserId].InitCriticalProbability
-                if talentInfo.ChildType == 1 then
-                    value = value *  (1 + talentInfo.Value / 100)
-                else
-                    value = value +  talentInfo.Value
-                end
-                self.AttributeData[player.UserId].InitCriticalProbability = value
-            elseif talentInfo.Type == GameConfig.TalentType.Luck then
-                local value = self.AttributeData[player.UserId].InitLuck
-                if talentInfo.ChildType == 1 then
-                    value = value *  (1 + talentInfo.Value / 100)
-                else
-                    value = value +  talentInfo.Value
-                end
-                self.AttributeData[player.UserId].InitLuck = value
-            end
-        end
-    end
-    self:ChangePlayerAttribute("WalkSpeed")
-    self:ChangePlayerAttribute("MaxHealth")
-    self:ChangePlayerAttribute("Health")
-    self:ChangePlayerAttribute("JumpPower")
-    self:ChangePlayerAttribute("Overwhelmed")
-    self:ChangePlayerAttribute("Luck")
-    self:ChangePlayerAttribute("CriticalProbability")
-end
-
--- 计算玩家步行速度
--- @param player Player 玩家对象
--- @param value number 乘法因子，用于计算新的步行速度
--- @return number 新的步行速度
-function PlayerService:CalculateWalkSpeed(player, value)
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if not humanoid then return 0 end
-    value = value or 1
-    local initWalkSpeed = humanoid:GetAttribute("InitWalkSpeed")
-    local overwhelmed = self.AttributeData[player.UserId].Overwhelmed
-    local scale = 1
-    if overwhelmed <= GameConfig.OverwhelmedWeight.Normal then
-        scale = 1
-    elseif overwhelmed <= GameConfig.OverwhelmedWeight.Overweight then
-        scale = 0.7
-    else
-        scale = 0.3
-    end
-    local newWalkSpeed = initWalkSpeed * scale * value
-    return newWalkSpeed
-end
-
--- 计算玩家跳跃力
--- @param player Player 玩家对象
--- @param value number 乘法因子，用于计算新的步行速度
--- @return number 新的跳跃力
-function PlayerService:CalculateJumpPower(player, value)
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if not humanoid then return 0 end
-    value = value or 1
-    local initJumpPower = humanoid:GetAttribute("InitJumpPower")
-    local overwhelmed = self.AttributeData[player.UserId].Overwhelmed
-    local scale = 1
-    if overwhelmed <= GameConfig.OverwhelmedWeight.Normal then
-        scale = 1
-    elseif overwhelmed <= GameConfig.OverwhelmedWeight.Overweight then
-        scale = 0.7
-    else
-        scale = 0.3
-    end
-    local newJumpPower = initJumpPower * scale * value
-    return newJumpPower
-end
-
-function PlayerService:ChangePlayerAttribute(player, attributeName, attributeValue)
-    if not player or not player.Character then
-        return
-    end
-    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then
-        return
-    end
-
-    if attributeValue then
-        if attributeName == "Health" then
-            humanoid.Health = attributeValue
-        elseif attributeName == "WalkSpeed" then
-            humanoid.WalkSpeed = self:CalculateWalkSpeed(player, attributeValue)
-        elseif attributeName == "MaxHealth" then
-            humanoid.MaxHealth = attributeValue
-        elseif attributeName == "JumpPower" then
-            humanoid.JumpPower = self:CalculateJumpPower(player, attributeValue)
-        elseif attributeName == "Overwhelmed" then
-            self.AttributeData[player.UserId].Overwhelmed = attributeValue
-        elseif attributeName == "Luck" then
-            self.AttributeData[player.UserId].Luck = attributeValue
-        elseif attributeName == "Attack" then
-            self.AttributeData[player.UserId].Attack = attributeValue
-        elseif attributeName == "CriticalProbability" then
-            self.AttributeData[player.UserId].CriticalProbability = attributeValue
-        end
-    else
-        if attributeName == "Health" then
-            humanoid.Health = humanoid:GetAttribute("InitHealth")
-        elseif attributeName == "WalkSpeed" then
-            humanoid.WalkSpeed = self:CalculateWalkSpeed(player)
-        elseif attributeName == "MaxHealth" then
-            humanoid.MaxHealth = humanoid:GetAttribute("InitMaxHealth")
-        elseif attributeName == "JumpPower" then
-            humanoid.JumpPower = self:CalculateJumpPower(player)
-        elseif attributeName == "Overwhelmed" then
-            self.AttributeData[player.UserId].Overwhelmed = self.AttributeData[player.UserId].InitMaxOverwhelmed
-        elseif attributeName == "Luck" then
-            self.AttributeData[player.UserId].Luck = self.AttributeData[player.UserId].InitLuck
-        elseif attributeName == "Attack" then
-            self.AttributeData[player.UserId].Attack = self.AttributeData[player.UserId].InitAttack
-        elseif attributeName == "CriticalProbability" then
-            self.AttributeData[player.UserId].CriticalProbability = self.AttributeData[player.UserId].InitCriticalProbability
-        end
+    if attributeName == "Health" then
+        local health = PlayerAttribute.GetMaxHealth(player)
+        humanoid.MaxHealth = health
+        humanoid.Health = health
+    elseif attributeName == "WalkSpeed" then
+        humanoid.WalkSpeed = self:GetWalkSpeed(player)
+    elseif attributeName == "RunSpeed" then
+        humanoid:SetAttribute("RunSpeed", self:GetRunSpeed(player))
+    elseif attributeName == "JumpPower" then
+        humanoid.JumpPower = self:GetJumpPower(player)
+    elseif attributeName == "Weight" then
+        humanoid:SetAttribute("Weight", PlayerAttribute.GetWeight(player))
+    elseif attributeName == "Lucky" then
+        humanoid:SetAttribute("Lucky", PlayerAttribute.GetLucky(player))
+    elseif attributeName == "CriticalProbability" then
+        humanoid:SetAttribute("CriticalProbability", PlayerAttribute.GetCriticalProbability(player))
+    elseif attributeName == "CriticalValue" then
+        humanoid:SetAttribute("CriticalValue", PlayerAttribute.GetCriticalValue(player))
+    elseif attributeName == "Attack" then
+        humanoid:SetAttribute("Attack", PlayerAttribute.GetAttack(player))
+    elseif attributeName == "Endurance" then
+        humanoid:SetAttribute("Endurance", PlayerAttribute.GetEndurance(player))
     end
 end
+
+-- 刷新所有玩家属性
+function PlayerService:RefreshAllPlayerAttribute(player)
+    for i, v in pairs(GameConfig.PlayerInitAttribute) do
+        Knit.GetService("PlayerService"):RefreshPlayerAttribute(player, i)
+    end
+end
+
+-- -- 初始化玩家能力
+-- -- @param player Player 玩家
+-- -- @param talent table 能力数据
+-- function PlayerService:InitPlayerTalent(player, talent)
+--     if not talent then return end
+--     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+--     if not humanoid then return end
+
+--     for talentId, talentData in pairs(talent) do
+--         local talentInfo = TalentTreeConfig:GetByTalentTreeId(tonumber(talentId))
+--         if talentInfo then
+--             if talentInfo.Type == GameConfig.TalentType.WalkSpeed then
+--                 local initWalkSpeed = player:GetAttribute("InitWalkSpeed")
+--                 if initWalkSpeed then
+--                     local value = 0
+--                     if talentInfo.ChildType == 1 then
+--                         value = humanoid:GetAttribute("InitWalkSpeed") *  (1 + talentInfo.Value / 100)
+--                     else
+--                         value = humanoid:GetAttribute("InitWalkSpeed") +  talentInfo.Value
+--                     end
+--                     humanoid:SetAttribute("InitWalkSpeed", value)
+--                 end
+--             elseif talentInfo.Type == GameConfig.TalentType.MaxHealth then
+--                 local initMaxHealth = humanoid:GetAttribute("InitMaxHealth")
+--                 if initMaxHealth then
+--                     local value = 0
+--                     if talentInfo.ChildType == 1 then
+--                         value = humanoid:GetAttribute("InitMaxHealth") *  (1 + talentInfo.Value / 100)
+--                     else
+--                         value = humanoid:GetAttribute("InitMaxHealth") +  talentInfo.Value
+--                     end
+--                     humanoid:SetAttribute("InitMaxHealth", value)
+--                 end
+--             elseif talentInfo.Type == GameConfig.TalentType.Jump then
+--                 local initJumpPower = player:GetAttribute("InitJumpPower")
+--                 if initJumpPower then
+--                     local value = 0
+--                     if talentInfo.ChildType == 1 then
+--                         value = humanoid:GetAttribute("InitJumpPower") *  (1 + talentInfo.Value / 100)
+--                     else
+--                         value = humanoid:GetAttribute("InitJumpPower") +  talentInfo.Value
+--                     end
+--                     humanoid:SetAttribute("InitJumpPower", value)
+--                 end
+--             elseif talentInfo.Type == GameConfig.TalentType.Overwhelmed then
+--                 local value = self.AttributeData[player.UserId].InitMaxOverwhelmed
+--                 if talentInfo.ChildType == 1 then
+--                     value = value *  (1 + talentInfo.Value / 100)
+--                 else
+--                     value = value +  talentInfo.Value
+--                 end
+--                 self.AttributeData[player.UserId].InitMaxOverwhelmed = value
+--             elseif talentInfo.Type == GameConfig.TalentType.CriticalProbability then
+--                 local value = self.AttributeData[player.UserId].InitCriticalProbability
+--                 if talentInfo.ChildType == 1 then
+--                     value = value *  (1 + talentInfo.Value / 100)
+--                 else
+--                     value = value +  talentInfo.Value
+--                 end
+--                 self.AttributeData[player.UserId].InitCriticalProbability = value
+--             elseif talentInfo.Type == GameConfig.TalentType.Luck then
+--                 local value = self.AttributeData[player.UserId].InitLuck
+--                 if talentInfo.ChildType == 1 then
+--                     value = value *  (1 + talentInfo.Value / 100)
+--                 else
+--                     value = value +  talentInfo.Value
+--                 end
+--                 self.AttributeData[player.UserId].InitLuck = value
+--             end
+--         end
+--     end
+--     self:ChangePlayerAttribute("WalkSpeed")
+--     self:ChangePlayerAttribute("MaxHealth")
+--     self:ChangePlayerAttribute("Health")
+--     self:ChangePlayerAttribute("JumpPower")
+--     self:ChangePlayerAttribute("Overwhelmed")
+--     self:ChangePlayerAttribute("Luck")
+--     self:ChangePlayerAttribute("CriticalProbability")
+-- end
+
+-- -- 计算玩家步行速度
+-- -- @param player Player 玩家对象
+-- -- @param value number 乘法因子，用于计算新的步行速度
+-- -- @return number 新的步行速度
+-- function PlayerService:CalculateWalkSpeed(player, value)
+--     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+--     if not humanoid then return 0 end
+--     value = value or 1
+--     local initWalkSpeed = humanoid:GetAttribute("InitWalkSpeed")
+--     local overwhelmed = self.AttributeData[player.UserId].Overwhelmed
+--     local scale = 1
+--     if overwhelmed <= GameConfig.OverwhelmedWeight.Normal then
+--         scale = 1
+--     elseif overwhelmed <= GameConfig.OverwhelmedWeight.Overweight then
+--         scale = 0.7
+--     else
+--         scale = 0.3
+--     end
+--     local newWalkSpeed = initWalkSpeed * scale * value
+--     return newWalkSpeed
+-- end
+
+-- -- 计算玩家跳跃力
+-- -- @param player Player 玩家对象
+-- -- @param value number 乘法因子，用于计算新的步行速度
+-- -- @return number 新的跳跃力
+-- function PlayerService:CalculateJumpPower(player, value)
+--     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
+--     if not humanoid then return 0 end
+--     value = value or 1
+--     local initJumpPower = humanoid:GetAttribute("InitJumpPower")
+--     local overwhelmed = self.AttributeData[player.UserId].Overwhelmed
+--     local scale = 1
+--     if overwhelmed <= GameConfig.OverwhelmedWeight.Normal then
+--         scale = 1
+--     elseif overwhelmed <= GameConfig.OverwhelmedWeight.Overweight then
+--         scale = 0.7
+--     else
+--         scale = 0.3
+--     end
+--     local newJumpPower = initJumpPower * scale * value
+--     return newJumpPower
+-- end
+
+-- function PlayerService:ChangePlayerAttribute(player, attributeName, attributeValue)
+--     if not player or not player.Character then
+--         return
+--     end
+--     local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+--     if not humanoid then
+--         return
+--     end
+
+--     if attributeValue then
+--         if attributeName == "Health" then
+--             humanoid.Health = attributeValue
+--         elseif attributeName == "WalkSpeed" then
+--             humanoid.WalkSpeed = self:CalculateWalkSpeed(player, attributeValue)
+--         elseif attributeName == "MaxHealth" then
+--             humanoid.MaxHealth = attributeValue
+--         elseif attributeName == "JumpPower" then
+--             humanoid.JumpPower = self:CalculateJumpPower(player, attributeValue)
+--         elseif attributeName == "Overwhelmed" then
+--             self.AttributeData[player.UserId].Overwhelmed = attributeValue
+--         elseif attributeName == "Luck" then
+--             self.AttributeData[player.UserId].Luck = attributeValue
+--         elseif attributeName == "Attack" then
+--             self.AttributeData[player.UserId].Attack = attributeValue
+--         elseif attributeName == "CriticalProbability" then
+--             self.AttributeData[player.UserId].CriticalProbability = attributeValue
+--         end
+--     else
+--         if attributeName == "Health" then
+--             humanoid.Health = humanoid:GetAttribute("InitHealth")
+--         elseif attributeName == "WalkSpeed" then
+--             humanoid.WalkSpeed = self:CalculateWalkSpeed(player)
+--         elseif attributeName == "MaxHealth" then
+--             humanoid.MaxHealth = humanoid:GetAttribute("InitMaxHealth")
+--         elseif attributeName == "JumpPower" then
+--             humanoid.JumpPower = self:CalculateJumpPower(player)
+--         elseif attributeName == "Overwhelmed" then
+--             self.AttributeData[player.UserId].Overwhelmed = self.AttributeData[player.UserId].InitMaxOverwhelmed
+--         elseif attributeName == "Luck" then
+--             self.AttributeData[player.UserId].Luck = self.AttributeData[player.UserId].InitLuck
+--         elseif attributeName == "Attack" then
+--             self.AttributeData[player.UserId].Attack = self.AttributeData[player.UserId].InitAttack
+--         elseif attributeName == "CriticalProbability" then
+--             self.AttributeData[player.UserId].CriticalProbability = self.AttributeData[player.UserId].InitCriticalProbability
+--         end
+--     end
+-- end
 
 function PlayerService:InitAnimEffect(player)
     -- 生成并摆放命中特效到边缘中心
@@ -809,7 +941,7 @@ function PlayerService:UpdateOverwhelmed(player)
     if not player then return end
     
     local userId = player.UserId
-    self.AttributeData[userId].Overwhelmed = 0
+    self.AttributeData[userId].Weight = 0
     local overwhelmed = 0
     local tool = Knit.GetService("InventoryService"):GetToolData(player)
     for _, toolData in ipairs(tool) do
@@ -828,13 +960,14 @@ function PlayerService:UpdateOverwhelmed(player)
         end
     end
 
-    self.AttributeData[player.UserId].Overwhelmed = overwhelmed
-    self.Client.UpdateOverwhelmed:Fire(player, self.AttributeData[userId].Overwhelmed, self.AttributeData[userId].InitMaxOverwhelmed)
-    self:ChangePlayerAttribute(player, "WalkSpeed", player:getAttribute("WalkSpeed"))
-    self:ChangePlayerAttribute(player, "JumpPower", player:getAttribute("JumpPower"))
+    self.AttributeData[player.UserId].Weight = overwhelmed
+    self.Client.UpdateOverwhelmed:Fire(player, self.AttributeData[userId].Weight, self:GetWeight(player))
+    self:RefreshPlayerAttribute(player, "WalkSpeed")
+    self:RefreshPlayerAttribute(player, "RunSpeed")
+    self:RefreshPlayerAttribute(player, "JumpPower")
     if player.Character and player.Character.Humanoid then
-        print(player.Name .. " 负重 " .. self.AttributeData[player.UserId].Overwhelmed .. " 速度 " .. player.Character.Humanoid.WalkSpeed)
-        print(player.Name .. " 负重 " .. self.AttributeData[player.UserId].Overwhelmed .. " 跳跃力 " .. player.Character.Humanoid.JumpPower)
+        print(player.Name .. " 负重 " .. self.AttributeData[player.UserId].Weight .. " 速度 " .. player.Character.Humanoid.WalkSpeed)
+        print(player.Name .. " 负重 " .. self.AttributeData[player.UserId].Weight .. " 跳跃力 " .. player.Character.Humanoid.JumpPower)
     end
 end
 

@@ -21,6 +21,7 @@ ClientData.IslandId = GameConfig.IsLandId -- 岛屿ID
 ClientData.Overwhelmed = 0 -- 当前负重
 ClientData.MaxOverwhelmed = 0 -- 最大负重
 ClientData.PlayerCount = 0 -- 玩家人数
+ClientData.CurJobId = 0
 
 local function setInitData(data)
 	if not _G.ClientData.Test then
@@ -33,10 +34,11 @@ local function setInitData(data)
     ClientData.Gold = data.Gold or 0 -- 金币
     ClientData.IslandId = data.IslandId or GameConfig.IsLandId -- 岛屿ID
     ClientData.PlayerCount = data.PlayerCount or 0 -- 玩家人数
+    ClientData.CurJobId = data.CurJobId or 0 -- 当前职业ID
 
     local mapConfig = DesignConfig:GetByMapId(ClientData.IslandId)
     if not mapConfig then return end
-    local effect1 = ConstantConfig:GetByID(1).Effect1
+    local effect1 = ConstantConfig:GetByConstant("CopyPersonnelTarget").Effect1
     local escapeTask = mapConfig.DesignTarget * effect1[ClientData.PlayerCount][2] / 10000
     ClientData.EscapeTask = escapeTask
 

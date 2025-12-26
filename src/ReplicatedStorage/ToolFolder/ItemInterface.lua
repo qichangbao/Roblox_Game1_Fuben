@@ -140,14 +140,15 @@ local function _takeDamage(player, hitCharacter, damage)
 		return false
 	end
 
-	local criticalProbability = Knit.GetService("PlayerService"):GetPlayerAttribute(player, "CriticalProbability") or 0
-	local attack = sourceHumanoid:GetAttribute("Attack") or 1
+	local criticalProbability = Knit.GetService("PlayerService"):GetCriticalProbability(player)
+	local attack = sourceHumanoid:GetAttribute("Attack")
 	local humanoidType = hitCharacter:GetAttribute("HumanoidType")
-	local normalDamage = damage * attack
+	local normalDamage = attack + damage
 	local isCrit = false
 	local random = math.random(100)
 	if random <= criticalProbability then			-- 暴击
-		normalDamage = normalDamage * math.random(150, 250) % 100
+		local criticalValue = Knit.GetService("PlayerService"):GetCriticalValue(player)
+		normalDamage = normalDamage * criticalValue % 100
 		isCrit = true
 	end
 	if humanoidType == GameConfig.HumanoidType.Monster then
@@ -216,6 +217,10 @@ function ItemInterface.performAreaDetection(player, itemInfo, collisionCallback)
 	-- 创建检测区域的CFrame和大小
 	local detectionCFrame = CFrame.lookAt(detectionCenter, detectionCenter + lookDirection)
 	local detectionSize = Vector3.new(detectionWidth, detectionHeight, detectionRange)
+	-- 可视化检测区域（调试用，可选）
+	if game:GetService("RunService"):IsStudio() then
+		_VisualizeDetectionArea(detectionCFrame, detectionSize)
+	end
 
 	-- 使用GetPartBoundsInBox进行区域检测
 	local overlapParams = OverlapParams.new()
@@ -223,10 +228,15 @@ function ItemInterface.performAreaDetection(player, itemInfo, collisionCallback)
 	overlapParams.FilterDescendantsInstances = {character} -- 排除自己的角色
 
 	local hitParts = workspace:GetPartBoundsInBox(detectionCFrame, detectionSize, overlapParams)
+	if #hitParts == 0 then return false end
 
+	local damage = weaponInfo.Damage
+	local jobEffect = Interface.GetJobEffect(player)
+	if jobEffect and jobEffect.DoubleDamage == itemId then
+		damage *= 2
+	end
 	-- 处理检测到的所有部件
 	local processedObjects = {} -- 防止重复处理同一个对象
-
 	for _, hit in ipairs(hitParts) do
 		local hitParent = hit.Parent
 
@@ -235,7 +245,7 @@ function ItemInterface.performAreaDetection(player, itemInfo, collisionCallback)
 			processedObjects[hitParent] = true
 
 			-- 处理碰撞
-            if not _takeDamage(player, hitParent, weaponInfo.Damage) then
+            if not _takeDamage(player, hitParent, damage) then
                 if collisionCallback then
                     collisionCallback(hit, weaponInfo)
                 end
@@ -243,10 +253,6 @@ function ItemInterface.performAreaDetection(player, itemInfo, collisionCallback)
 		end
 	end
 
-	-- 可视化检测区域（调试用，可选）
-	if game:GetService("RunService"):IsStudio() then
-		_VisualizeDetectionArea(detectionCFrame, detectionSize)
-	end
 	return true
 end
 

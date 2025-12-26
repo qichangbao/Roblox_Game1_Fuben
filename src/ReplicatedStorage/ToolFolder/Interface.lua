@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local DropPoolConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DropPoolConfig"))
 local DropTableConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DropTableConfig"))
+local HeroConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("HeroConfig"))
 local TweenService = game:GetService("TweenService")
 local ContentProvider = game:GetService("ContentProvider")
 
@@ -830,6 +831,63 @@ end
 -- 是否为金币
 function Interface.IsGold(itemId)
     return itemId == 1039 or itemId == 1040 or itemId == 1041
+end
+
+-- 字符串分割
+-- @param str 要分割的字符串
+-- @param delim 分隔符
+-- @return 分割后的字符串数组
+function Interface.Split(str, delim)
+	local result = {}
+	local pattern = string.format("([^%s]+)", delim)
+	for part in string.gmatch(str, pattern) do
+		table.insert(result, part)
+	end
+	return result
+end
+
+-- 获取职业效果
+-- @param player 玩家
+-- @return 职业效果表
+function Interface.GetJobEffect(player)
+    local jobId = Knit.GetService("JobService"):GetCurJobId(player)
+    local jobData = Knit.GetService("JobService"):GetJobData(player)
+    local data = jobData[jobId]
+    if not data then return end
+    local config = HeroConfig:GetById(tonumber(jobId))
+    if not config then return end
+
+    local effects = {
+        Attribute = {},
+        FreeReviveCount = 0,
+        DoubleDamage = 0,
+        KillMonsterDoubleDrop = 0,
+    }
+    local function addEffect(effect)
+        local effectAction = Interface.Split(effect, "_")
+        local effectType = tonumber(effectAction[1])
+        if effectType == GameConfig.JobAttributeType.Attribute then
+            table.insert(effects.Attribute, {AttributeId = tonumber(effectAction[2]), Value = tonumber(effectAction[3])})
+        elseif effectType == GameConfig.JobAttributeType.FreeRelive then
+            effects.FreeReviveCount = tonumber(effectAction[2])
+        elseif effectType == GameConfig.JobAttributeType.DoubleDamage then
+            effects.DoubleDamage = tonumber(effectAction[2])
+        elseif effectType == GameConfig.JobAttributeType.KillMonsterDoubleDrop then
+            effects.KillMonsterDoubleDrop = tonumber(effectAction[2])
+        end
+    end
+    if data.IsFinished then
+        for _, effect in ipairs(config.EffectAction) do
+            addEffect(effect)
+        end
+    else
+        for level = 1, data.Level - 1 do
+            local effect = config.EffectAction[level]
+            addEffect(effect)
+        end
+    end
+
+    return effects
 end
 
 return Interface

@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local ConstantConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ConstantConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
-local _escapeTime = ConstantConfig:GetByIndex(4).Effect1
+local _escapeTime = ConstantConfig:GetByConstant("VoteFastcCountdown").Effect1
 
 local BoatService = Knit.CreateService({
     Name = 'BoatService',

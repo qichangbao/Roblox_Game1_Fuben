@@ -218,6 +218,7 @@ function SettleService:Settle(player, needCheckPos, isForceLose)
     InventoryService:ToolDataToDB(player)
     for _, v in pairs(escapeItems) do
         InventoryService:AddItem(player, v)
+        Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.CollectItemNum, {itemId = v.ItemId, count = 1})
     end
     InventoryService:InventoryToDB(player)
 

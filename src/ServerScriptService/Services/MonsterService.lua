@@ -6,8 +6,8 @@ local Players = game:GetService("Players")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local MonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterConfig"))
 local AIManager = require(script.Parent.Parent:WaitForChild("AIManagerFolder"):WaitForChild("AIManager"))
-local DesignMonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignMonsterConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 local TweenService = game:GetService("TweenService")
 
 local MonsterWorkspaceFolder = workspace:WaitForChild("Monster")
@@ -227,6 +227,31 @@ function MonsterService:KillMonster(player, monster)
         return
     end
     Knit.GetService("QuestService"):OnNPCKilled(player, tostring(monsterId))
+    
+    -- 触发物品掉落
+    local config = MonsterConfig:GetByMonsterId(monsterId)
+    if config then
+        -- 获取NPC当前位置
+        local npcPosition = self.AIManager.NPC:GetPivot().Position
+        
+        -- 使用高级射线检测获取最佳地面位置
+        local ignoreList = {self.AIManager.NPC} -- 忽略NPC本身
+        local groundPosition = Interface.getGroundPosition(npcPosition, ignoreList)
+        
+        -- 在地面位置创建物品
+        local itemArray = Interface.GetDropItems(config.DropPlanId)
+        if itemArray then
+	        local jobEffect = Interface.GetJobEffect(player)
+            local doubleDropProbability = jobEffect and jobEffect.KillMonsterDoubleDrop or 0
+            local isDoubleDrop = math.random(10000) <= doubleDropProbability
+            for _, itemId in ipairs(itemArray) do
+                if isDoubleDrop then
+                    Knit.GetService("ItemService"):CreateItem(itemId, groundPosition, 0, GameConfig.GetItemAttribute(), true)
+                end
+                Knit.GetService("ItemService"):CreateItem(itemId, groundPosition, 0, GameConfig.GetItemAttribute(), true)
+            end
+        end
+    end
 end
 
 function MonsterService:CreateMonster(data)

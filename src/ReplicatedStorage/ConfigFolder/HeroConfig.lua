@@ -3,556 +3,316 @@ local HeroConfig = {}
 
 HeroConfig.Data = {
     [1] = {
-        ID = 101,
-        level = 1,
-        name = "S9（酷帅工装风）：礁岩拓荒者",
-        Star = 1,
-        HeroOpen = 1,
-        model = "soldier1001",
-        cardmodel = 101,
-        Property = nil,
-        activationtype = {
+        Id = 101,
+        Level = {
             1,
-            1000
+            2,
+            3
+        },
+        Name = "S9（酷帅工装风）：礁岩拓荒者",
+        Star = {
+            1,
+            2,
+            3
+        },
+        HeroOpen = 1,
+        Model = "S9",
+        Icon = "rbxassetid://138713655406841",
+        Property = {
+            0,
+            "1002_20",
+            "1002_50"
+        },
+        Unlock = {
+            "1_1000",
+            "2_1000",
+            "3_1000"
         },
         UpgradeCost = {
-            1,
-            1000
+            "1_1000",
+            "1_2000",
+            "1_3000"
         },
         InitialItem = nil,
         EffectAction = {
-            1,
-            1001,
-            100
+            "1_1001_100",
+            "1_1002_100",
+            "1_1003_100"
         },
-        Herodesc = "工装扛斧闯礁滩，凿岩觅泉，是小队生存后盾",
+        HeroDesc = "工装扛斧闯礁滩，凿岩觅泉，是小队生存后盾",
     },
     [2] = {
-        ID = 101,
-        level = 2,
-        name = "S9（酷帅工装风）：礁岩拓荒者",
-        Star = 2,
-        HeroOpen = 1,
-        model = "soldier1001",
-        cardmodel = 101,
-        Property = nil,
-        activationtype = {
+        Id = 102,
+        Level = {
             1,
-            1000
+            2,
+            3
+        },
+        Name = "S8（猫耳航海风）：椰风喵船长",
+        Star = {
+            2,
+            3,
+            4
+        },
+        HeroOpen = 1,
+        Model = "S8",
+        Icon = "rbxassetid://138713655406841",
+        Property = {
+            0,
+            "1002_20",
+            "1002_50"
+        },
+        Unlock = {
+            "4_1000",
+            "5_1000",
+            "6_1000"
         },
         UpgradeCost = {
-            1,
-            2000
+            "1_1000",
+            "1_2000",
+            "1_3000"
         },
         InitialItem = nil,
         EffectAction = {
-            1,
-            1001,
-            100
+            "101_1",
+            "101_1",
+            "102_201"
         },
-        Herodesc = "工装扛斧闯礁滩，凿岩觅泉，是小队生存后盾",
+        HeroDesc = "猫耳嗅风辨藏宝，绒尾摇，三海里内无秘藏",
     },
     [3] = {
-        ID = 101,
-        level = 3,
-        name = "S9（酷帅工装风）：礁岩拓荒者",
-        Star = 3,
-        HeroOpen = 1,
-        model = "soldier1001",
-        cardmodel = 101,
-        Property = nil,
-        activationtype = {
+        Id = 103,
+        Level = {
             1,
-            1000
+            2,
+            3
+        },
+        Name = "S7（魔角探险风）：暗礁潜行者",
+        Star = {
+            2,
+            3,
+            4
+        },
+        HeroOpen = 1,
+        Model = "S7",
+        Icon = "rbxassetid://138713655406841",
+        Property = {
+            0,
+            "1002_20",
+            "1002_50"
+        },
+        Unlock = {
+            "7_1000",
+            "8_30001_1000",
+            "9_30001_1000"
         },
         UpgradeCost = {
-            1,
-            3000
+            "1_1000",
+            "1_2000",
+            "1_3000"
         },
         InitialItem = nil,
         EffectAction = {
-            1,
-            1001,
-            100
+            "102_201",
+            "101_1",
+            "102_201"
         },
-        Herodesc = "工装扛斧闯礁滩，凿岩觅泉，是小队生存后盾",
+        HeroDesc = "魔角披雾探洞穴，深海摸沉船，悄行无踪迹",
     },
     [4] = {
-        ID = 102,
-        level = 1,
-        name = "S8（猫耳航海风）：椰风喵船长",
-        Star = 2,
-        HeroOpen = 1,
-        model = "soldier1002",
-        cardmodel = 102,
-        Property = nil,
-        activationtype = {
+        Id = 104,
+        Level = {
             1,
-            1000
+            2,
+            3
+        },
+        Name = "S6（白袍刺客风）：雾屿寻秘人",
+        Star = {
+            3,
+            4,
+            5
+        },
+        HeroOpen = 1,
+        Model = "S6",
+        Icon = "rbxassetid://138713655406841",
+        Property = {
+            0,
+            "1002_20",
+            "1002_50"
+        },
+        Unlock = {
+            "10_1001_3",
+            "11_801_1",
+            "12_1000"
         },
         UpgradeCost = {
-            1,
-            1000
+            "1_1000",
+            "1_2000",
+            "1_3000"
         },
         InitialItem = nil,
         EffectAction = {
-            100,
-            1
+            "102_201",
+            "101_1",
+            "102_201"
         },
-        Herodesc = "猫耳嗅风辨藏宝，绒尾摇，三海里内无秘藏",
+        HeroDesc = "白袍执古图破雾，指尖解暗号，引航向秘境",
     },
     [5] = {
-        ID = 102,
-        level = 2,
-        name = "S8（猫耳航海风）：椰风喵船长",
-        Star = 3,
-        HeroOpen = 1,
-        model = "soldier1002",
-        cardmodel = 102,
-        Property = nil,
-        activationtype = {
+        Id = 105,
+        Level = {
             1,
-            1000
+            2,
+            3
+        },
+        Name = "S5（红白海盗风）：赤潮女舵手",
+        Star = {
+            4,
+            5,
+            6
+        },
+        HeroOpen = 1,
+        Model = "S5",
+        Icon = "rbxassetid://138713655406841",
+        Property = {
+            0,
+            "1002_20",
+            "1002_50"
+        },
+        Unlock = {
+            "8_30001_1000",
+            "9_30001_1000",
+            "10_1001_1"
         },
         UpgradeCost = {
-            1,
-            2000
+            "1_1000",
+            "1_2000",
+            "1_3000"
         },
         InitialItem = nil,
         EffectAction = {
-            100,
-            1
+            "103_1000",
+            "101_1",
+            "102_201"
         },
-        Herodesc = "猫耳嗅风辨藏宝，绒尾摇，三海里内无秘藏",
+        HeroDesc = "红装立舵逆狂浪，稳控船舷，怒海辟安途",
     },
     [6] = {
-        ID = 102,
-        level = 3,
-        name = "S8（猫耳航海风）：椰风喵船长",
-        Star = 4,
-        HeroOpen = 1,
-        model = "soldier1002",
-        cardmodel = 102,
-        Property = nil,
-        activationtype = {
+        Id = 106,
+        Level = {
             1,
-            1000
+            2,
+            3
+        },
+        Name = "S4（白兔萌系风）：沙洲兔领航",
+        Star = {
+            4,
+            5,
+            6
+        },
+        HeroOpen = 1,
+        Model = "S4",
+        Icon = "rbxassetid://138713655406841",
+        Property = {
+            0,
+            "1002_20",
+            "1002_50"
+        },
+        Unlock = {
+            "11_801_1",
+            "12_1000",
+            "1_1000"
         },
         UpgradeCost = {
-            1,
-            3000
+            "1_1000",
+            "1_2000",
+            "1_3000"
         },
         InitialItem = nil,
         EffectAction = {
-            100,
-            1
+            "103_1000",
+            "101_1",
+            "102_201"
         },
-        Herodesc = "猫耳嗅风辨藏宝，绒尾摇，三海里内无秘藏",
+        HeroDesc = "兔耳竖听暗礁险，沙间绘航，精准指安全道",
     },
     [7] = {
-        ID = 103,
-        level = 1,
-        name = "S7（魔角探险风）：暗礁潜行者",
-        Star = 2,
-        HeroOpen = 1,
-        model = "soldier1003",
-        cardmodel = 103,
-        Property = nil,
-        activationtype = {
+        Id = 107,
+        Level = {
             1,
-            1000
+            2,
+            3
+        },
+        Name = "S3（经典海盗风）：藏宝湾提督",
+        Star = {
+            4,
+            5,
+            6
+        },
+        HeroOpen = 1,
+        Model = "S3",
+        Icon = "rbxassetid://138713655406841",
+        Property = {
+            0,
+            "1002_20",
+            "1002_50"
+        },
+        Unlock = {
+            "2_1000",
+            "3_1000",
+            "4_1000"
         },
         UpgradeCost = {
-            1,
-            1000
+            "1_1000",
+            "1_2000",
+            "1_3000"
         },
         InitialItem = nil,
         EffectAction = {
-            101,
-            1
+            "103_1000",
+            "101_1",
+            "102_201"
         },
-        Herodesc = "魔角披雾探洞穴，深海摸沉船，悄行无踪迹",
+        HeroDesc = "金披风卷浪，怀藏秘宝图，领航寻传奇",
     },
     [8] = {
-        ID = 103,
-        level = 2,
-        name = "S7（魔角探险风）：暗礁潜行者",
-        Star = 3,
-        HeroOpen = 1,
-        model = "soldier1003",
-        cardmodel = 103,
-        Property = nil,
-        activationtype = {
+        Id = 108,
+        Level = {
             1,
-            1000
+            2,
+            3
+        },
+        Name = "S2（黑西装绅士风）：远海航务员",
+        Star = {
+            4,
+            5,
+            6
+        },
+        HeroOpen = 1,
+        Model = "S2",
+        Icon = "rbxassetid://138713655406841",
+        Property = {
+            0,
+            "1002_20",
+            "1002_50"
+        },
+        Unlock = {
+            "5_1000",
+            "6_1000",
+            "7_1000"
         },
         UpgradeCost = {
-            1,
-            2000
+            "1_1000",
+            "1_2000",
+            "1_3000"
         },
         InitialItem = nil,
         EffectAction = {
-            101,
-            1
+            "103_1000",
+            "101_1",
+            "102_201"
         },
-        Herodesc = "魔角披雾探洞穴，深海摸沉船，悄行无踪迹",
-    },
-    [9] = {
-        ID = 103,
-        level = 3,
-        name = "S7（魔角探险风）：暗礁潜行者",
-        Star = 4,
-        HeroOpen = 1,
-        model = "soldier1003",
-        cardmodel = 103,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            3000
-        },
-        InitialItem = nil,
-        EffectAction = {
-            101,
-            1
-        },
-        Herodesc = "魔角披雾探洞穴，深海摸沉船，悄行无踪迹",
-    },
-    [10] = {
-        ID = 104,
-        level = 1,
-        name = "S6（白袍刺客风）：雾屿寻秘人",
-        Star = 3,
-        HeroOpen = 1,
-        model = "soldier1004",
-        cardmodel = 104,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            1000
-        },
-        InitialItem = nil,
-        EffectAction = {
-            102,
-            1
-        },
-        Herodesc = "白袍执古图破雾，指尖解暗号，引航向秘境",
-    },
-    [11] = {
-        ID = 104,
-        level = 2,
-        name = "S6（白袍刺客风）：雾屿寻秘人",
-        Star = 4,
-        HeroOpen = 1,
-        model = "soldier1004",
-        cardmodel = 104,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            2000
-        },
-        InitialItem = nil,
-        EffectAction = {
-            102,
-            1
-        },
-        Herodesc = "白袍执古图破雾，指尖解暗号，引航向秘境",
-    },
-    [12] = {
-        ID = 104,
-        level = 3,
-        name = "S6（白袍刺客风）：雾屿寻秘人",
-        Star = 5,
-        HeroOpen = 1,
-        model = "soldier1004",
-        cardmodel = 104,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            3000
-        },
-        InitialItem = nil,
-        EffectAction = {
-            102,
-            1
-        },
-        Herodesc = "白袍执古图破雾，指尖解暗号，引航向秘境",
-    },
-    [13] = {
-        ID = 105,
-        level = 1,
-        name = "S5（红白海盗风）：赤潮女舵手",
-        Star = 4,
-        HeroOpen = 1,
-        model = "soldier1005",
-        cardmodel = 105,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            1000
-        },
-        InitialItem = nil,
-        EffectAction = {
-            103,
-            1
-        },
-        Herodesc = "红装立舵逆狂浪，稳控船舷，怒海辟安途",
-    },
-    [14] = {
-        ID = 105,
-        level = 2,
-        name = "S5（红白海盗风）：赤潮女舵手",
-        Star = 5,
-        HeroOpen = 1,
-        model = "soldier1005",
-        cardmodel = 105,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            2000
-        },
-        InitialItem = nil,
-        EffectAction = {
-            103,
-            1
-        },
-        Herodesc = "红装立舵逆狂浪，稳控船舷，怒海辟安途",
-    },
-    [15] = {
-        ID = 105,
-        level = 3,
-        name = "S5（红白海盗风）：赤潮女舵手",
-        Star = 6,
-        HeroOpen = 1,
-        model = "soldier1005",
-        cardmodel = 105,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            3000
-        },
-        InitialItem = nil,
-        EffectAction = {
-            103,
-            1
-        },
-        Herodesc = "红装立舵逆狂浪，稳控船舷，怒海辟安途",
-    },
-    [16] = {
-        ID = 106,
-        level = 1,
-        name = "S4（白兔萌系风）：沙洲兔领航",
-        Star = 4,
-        HeroOpen = 1,
-        model = "soldier1006",
-        cardmodel = 106,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            1000
-        },
-        InitialItem = nil,
-        EffectAction = nil,
-        Herodesc = "兔耳竖听暗礁险，沙间绘航，精准指安全道",
-    },
-    [17] = {
-        ID = 106,
-        level = 2,
-        name = "S4（白兔萌系风）：沙洲兔领航",
-        Star = 5,
-        HeroOpen = 1,
-        model = "soldier1006",
-        cardmodel = 106,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            2000
-        },
-        InitialItem = nil,
-        EffectAction = nil,
-        Herodesc = "兔耳竖听暗礁险，沙间绘航，精准指安全道",
-    },
-    [18] = {
-        ID = 106,
-        level = 3,
-        name = "S4（白兔萌系风）：沙洲兔领航",
-        Star = 6,
-        HeroOpen = 1,
-        model = "soldier1006",
-        cardmodel = 106,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            3000
-        },
-        InitialItem = nil,
-        EffectAction = nil,
-        Herodesc = "兔耳竖听暗礁险，沙间绘航，精准指安全道",
-    },
-    [19] = {
-        ID = 107,
-        level = 1,
-        name = "S3（经典海盗风）：藏宝湾提督",
-        Star = 4,
-        HeroOpen = 1,
-        model = "soldier1007",
-        cardmodel = 107,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            1000
-        },
-        InitialItem = nil,
-        EffectAction = nil,
-        Herodesc = "金披风卷浪，怀藏秘宝图，领航寻传奇",
-    },
-    [20] = {
-        ID = 107,
-        level = 2,
-        name = "S3（经典海盗风）：藏宝湾提督",
-        Star = 5,
-        HeroOpen = 1,
-        model = "soldier1007",
-        cardmodel = 107,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            2000
-        },
-        InitialItem = nil,
-        EffectAction = nil,
-        Herodesc = "金披风卷浪，怀藏秘宝图，领航寻传奇",
-    },
-    [21] = {
-        ID = 107,
-        level = 3,
-        name = "S3（经典海盗风）：藏宝湾提督",
-        Star = 6,
-        HeroOpen = 1,
-        model = "soldier1007",
-        cardmodel = 107,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            3000
-        },
-        InitialItem = nil,
-        EffectAction = nil,
-        Herodesc = "金披风卷浪，怀藏秘宝图，领航寻传奇",
-    },
-    [22] = {
-        ID = 108,
-        level = 1,
-        name = "S2（黑西装绅士风）：远海航务员",
-        Star = 4,
-        HeroOpen = 1,
-        model = "soldier1008",
-        cardmodel = 108,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            1000
-        },
-        InitialItem = nil,
-        EffectAction = nil,
-        Herodesc = "怀表算潮汐星象，西装记航，定万程方向",
-    },
-    [23] = {
-        ID = 108,
-        level = 2,
-        name = "S2（黑西装绅士风）：远海航务员",
-        Star = 5,
-        HeroOpen = 1,
-        model = "soldier1008",
-        cardmodel = 108,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            2000
-        },
-        InitialItem = nil,
-        EffectAction = nil,
-        Herodesc = "怀表算潮汐星象，西装记航，定万程方向",
-    },
-    [24] = {
-        ID = 108,
-        level = 3,
-        name = "S2（黑西装绅士风）：远海航务员",
-        Star = 6,
-        HeroOpen = 1,
-        model = "soldier1008",
-        cardmodel = 108,
-        Property = nil,
-        activationtype = {
-            1,
-            1000
-        },
-        UpgradeCost = {
-            1,
-            3000
-        },
-        InitialItem = nil,
-        EffectAction = nil,
-        Herodesc = "怀表算潮汐星象，西装记航，定万程方向",
+        HeroDesc = "怀表算潮汐星象，西装记航，定万程方向",
     },
 }
 
@@ -561,27 +321,27 @@ function HeroConfig:GetByIndex(index)
     return self.Data[index]
 end
 
-function HeroConfig:GetByID(value)
+function HeroConfig:GetById(value)
     for i, item in pairs(self.Data) do
-        if item.ID == value then
+        if item.Id == value then
             return item
         end
     end
     return nil
 end
 
-function HeroConfig:GetBylevel(value)
+function HeroConfig:GetByLevel(value)
     for i, item in pairs(self.Data) do
-        if item.level == value then
+        if item.Level == value then
             return item
         end
     end
     return nil
 end
 
-function HeroConfig:GetByname(value)
+function HeroConfig:GetByName(value)
     for i, item in pairs(self.Data) do
-        if item.name == value then
+        if item.Name == value then
             return item
         end
     end
@@ -606,18 +366,18 @@ function HeroConfig:GetByHeroOpen(value)
     return nil
 end
 
-function HeroConfig:GetBymodel(value)
+function HeroConfig:GetByModel(value)
     for i, item in pairs(self.Data) do
-        if item.model == value then
+        if item.Model == value then
             return item
         end
     end
     return nil
 end
 
-function HeroConfig:GetBycardmodel(value)
+function HeroConfig:GetByIcon(value)
     for i, item in pairs(self.Data) do
-        if item.cardmodel == value then
+        if item.Icon == value then
             return item
         end
     end
@@ -633,9 +393,9 @@ function HeroConfig:GetByProperty(value)
     return nil
 end
 
-function HeroConfig:GetByactivationtype(value)
+function HeroConfig:GetByUnlock(value)
     for i, item in pairs(self.Data) do
-        if item.activationtype == value then
+        if item.Unlock == value then
             return item
         end
     end
@@ -669,9 +429,9 @@ function HeroConfig:GetByEffectAction(value)
     return nil
 end
 
-function HeroConfig:GetByHerodesc(value)
+function HeroConfig:GetByHeroDesc(value)
     for i, item in pairs(self.Data) do
-        if item.Herodesc == value then
+        if item.HeroDesc == value then
             return item
         end
     end

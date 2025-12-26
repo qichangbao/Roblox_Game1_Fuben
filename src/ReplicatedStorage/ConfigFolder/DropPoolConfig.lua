@@ -3,9 +3,9 @@ local DropPoolConfig = {}
 
 DropPoolConfig.Data = {
     [1] = {
-        ID = 1,
-        dropType = 1,
-        weight = {
+        Id = 1,
+        DropType = 1,
+        Weight = {
             {
                 1,
                 6000
@@ -17,9 +17,9 @@ DropPoolConfig.Data = {
         },
     },
     [2] = {
-        ID = 2,
-        dropType = 1,
-        weight = {
+        Id = 2,
+        DropType = 1,
+        Weight = {
             {
                 3,
                 6000
@@ -37,27 +37,27 @@ function DropPoolConfig:GetByIndex(index)
     return self.Data[index]
 end
 
-function DropPoolConfig:GetByID(value)
+function DropPoolConfig:GetById(value)
     for i, item in pairs(self.Data) do
-        if item.ID == value then
+        if item.Id == value then
             return item
         end
     end
     return nil
 end
 
-function DropPoolConfig:GetBydropType(value)
+function DropPoolConfig:GetByDropType(value)
     for i, item in pairs(self.Data) do
-        if item.dropType == value then
+        if item.DropType == value then
             return item
         end
     end
     return nil
 end
 
-function DropPoolConfig:GetByweight(value)
+function DropPoolConfig:GetByWeight(value)
     for i, item in pairs(self.Data) do
-        if item.weight == value then
+        if item.Weight == value then
             return item
         end
     end

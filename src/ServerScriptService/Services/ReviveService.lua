@@ -1,6 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local HeroConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("HeroConfig"))
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local ReviveData = {
     {Type = 1, Value = 1000, Description = "Revive for 1000 Gold"},
@@ -14,10 +16,14 @@ local ReviveService = Knit.CreateService({
     },
 
     PlayerReviveCount = {},
+    FreeReviveCount = {},
 })
 
 function ReviveService:PlayerAdded(player)
     self.PlayerReviveCount[player.UserId] = 0
+
+    local jobEffect = Interface.GetJobEffect(player)
+    self.FreeReviveCount[player.UserId] = jobEffect and jobEffect.FreeReviveCount or 0
     -- 监听玩家角色生成
     local function onCharacterAdded(character)
         local humanoid = character:WaitForChild("Humanoid")
@@ -33,6 +39,18 @@ function ReviveService:PlayerAdded(player)
             -- 如果撤离时间到了，不能复活
             local taskEscapeTime = Knit.GetService("TaskService"):GetEscapeTime(player)
             if taskEscapeTime <= 0 then
+                return
+            end
+
+            local freeReviveCount = self.FreeReviveCount[player.UserId]
+            if freeReviveCount > 0 then
+                Knit.GetService("ClientUIService"):ShowUISingle(player, "MessageBoxUI", {
+                    Type = 1,
+                    Content = "You can revive once for free",
+                    ButtonText1 = "Revive",
+                    ButtonText2 = "Leave",
+                    Button2Time = 20,
+                })
                 return
             end
 
@@ -66,7 +84,25 @@ function ReviveService:PlayerRemoved(player)
     self.PlayerReviveCount[player.UserId] = nil
 end
 
+local function loadPlayer(player)
+    local frame = player.Character:GetPivot()
+    player:LoadCharacter()
+    player.Character:PivotTo(CFrame.new(frame.Position))
+
+    Knit.GetService("DBService"):Update(player.UserId, "BuyReviveCount", function(BuyReviveCount)
+        return BuyReviveCount + 1
+    end)
+    Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.Relive, Knit.GetService("DBService"):Get(player.UserId, "BuyReviveCount"))
+end
+
 function ReviveService:RevivePlayer(player)
+    -- 如果有免费复活次数，直接复活
+    if self.FreeReviveCount[player.UserId] > 0 then
+        loadPlayer(player)
+        self.FreeReviveCount[player.UserId] -= 1
+        return 2
+    end
+
     local reviveCount = self.PlayerReviveCount[player.UserId]
     if reviveCount >= #ReviveData then
         Knit.GetService("ClientUIService"):ShowUISingle(player, "MessageBoxUI", {
@@ -91,15 +127,8 @@ function ReviveService:RevivePlayer(player)
         return 0
     end
     
-    local frame = player.Character:GetPivot()
-    player:LoadCharacter()
-    player.Character:PivotTo(CFrame.new(frame.Position))
+    loadPlayer(player)
     self.PlayerReviveCount[player.UserId] += 1
-
-    Knit.GetService("DBService"):Update(player.UserId, "ByReviveCount", function(ByReviveCount)
-        return ByReviveCount + 1
-    end)
-    Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.Relive, Knit.GetService("DBService"):Get(player.UserId, "ByReviveCount"))
     return 2
 end
 
@@ -119,16 +148,9 @@ end
 
 -- 购买复活
 function ReviveService:BuyReviveByRob(player)
-    local frame = player.Character:GetPivot()
-    player:LoadCharacter()
-    player.Character:PivotTo(frame)
+    loadPlayer(player)
     self.PlayerReviveCount[player.UserId] += 1
     Knit.GetService("ClientUIService"):HideSingleUI(player, "MessageBoxUI")
-
-    Knit.GetService("DBService"):Update(player.UserId, "ByReviveCount", function(ByReviveCount)
-        return ByReviveCount + 1
-    end)
-    Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.Relive, Knit.GetService("DBService"):Get(player.UserId, "ByReviveCount"))
 end
 
 -- 取消购买复活
