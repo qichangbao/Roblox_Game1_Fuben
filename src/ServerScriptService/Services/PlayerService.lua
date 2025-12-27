@@ -419,6 +419,10 @@ function PlayerService:RefreshPlayerAttribute(player, attributeName)
         humanoid:SetAttribute("Attack", PlayerAttribute.GetAttack(player))
     elseif attributeName == "Endurance" then
         humanoid:SetAttribute("Endurance", PlayerAttribute.GetEndurance(player))
+    elseif attributeName == "EnduranceConsume" then
+        humanoid:SetAttribute("EnduranceConsume", PlayerAttribute.GetEnduranceConsume(player))
+    elseif attributeName == "EnduranceRecovery" then
+        humanoid:SetAttribute("EnduranceRecovery", PlayerAttribute.GetEnduranceRecovery(player))
     end
 end
 
@@ -978,6 +982,23 @@ end
 
 function PlayerService:GetPlayerCount()
     return self.PlayerCount
+end
+
+function PlayerService:SwitchWalkOrRun(player, state)
+    if not player then return end
+
+    if player.Character and player.Character.Humanoid then
+        if state == 0 then
+            player.Character.Humanoid.WalkSpeed = self:GetWalkSpeed(player)
+        else
+            player.Character.Humanoid.WalkSpeed = self:GetRunSpeed(player)
+        end
+    end
+end
+
+-- 客户端切换走跑
+function PlayerService.Client:SwitchWalkOrRun(player, state)
+    return self.Server:SwitchWalkOrRun(player, state)
 end
 
 return PlayerService

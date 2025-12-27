@@ -1,20 +1,15 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
+local UserInputService = game:GetService("UserInputService")
 local guiInset = game:GetService("GuiService"):GetGuiInset()
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
-local TeleportService = game:GetService("TeleportService")
+local DesignConfig = require(ReplicatedStorage:WaitForChild('ConfigFolder'):WaitForChild('DesignConfig'))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
+local _mapConfig = DesignConfig:GetByMapId(_G.ClientData.IslandId)
+
 local _screenGui = script.Parent
-local _center = _screenGui:WaitForChild("center")
-local _itemFrame = _center:WaitForChild("ItemFrame")
-local _itemImageLabel = _itemFrame:WaitForChild("ImageLabel")
-_itemImageLabel.Visible = false
-_itemImageLabel.ImageTransparency = 1
-local _itemImageFadeTween = nil
 local _leftFrame = _screenGui:WaitForChild("left")
 local _bottomFrame = _screenGui:WaitForChild("bottom")
 local _rightFrame = _screenGui:WaitForChild("right")
@@ -22,6 +17,9 @@ local _topFrame = _screenGui:WaitForChild("top")
 local _toolFrame = _bottomFrame:WaitForChild("ToolFrame")
 local _bagFrame = _bottomFrame:WaitForChild("BagFrame")
 _bagFrame.Visible = false
+local _hpFrame = _bottomFrame:WaitForChild("HpFrame")
+_hpFrame.Visible = false
+
 local _taskTipLabel = _topFrame:WaitForChild("TaskTipLabel")
 _taskTipLabel.RichText = true
 _taskTipLabel.Text = ""
@@ -32,27 +30,8 @@ _questButton.MouseButton1Click:Connect(function()
 	Knit.GetController("UIController").ShowQuestUI:Fire(2)
 end)
 
--- 现实秒与游戏秒的换算（1现实秒 = 96游戏秒）
-local REAL_TO_GAME_SECOND = 96
--- 将真实秒数转换为游戏秒数（函数级注释）：
--- @param realSeconds number 真实世界的秒数
--- @return number 对应的游戏内秒数（按照换算比例REAL_TO_GAME_SECOND）
-local function RealToGameSeconds(realSeconds)
-	return realSeconds * REAL_TO_GAME_SECOND
-end
--- 将游戏秒数格式化为游戏时钟（函数级注释）：
--- @param gameSeconds number 游戏内秒数（例如 57600 表示 16 小时）
--- @return string 形如 "HH:MM" 的字符串，超过 24 小时也会累加小时数
-local function FormatGameClock(gameSeconds)
-	local totalSeconds = math.max(0, math.floor(gameSeconds))
-	local hours = math.floor(totalSeconds / 3600)
-	local minutes = math.floor((totalSeconds % 3600) / 60)
-	return string.format("%02d:%02d", hours, minutes)
-end
--- 真实撤离时间（秒，来自服务器/传送数据）
-local _escopeTimeReal = GameConfig.DefaultEscapeTime
 -- 游戏时间视角下的撤离时间（秒，用于UI展示）
-local _escopeTime = RealToGameSeconds(_escopeTimeReal)
+local _escapeTime = _mapConfig.EvacuateTime
 local _taskGoldFrame = _topFrame:WaitForChild("TaskGoldFrame")
 local _taskGoldLabelFrame = _taskGoldFrame:WaitForChild("TaskGoldLabelFrame")
 local _taskCurGoldLabel = _taskGoldLabelFrame:WaitForChild("TaskCurGoldLabel")
@@ -61,30 +40,6 @@ local _taskTargetGoldLabel = _taskGoldLabelFrame:WaitForChild("TaskTargetGoldLab
 _taskTargetGoldLabel.Text = ""
 local _taskTargetGoldProgress = _taskGoldFrame:WaitForChild("TaskTargetGoldProgress")
 _taskTargetGoldProgress.Size = UDim2.new(0, 0, 1, 0)
-local _escapeButton = _topFrame:WaitForChild("EscapeButton")
-_escapeButton.MouseButton1Down:Connect(function(x, y)
-	if _escapeButton:FindFirstChild("Frame").Visible then
-		return
-	end
-
-	local isOnBoat = Interface.isPlayerOnBoat(game.Players.LocalPlayer, _G.ClientData.IslandName)
-	if not isOnBoat then
-		Knit.GetController("UIController").ShowTip:Fire({Type = 1, Text = "Proceed to the Extraction Point!"})
-		return
-	end
-	Knit.GetService("SettleService"):Settle(true):andThen(function(isSucc)
-		if not isSucc then
-			Knit.GetController("UIController").ShowTip:Fire({Type = 1, Text = "Proceed to the Extraction Point!"})
-		else
-			local Sound = Interface.safeWaitPart(game:GetService("SoundService"), "UI")
-			local music = Interface.safeWaitPart(Sound, "Escape")
-			if not music.IsLoaded then
-				music.Loaded:Wait()
-			end
-			music:Play()
-		end
-	end)
-end)
 
 local _goldFrame = _leftFrame:WaitForChild("GoldFrame")
 local _goldLabel = _goldFrame:WaitForChild("GoldLabel")
@@ -119,7 +74,6 @@ local function updateTaskLabel(curEscapeTask, escapeTask)
 		-- 未达成或回退时停止颜色脉冲循环
 		Interface.StopPulseGuiColorLoop(_taskTargetGoldProgress)
 	end
-	_escapeButton:WaitForChild("Frame").Visible = not isTaskDone
 end
 
 local _slots = {}
@@ -729,7 +683,7 @@ end
 updateBag()
 
 -- 监听鼠标释放事件
-UserInputService.InputEnded:Connect(function(input)
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
 		or input.UserInputType == Enum.UserInputType.Touch then
 		if isDragging then
@@ -753,37 +707,6 @@ UserInputService.InputEnded:Connect(function(input)
 		discardItem()
 	end
 end)
-
--- 播放拾取物品图标淡入/停留/淡出动画（函数级注释）：
--- @param imageLabel ImageLabel 要播放动画的图像标签
--- @param fadeIn number 淡入时长（秒），从不可见到完全可见
--- @param hold number 停留时长（秒），保持完全可见
--- @param fadeOut number 淡出时长（秒），从完全可见到不可见
-local function PlayItemImageFade(imageLabel, fadeIn, hold, fadeOut)
-	-- 先取消上一轮可能仍在进行的补间
-	if _itemImageFadeTween then _itemImageFadeTween:Cancel() end
-	_itemImageFadeTween = nil
-
-	imageLabel.Visible = true
-	imageLabel.ImageTransparency = 1
-
-	-- 淡入
-	local inInfo = TweenInfo.new(fadeIn, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	_itemImageFadeTween = TweenService:Create(imageLabel, inInfo, { ImageTransparency = 0 })
-	_itemImageFadeTween:Play()
-	_itemImageFadeTween.Completed:Wait()
-
-	-- 停留
-	task.wait(hold)
-
-	-- 淡出
-	local outInfo = TweenInfo.new(fadeOut, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	_itemImageFadeTween = TweenService:Create(imageLabel, outInfo, { ImageTransparency = 1 })
-	_itemImageFadeTween:Play()
-	_itemImageFadeTween.Completed:Wait()
-
-	imageLabel.Visible = false
-end
 
 Knit.OnStart():andThen(function()
 	_goldLabel.Text = _G.ClientData.Gold
@@ -818,6 +741,9 @@ Knit.OnStart():andThen(function()
 	end)
 	UIController.UpdateTaskUI:Connect(function(task)
 	end)
+	UIController.UpdateEscapeTime:Connect(function(escapeTime)
+		_escapeTime = escapeTime
+	end)
 	UIController.UpdateEscapeTask:Connect(function(curEscapeTask, escapeTask)
 		updateTaskLabel(curEscapeTask, escapeTask)
 	end)
@@ -827,29 +753,15 @@ Knit.OnStart():andThen(function()
 		_bagFrame.Visible = isShow
 	end)
 	
-	UIController.PickUpItem:Connect(function(itemInfo)
-		if not itemInfo then return end
-
-		_itemImageLabel.Image = itemInfo.Icon
-		PlayItemImageFade(_itemImageLabel, 0.5, 2.0, 0.5)
+	UIController.ShowMainUI:Connect(function(isShow)
+		_screenGui.Enabled = isShow
 	end)
 
-	local teleportData = TeleportService:GetLocalPlayerTeleportData()
-	if teleportData and teleportData.EscapeTime then
-		-- 传入为真实秒数，转化为游戏时间用于显示
-		_escopeTimeReal = teleportData.EscapeTime
-		_escopeTime = RealToGameSeconds(_escopeTimeReal)
-	end
-	_taskTipLabel.Text = FormatGameClock(_escopeTime)
-
 	game:GetService("RunService").Heartbeat:Connect(function(dt)
-		-- 真实时间流逝：用于保持与服务器一致
-		_escopeTimeReal -= dt
-		-- 转化为游戏时间秒数用于显示
-		_escopeTime = math.max(0, RealToGameSeconds(_escopeTimeReal))
-		if _escopeTime <= 30 then
+		_escapeTime -= dt
+		if _escapeTime <= 30 then
 			_taskTipLabel.TextColor3 = Color3.new(0.858823, 0.184313, 0.184313)
 		end
-		_taskTipLabel.Text = FormatGameClock(_escopeTime)
+		_taskTipLabel.Text = Interface.formatTimeMMSS(_escapeTime)
 	end)
 end)
