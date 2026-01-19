@@ -44,27 +44,26 @@ local function createAnimationsFromIds()
     end
 
     local animations = {}
+    local function createAnimationsFromId(id, animName)
+        local normalized = normalizeId(id)
+        if normalized then
+            local anim = Instance.new("Animation")
+            anim.Name = animName
+            anim.AnimationId = normalized
+            table.insert(animations, anim)
+        end
+    end
+
     for animName, value in pairs(GameConfig.AnimationMap) do
         if typeof(value) == "table" then
             for _, id in ipairs(value) do
-                local normalized = normalizeId(id)
-                if normalized then
-                    local anim = Instance.new("Animation")
-                    anim.Name = animName
-                    anim.AnimationId = normalized
-                    table.insert(animations, anim)
-                end
+                createAnimationsFromId(id, animName)
             end
         else
-            local normalized = normalizeId(value)
-            if normalized then
-                local anim = Instance.new("Animation")
-                anim.Name = animName
-                anim.AnimationId = normalized
-                table.insert(animations, anim)
-            end
+            createAnimationsFromId(value, animName)
         end
     end
+
     return animations
 end
 

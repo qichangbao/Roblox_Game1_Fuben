@@ -94,6 +94,8 @@ function AttackState:CalculateDamage()
     local humanoid = target:FindFirstChild("Humanoid")
     if humanoid and humanoid.Health > 0 then
         Interface.decHp(target, attack)
+        -- 播放命中特效
+        self.AIManager:PlayAnimEffect(target)
         if humanoid.Health <= 0 then
             self.AIManager:SetState("Chase")
             return

@@ -83,4 +83,27 @@ Knit.OnStart():andThen(function()
         -- 连接到渲染步进事件，每一帧都更新镜头位置
         _connection = game:GetService("RunService").RenderStepped:Connect(applyShake)
     end)
+	Knit.GetController("UIController").ResetCamareDir:Connect(function()
+		local landId = _G.ClientData and _G.ClientData.IslandId
+		if not landId then return end
+		local land = workspace:FindFirstChild(landId)
+		if not land then return end
+
+		local player = game.Players.LocalPlayer
+		if not player then return end
+		local character = player.Character or player.CharacterAdded:Wait()
+		local hrp = character:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+
+		local landPos = land:GetPivot().Position
+		local playerPos = hrp.Position
+		local dir = (landPos - playerPos)
+		if dir.Magnitude < 1e-4 then
+			return
+		end
+		dir = dir.Unit
+		local backPos = playerPos - dir * 8 + Vector3.new(0, 3, 0)
+		camera.CameraType = Enum.CameraType.Custom
+		camera.CFrame = CFrame.lookAt(backPos, landPos)
+	end)
 end)

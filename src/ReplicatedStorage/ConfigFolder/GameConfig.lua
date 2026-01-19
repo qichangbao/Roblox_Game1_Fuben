@@ -151,7 +151,7 @@ GameConfig.PlayerInitAttribute = {
     EnduranceRecovery = ConstantConfig:GetByConstant("InitialEnduranceRecovery").Effect1,
 }
 
-GameConfig.IsLandId = 101
+GameConfig.IsLandId = 100
 GameConfig.TeleportPartNames = "Boat"-- 触发传送的model名称
 GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
 GameConfig.MAIN_SLOT_NUM = 3        -- 主工具栏插槽数量

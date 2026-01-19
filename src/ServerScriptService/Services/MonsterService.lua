@@ -7,6 +7,7 @@ local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Kn
 local MonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterConfig"))
 local AIManager = require(script.Parent.Parent:WaitForChild("AIManagerFolder"):WaitForChild("AIManager"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local DesignMonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignMonsterConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 local TweenService = game:GetService("TweenService")
 
@@ -450,10 +451,8 @@ function MonsterService:InitMonsters()
     --         end
     --     end
     -- end)
-    local config = {Refresh = 1, MonsterId = 30004, Position = Vector3.new(353, -0.7, -240)}
-    self:CreateMonster(config)
-    --self:CreateMonster(30002, Vector3.new(353, -0.7, -220))
-    --self:CreateMonster(30003, Vector3.new(353, -0.7, -200))
+    self:CreateMonster({Refresh = 1, MonsterId = 30007, Position = Vector3.new(91, -1.4, -27)})
+    --self:CreateMonster({Refresh = 1, MonsterId = 30008, Position = Vector3.new(91, -1.4, -37)})
 end
 
 function MonsterService:KnitInit()

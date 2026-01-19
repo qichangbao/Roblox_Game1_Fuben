@@ -133,6 +133,7 @@ function PlayerService:KnitStart()
                 end
             end)
 
+            character:SetAttribute("HumanoidType", GameConfig.HumanoidType.Player)
             -- 在 CharacterAdded 事件中添加
             local forceField = Instance.new("ForceField")
             forceField.Parent = character
@@ -143,7 +144,6 @@ function PlayerService:KnitStart()
         
         player:LoadCharacter()
         player:SetAttribute("JoinTime", tick())
-        player:SetAttribute("HumanoidType", GameConfig.HumanoidType.Player)
 
         -- 启动水中检测循环
         self:StartWaterDamageLoop(player)
@@ -225,7 +225,7 @@ function PlayerService:GetInitData(player)
         Weight = 0,        -- 负重
     }
 
-    local islandId = GameConfig.IsLandId
+    local islandId = DesignConfig:GetByIndex(1).IslandId or GameConfig.IsLandId
     self.PlayerCount = #Players:GetPlayers()
     -- 获取传送数据
     local joinData = player:GetJoinData()
@@ -238,6 +238,7 @@ function PlayerService:GetInitData(player)
     end
 
     Knit.GetService("IslandService"):SetIslandId(islandId)
+    Knit.GetService("BoatService"):SetBoatPos(islandId, player)
     
     local mapConfig = DesignConfig:GetByMapId(islandId)
     local effect1 = ConstantConfig:GetByConstant("CopyPersonnelTarget").Effect1
@@ -615,11 +616,12 @@ function PlayerService:InitAnimEffect(player)
     local effect1 = template1:Clone()
     effect1.Parent = player.Character
     effect1.Name = "AttackEffect"
-    effect1.CanCollide = false
-    effect1.Anchored = true
-    for _, particleEmitter in pairs(effect1:GetDescendants()) do
-        if particleEmitter:IsA("ParticleEmitter") then
-            particleEmitter.Enabled = false
+	for _, part in pairs(effect1:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+			part.Anchored = true
+        elseif part:IsA("ParticleEmitter") then
+            part.Enabled = false
         end
     end
 
@@ -629,11 +631,12 @@ function PlayerService:InitAnimEffect(player)
     local effect2 = template2:Clone()
     effect2.Parent = player.Character
     effect2.Name = "HitEffect"
-    effect2.CanCollide = false
-    effect2.Anchored = true
-    for _, particleEmitter in pairs(effect2:GetDescendants()) do
-        if particleEmitter:IsA("ParticleEmitter") then
-            particleEmitter.Enabled = false
+	for _, part in pairs(effect2:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+			part.Anchored = true
+        elseif part:IsA("ParticleEmitter") then
+            part.Enabled = false
         end
     end
 end
@@ -743,6 +746,8 @@ function PlayerService:playAnimation(player, animationName, soundName, cd)
     if not character then return end
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
 
     -- 按名随机播放（支持同名多轨）
     self:PlayAnimationByNameRandom(player, animationName, cd)
@@ -752,7 +757,7 @@ function PlayerService:playAnimation(player, animationName, soundName, cd)
         ItemInterface.showAttackEffect(player)
     end
 
-    local music = character:FindFirstChild(soundName)
+    local music = humanoidRootPart:FindFirstChild(soundName)
     if music then
         music:Play()
     end

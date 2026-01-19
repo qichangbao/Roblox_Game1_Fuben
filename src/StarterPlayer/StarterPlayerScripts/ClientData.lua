@@ -49,7 +49,8 @@ local function setInitData(data)
     Knit.GetController("UIController").UpdateToolUI:Fire(ClientData.ToolData)
     Knit.GetController("UIController").UpdateEscapeTask:Fire(ClientData.CurEscapeTask, ClientData.EscapeTask)
     if _G.ClientData.Test then
-        Knit.GetController("UIController").ShowStartGameUI:Fire()
+        --Knit.GetController("UIController").ShowStartGameUI:Fire()
+        Knit.GetController("UIController").ResetCamareDir:Fire()
     else
         local playerUserIds = {}
         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
@@ -141,6 +142,7 @@ local function init()
         end)
         Knit.GetService("TaskService").GotoNextIsland:Connect(function(gotoNextIslandPlayers)
             Knit.GetController("UIController").ShowGameStartCG:Fire(gotoNextIslandPlayers)
+            Knit.GetController("UIController").ResetBoat:Fire()
         end)
 
         Knit.GetService("ClientUIService").ShowTip:Connect(function(tip)
@@ -232,6 +234,9 @@ local function init()
 
         Knit.GetService("SpecialItemService").ShakeCarame:Connect(function(info)
             Knit.GetController("UIController").ShakeCarame:Fire(info)
+        end)
+        Knit.GetService("SpecialItemService").OpenChest:Connect(function(cframe, item)
+            Knit.GetController("UIController").OpenChest:Fire(cframe, item)
         end)
 
         Knit.GetService("BoatService").ChooseEscape:Connect(function()

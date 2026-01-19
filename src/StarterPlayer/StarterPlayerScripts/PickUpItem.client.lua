@@ -123,6 +123,7 @@ Knit.OnStart():andThen(function()
 		if not itemInfo then return end
 
 		PARTICLE_EMITTER.Enabled = true -- 播放粒子
+        PARTICLE_EMITTER:Emit(30)
 
 		_itemImageLabel.Visible = false
 		_itemImageLabel.ImageTransparency = 1

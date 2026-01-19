@@ -43,7 +43,7 @@ function ItemService:CreateXuanCaiChestEffect(item)
 end
 
 function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, attribute, isAnchored)
-    if itemId == 0 then
+    if not itemId or itemId == 0 then
         return
     end
 
@@ -73,28 +73,23 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, at
         item:PivotTo(CFrame.new(Vector3.new(position.X, position.Y + item.PrimaryPart.Size.Y / 2, position.Z)))
     end
     item:SetAttribute("ItemId", itemId)
-    if dropGroup then
+    if dropGroup and dropGroup > 0 then
         item:SetAttribute("DropGroup", dropGroup)
     end
     if attribute then
         attribute.IsEquipped = 0
     end
     GameConfig.SetItemAttribute(item, attribute)
+    for _, descendant in pairs(item:GetDescendants()) do
+        if descendant:IsA("BasePart") then
+            descendant.Anchored = false
+            descendant.CanCollide = true
+            descendant.CollisionGroup = "Item"
+        end
+    end
 
     if isAnchored then
-        task.delay(0.5, function()
-            if item:IsA("BasePart") then
-                -- 设置Part的锚固为false
-                item.Anchored = true
-            elseif item:IsA("Model") then
-                -- 遍历Model中的所有Part，设置锚固为false
-                for _, descendant in pairs(item:GetDescendants()) do
-                    if descendant:IsA("BasePart") then
-                        descendant.Anchored = true
-                    end
-                end
-            end
-        end)
+        item.PrimaryPart.Anchored = true
     end
 
     return item, itemInfo
@@ -332,7 +327,7 @@ function ItemService:InitItems()
                         gold = math.random(config.GoldRange[1], config.GoldRange[2])
                         modelId = Interface.GetGoldModelId(gold)
                     end
-                    local item = self:CreateItem(modelId, config.Position, config.DropGroup, GameConfig.GetItemAttribute(), false)
+                    local item = self:CreateItem(modelId, config.Position, config.DropGroup, GameConfig.GetItemAttribute(), true)
                     if gold and item then
                         item:SetAttribute("Gold", gold)
                     end
@@ -351,7 +346,7 @@ function ItemService:InitItems()
                         gold = math.random(config.GoldRange[1], config.GoldRange[2])
                         modelId = Interface.GetGoldModelId(gold)
                     end
-                    local item =self:CreateItem(modelId, config.Position, config.DropGroup, GameConfig.GetItemAttribute(), false)
+                    local item = self:CreateItem(modelId, config.Position, config.DropGroup, GameConfig.GetItemAttribute(), true)
                     if gold and item then
                         item:SetAttribute("Gold", gold)
                     end
@@ -364,34 +359,8 @@ function ItemService:InitItems()
         end
 
         -- task.spawn(function()
-        --     local itemTemp = self:CreateItem(204, Vector3.new(353, -1.2, -250), GameConfig.GetItemAttribute(), false)
-        --     if itemTemp then
-        --         table.insert(self.Items, itemTemp)
-        --     end
-
-        --     task.delay(5, function()
-        --         for _, item in pairs(self.Items) do
-        --             if item:IsA("BasePart") then
-        --                 -- 设置Part的锚固为false
-        --                 item.Anchored = true
-        --             elseif item:IsA("Model") then
-        --                 if item.PrimaryPart then
-        --                     item.PrimaryPart.Anchored = true
-        --                 end
-        --             end
-        --         end
-        --     end)
+        --     self:CreateItem(507, Vector3.new(185, 11.6, -7.8), 1, GameConfig.GetItemAttribute(), true)
         -- end)
-        -- self:CreateItem(1032, Vector3.new(353, -1.5, -160), GameConfig.GetItemAttribute(), false)
-        -- self:CreateItem(1032, Vector3.new(353, -1.5, -170), GameConfig.GetItemAttribute(), false)
-        -- self:CreateItem(1032, Vector3.new(353, -1.5, -180), GameConfig.GetItemAttribute(), false)
-        -- self:CreateItem(1032, Vector3.new(353, -1.5, -190), GameConfig.GetItemAttribute(), false)
-        -- self:CreateItem(1032, Vector3.new(353, -1.5, -200), GameConfig.GetItemAttribute(), false)
-        -- self:CreateItem(1032, Vector3.new(353, -1.5, -210), GameConfig.GetItemAttribute(), false)
-        -- self:CreateItem(1032, Vector3.new(353, -1.5, -220), GameConfig.GetItemAttribute(), false)
-        -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -230), GameConfig.GetItemAttribute(), false)
-        -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -240), GameConfig.GetItemAttribute(), false)
-        -- self:CreateItem("额外的背包", Vector3.new(353, -1.5, -250), GameConfig.GetItemAttribute(), false)
     end)
 end
 

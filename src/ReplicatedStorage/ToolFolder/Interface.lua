@@ -638,21 +638,21 @@ function Interface.addHp(character, hp)
     -- game:GetService("Debris"):AddItem(effect, 3)
 
     local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
-    Knit.GetService("ClientUIService"):ChangeHp(part, hp)
+    Knit.GetService("ClientUIService"):BroadcastHpChange(part, hp)
 end
 
 function Interface.decHp(character, damage, isCrit)
     if not character or not character.Parent then
         return
     end
-    local humanoid = character:FindFirstChild("Humanoid")
-    if not humanoid then
-        return
-    end
-    humanoid:TakeDamage(damage)
-    
-    local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
-    Knit.GetService("ClientUIService"):ChangeHp(part, -damage, isCrit)
+	local humanoid = character:FindFirstChild("Humanoid")
+	if not humanoid then
+		return
+	end
+	humanoid:TakeDamage(damage)
+	
+	local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
+	Knit.GetService("ClientUIService"):BroadcastHpChange(part, -damage, isCrit)
 end
 
 -- 存储每个GuiObject的缩放动画状态，避免重复动画冲突
@@ -736,7 +736,7 @@ end
 
 -- 获取掉落物品
 function Interface.GetDropItems(dropId)
-    local dropConfig = DropPoolConfig:GetByID(dropId)
+    local dropConfig = DropPoolConfig:GetById(dropId)
     if not dropConfig then return end
 
     local dropTables = {}

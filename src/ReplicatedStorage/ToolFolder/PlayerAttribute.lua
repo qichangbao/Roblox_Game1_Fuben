@@ -169,11 +169,11 @@ end
 
 -- 获取玩家暴击伤害
 function PlayerAttribute.GetCriticalValue(player)
-    local jobEffect = perCondition(player)
-    if not jobEffect then return GameConfig.PlayerInitAttribute.CriticalValue end
-    local attribute = jobEffect.Attribute
     local criticalValue = GameConfig.PlayerInitAttribute.CriticalValue
     local value = math.random(tonumber(criticalValue[1]), tonumber(criticalValue[2]))
+    local jobEffect = perCondition(player)
+    if not jobEffect then return value end
+    local attribute = jobEffect.Attribute
     for _, effect in ipairs(attribute) do
         if effect.AttributeId == GameConfig.PlayerAttributeId.CriticalValue then
             value += effect.Value

@@ -390,19 +390,16 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
         end
     end
 
-    -- 遍历模型中的所有部件
     for _, part in ipairs(templateModel:GetDescendants()) do
         if part:IsA("BasePart") then
-            -- 解除所有部件的锚定
             part.CanCollide = false
             part.Anchored = false
-            -- 将除 PrimaryPart 之外的所有部件焊接到 PrimaryPart
-            if part ~= handle then
-                local weld = Instance.new("WeldConstraint")
-                weld.Part0 = handle
-                weld.Part1 = part
-                weld.Parent = handle
-            end
+            -- if part ~= handle then
+            --     local weld = Instance.new("WeldConstraint")
+            --     weld.Part0 = handle
+            --     weld.Part1 = part
+            --     weld.Parent = handle
+            -- end
         end
     end
     
@@ -420,14 +417,12 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
     -- 销毁空的模板模型
     templateModel:Destroy()
 
-    -- 直接设置Tool的Grip属性来控制握持方向
-    if itemInfo.ItemId == 202 then
-        tool.Grip = CFrame.Angles(0, math.rad(180), 0)  -- 只旋转，不偏移位置
-    elseif itemInfo.ItemId == 203 then
-        tool.Grip = CFrame.new(0, -0.6, 0) * CFrame.Angles(0, math.rad(90), 0)  -- y轴偏移0.6并旋转
-    else
-        tool.Grip = CFrame.Angles(0, 0, math.rad(90))  -- 只旋转，不偏移位置
-    end
+    -- -- 直接设置Tool的Grip属性来控制握持方向
+    -- if itemInfo.ItemId == 202 then
+    --     tool.Grip = CFrame.Angles(0, math.rad(180), 0)  -- 只旋转，不偏移位置
+    -- elseif itemInfo.ItemId == 203 then
+    --     tool.Grip = CFrame.new(0, -0.6, 0) * CFrame.Angles(0, math.rad(90), 0)  -- y轴偏移0.6并旋转
+    -- end
     
     -- 连接工具装备事件，重置状态
     tool.Equipped:Connect(function()

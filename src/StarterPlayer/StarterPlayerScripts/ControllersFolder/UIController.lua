@@ -45,6 +45,8 @@ local UIController = Knit.CreateController {
     ChooseNextIsland = Signal.new(),
     ShowMainUI = Signal.new(),
     ResetBoat = Signal.new(),
+    OpenChest = Signal.new(),
+	ResetCamareDir = Signal.new(),
 }
 
 function UIController:KnitInit()

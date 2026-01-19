@@ -134,6 +134,7 @@ function TaskService:UpdateEscapeTime(curEscapeTime)
                 Knit.GetService("ItemService"):DestroyAllItems()
                 Knit.GetService("MonsterService"):DestroyAllMonsters()
                 Knit.GetService("IslandService"):SetIslandId(nextIslandId)
+                Knit.GetService("BoatService"):SetBoatPos(nextIslandId)
                 Knit.GetService("ItemService"):InitItems()
                 Knit.GetService("MonsterService"):InitMonsters()
 

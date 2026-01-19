@@ -2,58 +2,108 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 
 local ClientUIService = Knit.CreateService({
-    Name = 'ClientUIService',
-    Client = {
-        ShowTip = Knit.CreateSignal(),
-        ShowUI = Knit.CreateSignal(),
-        HideUI = Knit.CreateSignal(),
-        ResetUI = Knit.CreateSignal(),
-        ShowArrow = Knit.CreateSignal(),
-        HideArrow = Knit.CreateSignal(),
-        ChangeHp = Knit.CreateSignal(),
-    },
+	Name = 'ClientUIService',
+	Client = {
+		ShowTip = Knit.CreateSignal(),
+		ShowUI = Knit.CreateSignal(),
+		HideUI = Knit.CreateSignal(),
+		ResetUI = Knit.CreateSignal(),
+		ShowArrow = Knit.CreateSignal(),
+		HideArrow = Knit.CreateSignal(),
+		ChangeHp = Knit.CreateSignal(),
+	},
 })
 
+--[[
+	向单个玩家显示提示文字
+	@param player Player 目标玩家
+	@param tip string 提示内容
+]]
 function ClientUIService:ShowTip(player, tip)
     self.Client.ShowTip:Fire(player, {Type = 1, Text = tip})
 end
 
+--[[
+	向所有玩家广播提示文字
+	@param tip string 提示内容
+]]
 function ClientUIService:ShowTipAll(tip)
     self.Client.ShowTip:FireAll({Type = 1, Text = tip})
 end
 
+--[[
+	广播玩家上交物品的提示
+	@param player Player 上交玩家
+	@param itemIds table<number> 上交物品ID列表
+]]
 function ClientUIService:SubmitItems(player, itemIds)
     for _, v in ipairs(itemIds) do
         self.Client.ShowTip:FireAll({Type = 2, Name = player.Name, ItemId = v})
     end
 end
 
+--[[
+	向单个玩家显示指定UI
+	@param player Player 目标玩家
+	@param ui string UI标识
+	@param data any 附带数据
+]]
 function ClientUIService:ShowUISingle(player, ui, data)
     self.Client.ShowUI:Fire(player, ui, data)
 end
 
+--[[
+	隐藏单个玩家的指定UI
+	@param player Player 目标玩家
+	@param ui string UI标识
+]]
 function ClientUIService:HideSingleUI(player, ui)
     self.Client.HideUI:Fire(player, ui)
 end
 
+--[[
+	重置单个玩家的指定UI
+	@param player Player 目标玩家
+	@param ui string UI标识
+]]
 function ClientUIService:ResetSingleUI(player, ui)
     self.Client.ResetUI:Fire(player, ui)
 end
 
+--[[
+	向所有玩家显示指定UI
+	@param ui string UI标识
+	@param data any 附带数据
+]]
 function ClientUIService:ShowUIAll(ui, data)
     self.Client.ShowUI:FireAll(ui, data)
 end
 
-function ClientUIService:ShowArrow(player, targetPosition)
+--[[
+	向单个玩家显示指引箭头
+	@param player Player 目标玩家
+	@param targetPosition Vector3 目标位置
+]]
+function ClientUIService:BroadcastShowArrow(player, targetPosition)
     self.Client.ShowArrow:Fire(player, targetPosition)
 end
 
-function ClientUIService:HideArrow(player)
-    self.Client.HideArrow:Fire(player)
+--[[
+	隐藏单个玩家的指引箭头
+	@param player Player 目标玩家
+]]
+function ClientUIService:BroadcastHideArrow(player)
+	self.Client.HideArrow:Fire(player)
 end
 
-function ClientUIService:ChangeHp(part, hp, isCrit)
-    self.Client.ChangeHp:FireAll(part, hp, isCrit)
+--[[
+	向所有玩家广播血量变化事件
+	@param part BasePart 头部或根部件
+	@param hp number 血量变化值
+	@param isCrit boolean? 是否暴击
+]]
+function ClientUIService:BroadcastHpChange(part, hp, isCrit)
+	self.Client.ChangeHp:FireAll(part, hp, isCrit)
 end
 
 function ClientUIService:KnitInit()

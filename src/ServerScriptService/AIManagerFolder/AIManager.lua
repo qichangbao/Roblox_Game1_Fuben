@@ -78,6 +78,8 @@ function AIManager.new(npc, position, monsterInfo)
     self.currentSound = nil
     self.sounds = {}
     self:PreloadSound()
+    -- 初始化命中特效
+    self:InitAnimEffect(self.NPC)
     
     self.connection = game:GetService("RunService").Heartbeat:Connect(function(dt)
         if self.CurrentState then
@@ -207,6 +209,8 @@ function AIManager:PreloadAnimations(monsterInfo)
             if success and track then
                 track.Priority = animInfo[2]
                 self.animationTracks[animName] = track
+            else
+                warn(string.format("❌ 未找到预加载的动画: %s %s", animName, animInfo[1]))
             end
         end
     end
@@ -321,6 +325,52 @@ function AIManager:StopSound()
         self.currentSound:Stop()
         self.currentSound = nil
     end
+end
+
+function AIManager:InitAnimEffect(monster)
+    -- 生成并摆放命中特效到边缘中心
+    local effectTemplateFolder = ReplicatedStorage:FindFirstChild("Effect")
+    if not effectTemplateFolder then return end
+
+    local template2 = effectTemplateFolder:FindFirstChild("PlayerHitEffect")
+    if not template2 then return end
+
+    local effect2 = template2:Clone()
+    effect2.Parent = monster
+    effect2.Name = "PlayerHitEffect"
+	for _, part in pairs(effect2:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+			part.Anchored = true
+        elseif part:IsA("ParticleEmitter") then
+            part.Enabled = false
+        end
+    end
+end
+
+--[[
+    播放命中特效
+    @param target 被命中的目标（玩家或怪物）
+]]
+function AIManager:PlayAnimEffect(target)
+    local effect = self.NPC:FindFirstChild("PlayerHitEffect")
+    if not effect then return end
+	-- 朝向 NPC，自身位置仍然在目标身上
+	effect.CFrame = CFrame.lookAt(target:GetPivot().Position, self.NPC:GetPivot().Position)
+    for _, particleEmitter in pairs(effect:GetDescendants()) do
+        if particleEmitter:IsA("ParticleEmitter") then
+            particleEmitter.Enabled = true
+            particleEmitter:Emit(30)
+        end
+    end
+
+    task.delay(1, function()
+        for _, particleEmitter in pairs(effect:GetDescendants()) do
+            if particleEmitter:IsA("ParticleEmitter") then
+                particleEmitter.Enabled = false
+            end
+        end
+    end)
 end
 
 --[[
