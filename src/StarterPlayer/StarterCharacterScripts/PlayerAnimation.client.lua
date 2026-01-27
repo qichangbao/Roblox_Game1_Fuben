@@ -154,4 +154,3 @@ local function bindCharacterAdded()
 end
 
 bindCharacterAdded()
-

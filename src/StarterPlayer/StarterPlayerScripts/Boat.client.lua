@@ -1,14 +1,15 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild('Packages'):WaitForChild('Knit'):waitForChild('Knit'))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 local TweenService = game:GetService("TweenService")
 
-local _boat = workspace:WaitForChild(GameConfig.TeleportPartNames)
-local _chuantai = _boat:WaitForChild("船台")
-local _Controls = _chuantai:WaitForChild("Controls")
-local _DiallingModule = _Controls:WaitForChild("Dialling Module")
-local _partEscape = _DiallingModule:WaitForChild("ActivatorEscape")
-local _partNextIsland = _DiallingModule:WaitForChild("ActivatorNextIsland")
+local _boat = Interface.safeWaitPart(workspace, GameConfig.TeleportPartNames)
+local _chuantai = Interface.safeWaitPart(_boat, "船台")
+local _Controls = Interface.safeWaitPart(_chuantai, "Controls")
+local _DiallingModule = Interface.safeWaitPart(_Controls, "Dialling Module")
+local _partEscape = Interface.safeWaitPart(_DiallingModule, "ActivatorEscape")
+local _partNextIsland = Interface.safeWaitPart(_DiallingModule, "ActivatorNextIsland")
 local _partEscapePosY = _partEscape.Position.Y
 local _partNextIslandPosY = _partNextIsland.Position.Y
 

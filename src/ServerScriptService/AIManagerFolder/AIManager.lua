@@ -78,7 +78,7 @@ function AIManager.new(npc, position, monsterInfo)
     self.currentSound = nil
     self.sounds = {}
     self:PreloadSound()
-    -- 初始化命中特效
+    -- 初始化特效
     self:InitAnimEffect(self.NPC)
     
     self.connection = game:GetService("RunService").Heartbeat:Connect(function(dt)
@@ -303,6 +303,71 @@ function AIManager:PlayAnimation(animName, isLoop, playTimeScale, maxTime)
     self.currentTrack = track
 end
 
+-- 播放死亡动画并在最后一帧冻结（函数级注释）：
+-- 行为：
+-- 1. 使用预加载的 "dead" 动画轨道播放死亡动作；
+-- 2. 优先监听动画事件标记 "Finish"，在关键帧处将速度设为0并停在最后一帧；
+-- 3. 若没有事件标记，则在 Stopped 回调中二次播放并跳到 Length 处后将速度设为0。
+function AIManager:PlayDeathAnimation()
+    self:StopAnimation()
+
+    local track = self.animationTracks and self.animationTracks["dead"]
+    if not track then
+        warn("未找到死亡动画轨道: dead")
+        return
+    end
+
+    track.Looped = false
+    track:Play()
+    self.currentTrack = track
+
+    local function freezeToLastFrame()
+        local length = track.Length or 0
+        if length <= 0 then
+            local lenConn
+            lenConn = track:GetPropertyChangedSignal("Length"):Connect(function()
+                if track.Length and track.Length > 0 then
+                    lenConn:Disconnect()
+                    freezeToLastFrame()
+                end
+            end)
+            return
+        end
+
+        track:Play(0, 1, 0)
+        track.TimePosition = length
+        track:AdjustSpeed(0)
+    end
+
+    local hasMarker = false
+    local ok, _ = pcall(function()
+        track:GetMarkerReachedSignal("Finish")
+    end)
+    if ok then
+        hasMarker = true
+    end
+
+    if hasMarker then
+        local markerConn
+        markerConn = track:GetMarkerReachedSignal("Finish"):Connect(function()
+            if markerConn then
+                markerConn:Disconnect()
+                markerConn = nil
+            end
+            freezeToLastFrame()
+        end)
+    else
+        local stoppedConn
+        stoppedConn = track.Stopped:Connect(function()
+            if stoppedConn then
+                stoppedConn:Disconnect()
+                stoppedConn = nil
+            end
+            freezeToLastFrame()
+        end)
+    end
+end
+
 function AIManager:PlaySound(soundName, loop)
     self:StopSound()
 
@@ -329,13 +394,7 @@ end
 
 function AIManager:InitAnimEffect(monster)
     -- 生成并摆放命中特效到边缘中心
-    local effectTemplateFolder = ReplicatedStorage:FindFirstChild("Effect")
-    if not effectTemplateFolder then return end
-
-    local template2 = effectTemplateFolder:FindFirstChild("PlayerHitEffect")
-    if not template2 then return end
-
-    local effect2 = template2:Clone()
+    local effect2 = Interface.GetEffect("PlayerHitEffect")
     effect2.Parent = monster
     effect2.Name = "PlayerHitEffect"
 	for _, part in pairs(effect2:GetDescendants()) do
@@ -352,25 +411,11 @@ end
     播放命中特效
     @param target 被命中的目标（玩家或怪物）
 ]]
-function AIManager:PlayAnimEffect(target)
+function AIManager:PlayAnimHitEffect(target)
     local effect = self.NPC:FindFirstChild("PlayerHitEffect")
     if not effect then return end
 	-- 朝向 NPC，自身位置仍然在目标身上
-	effect.CFrame = CFrame.lookAt(target:GetPivot().Position, self.NPC:GetPivot().Position)
-    for _, particleEmitter in pairs(effect:GetDescendants()) do
-        if particleEmitter:IsA("ParticleEmitter") then
-            particleEmitter.Enabled = true
-            particleEmitter:Emit(30)
-        end
-    end
-
-    task.delay(1, function()
-        for _, particleEmitter in pairs(effect:GetDescendants()) do
-            if particleEmitter:IsA("ParticleEmitter") then
-                particleEmitter.Enabled = false
-            end
-        end
-    end)
+    Interface.PlayEffect(effect, CFrame.lookAt(target:GetPivot().Position, self.NPC:GetPivot().Position), 30, 1, false)
 end
 
 --[[

@@ -14,11 +14,6 @@ if not ItemWorkspaceFolder then
     warn("ItemWorkspaceFolder folder not found")
     return
 end
-local EffectWorkspaceFolder = workspace:WaitForChild("Effect")
-if not EffectWorkspaceFolder then
-    warn("EffectWorkspaceFolder folder not found")
-    return
-end
 local ItemFolder = ReplicatedStorage:WaitForChild("Item")
 if not ItemFolder then
     warn("Item folder not found")
@@ -36,14 +31,15 @@ local ItemService = Knit.CreateService {
 -- 创建炫彩宝箱特效
 function ItemService:CreateXuanCaiChestEffect(item)
     local position = item:GetPivot().Position
-    local effect = ReplicatedStorage:WaitForChild("Effect"):WaitForChild("XuanCaiChestEffect"):Clone()
-    effect.Name = "XuanCaiChestEffect"
-    effect.Parent = item
-    effect:PivotTo(CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)))
+    Interface.PlayEffectByName("XuanCaiChestEffect", CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)), 30)
 end
 
-function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, attribute, isAnchored)
+function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, orientation, attribute, goldNum)
+    if goldNum and goldNum > 0 then
+        itemId = Interface.GetGoldModelId(goldNum)
+    end
     if not itemId or itemId == 0 then
+        warn("ItemId not found")
         return
     end
 
@@ -67,14 +63,23 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, at
     local item = part:Clone()
     item.Name = itemInfo.Item .. tick()
     item.Parent = ItemWorkspaceFolder
+
     if item:IsA("BasePart") then
-        item.Position = Vector3.new(position.X, position.Y + item.Size.Y / 2, position.Z)
+        local targetPos = Vector3.new(position.X, position.Y + item.Size.Y / 2, position.Z)
+        item.CFrame = CFrame.new(targetPos) * CFrame.Angles(math.rad(orientation.X), math.rad(orientation.Y), math.rad(orientation.Z))
     elseif item:IsA("Model") then
-        item:PivotTo(CFrame.new(Vector3.new(position.X, position.Y + item.PrimaryPart.Size.Y / 2, position.Z)))
+        local primary = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+        if primary then
+            local targetPos = Vector3.new(position.X, position.Y + primary.Size.Y / 2, position.Z)
+            item:PivotTo(CFrame.new(targetPos) * CFrame.Angles(math.rad(orientation.X), math.rad(orientation.Y), math.rad(orientation.Z)))
+        end
     end
     item:SetAttribute("ItemId", itemId)
     if dropGroup and dropGroup > 0 then
         item:SetAttribute("DropGroup", dropGroup)
+    end
+    if goldNum and goldNum > 0 then
+        item:SetAttribute("Gold", goldNum)
     end
     if attribute then
         attribute.IsEquipped = 0
@@ -88,16 +93,13 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, at
         end
     end
 
-    if isAnchored then
-        item.PrimaryPart.Anchored = true
-    end
-
+    item.PrimaryPart.Anchored = true
     return item, itemInfo
 end
 
 -- 创建物品
-function ItemService:CreateItem(itemId, position, dropGroup, attribute, isAnchored)
-    local item, itemInfo = self:CreateItemNoProximityPrompt(itemId, position, dropGroup, attribute, isAnchored)
+function ItemService:CreateItem(itemId, position, dropGroup, orientation, attribute, goldNum)
+    local item, itemInfo = self:CreateItemNoProximityPrompt(itemId, position, dropGroup, orientation, attribute, goldNum)
     if not item or not itemInfo then
         return
     end
@@ -128,7 +130,11 @@ function ItemService:CreateItem(itemId, position, dropGroup, attribute, isAnchor
     else
         proximityPrompt.ActionText = "Pick"
     end
-    proximityPrompt.ObjectText = itemInfo.DisplayName
+    if goldNum and goldNum > 0 then
+        proximityPrompt.ObjectText = string.format("%d %s", goldNum or 0, itemInfo.DisplayName)
+    else
+        proximityPrompt.ObjectText = itemInfo.DisplayName
+    end
     proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E -- 键盘按键
     proximityPrompt.GamepadKeyCode = Enum.KeyCode.ButtonX -- 手柄按键
     proximityPrompt.MaxActivationDistance = 10 -- 最大激活距离
@@ -190,22 +196,22 @@ function ItemService:HandleItemPickup(player, item)
     local humanoid = character:FindFirstChild("Humanoid")
     if not humanoid or humanoid.Health <= 0 then return end
     if not item.Parent then return end
+    local itemId = item:GetAttribute("ItemId")
+    if not itemId or itemId == 0 then return end
 
-    local isGold = Interface.IsGold(item:GetAttribute("ItemId"))
+    local isGold = Interface.IsGold(itemId)
     if isGold then
         local gold = item:GetAttribute("Gold")
         Knit.GetService("TaskService"):UpdateEscapeTask(gold)
         self.Items[item] = nil
         item:Destroy()
+        Knit.GetService("InventoryService").Client.PickUpItem:Fire(player, itemId)
         return
     end
     -- 尝试将物品添加到玩家背包
     local success, errorMessage = Knit.GetService("InventoryService"):GiveToolToPlayer(player, item)
     if success then
-        local itemId = item:GetAttribute("ItemId")
-        if itemId and itemId ~= 0 then
-            Knit.GetService("QuestService"):OnItemPicked(player, itemId, character:GetPivot().Position)
-        end
+        Knit.GetService("QuestService"):OnItemPicked(player, itemId, character:GetPivot().Position)
 
         self.Items[item] = nil
         item:Destroy()
@@ -290,30 +296,68 @@ function ItemService:DestroyAllItems()
     self.Items = {}
 end
 
+local _testTotalValueInfo = {Count = 0, Value = 0}
 function ItemService:InitItems()
     if #self.Items > 0 then
         return
     end
-    
-    task.spawn(function()
-        local islandId = Knit.GetService("IslandService"):GetIslandId()
-        local designConfig = DesignConfig:GetByMapId(islandId)
-        if not designConfig then return end
 
-        local resArray = {}
+    if GameConfig.TestItemPos then
         local resConfig = DesignResConfig:GetAll()
         for _, config in ipairs(resConfig) do
-            if config.MapId == islandId then
-                if not resArray[config.Resource] then
-                    resArray[config.Resource] = {}
-                end
-                if not resArray[config.Resource][config.Refresh] then
-                    resArray[config.Resource][config.Refresh] = {}
-                end
-                table.insert(resArray[config.Resource][config.Refresh], config)
+            if config.MapId == GameConfig.IsLandId and config.Resource ~= 1 then
+                self:CreateItem(config.CanisterId, config.Position, config.DropGroup, config.Orientation, GameConfig.GetItemAttribute(), 0)
             end
         end
+        return
+    end
+    
+    local islandId = Knit.GetService("IslandService"):GetIslandId()
+    local designConfig = DesignConfig:GetByMapId(islandId)
+    if not designConfig then return end
 
+    local resArray = {}
+    local resConfig = DesignResConfig:GetAll()
+    for _, config in ipairs(resConfig) do
+        if config.MapId == islandId then
+            if not resArray[config.Resource] then
+                resArray[config.Resource] = {}
+            end
+            if not resArray[config.Resource][config.Refresh] then
+                resArray[config.Resource][config.Refresh] = {}
+            end
+            table.insert(resArray[config.Resource][config.Refresh], config)
+        end
+    end
+
+    local function create(config)
+        local modelId = config.CanisterId
+        local gold
+        if config.Resource == 1 then
+            gold = math.random(config.GoldRange[1], config.GoldRange[2])
+            modelId = Interface.GetGoldModelId(gold)
+        end
+        self:CreateItem(modelId, config.Position, config.DropGroup, config.Orientation, GameConfig.GetItemAttribute(), gold)
+        if GameConfig.TestDesignTotalValue then
+            _testTotalValueInfo.Value += gold or 0
+            if config.DropGroup then
+                local itemArray = Interface.GetDropItems(config.DropGroup)
+                if itemArray then
+                    for _, itemId in ipairs(itemArray) do
+                        local itemInfo = ItemConfig:GetByItemId(itemId)
+                        if itemInfo then
+                            _testTotalValueInfo.Value += itemInfo.SellPrice
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    local function createDesign()
+        if GameConfig.TestDesignTotalValue then
+            _testTotalValueInfo.Count += 1
+        end
         local resourceNum = designConfig.ResourceNum
         for _, data in pairs(resourceNum) do
             local resType = data[1]
@@ -321,16 +365,7 @@ function ItemService:InitItems()
             if not resArray[resType] then continue end
             if resArray[resType][1] then
                 for _, config in ipairs(resArray[resType][1]) do
-                    local modelId = config.CanisterId
-                    local gold
-                    if config.Resource == 1 then
-                        gold = math.random(config.GoldRange[1], config.GoldRange[2])
-                        modelId = Interface.GetGoldModelId(gold)
-                    end
-                    local item = self:CreateItem(modelId, config.Position, config.DropGroup, GameConfig.GetItemAttribute(), true)
-                    if gold and item then
-                        item:SetAttribute("Gold", gold)
-                    end
+                    create(config)
                     num -= 1
                     if num <= 0 then
                         break
@@ -340,16 +375,7 @@ function ItemService:InitItems()
             if resArray[resType][2] then
                 Interface.randomTable(resArray[resType][2])
                 for _, config in ipairs(resArray[resType][2]) do
-                    local modelId = config.CanisterId
-                    local gold
-                    if config.Resource == 1 then
-                        gold = math.random(config.GoldRange[1], config.GoldRange[2])
-                        modelId = Interface.GetGoldModelId(gold)
-                    end
-                    local item = self:CreateItem(modelId, config.Position, config.DropGroup, GameConfig.GetItemAttribute(), true)
-                    if gold and item then
-                        item:SetAttribute("Gold", gold)
-                    end
+                    create(config)
                     num -= 1
                     if num <= 0 then
                         break
@@ -357,11 +383,16 @@ function ItemService:InitItems()
                 end
             end
         end
+    end
+    createDesign()
+    if GameConfig.TestDesignTotalValue then
+        for _ = 1, 999 do
+            createDesign()
+        end
+        print(string.format("✅ 运行关卡%d次, 平均物品总价值%.2f", _testTotalValueInfo.Count, _testTotalValueInfo.Value / _testTotalValueInfo.Count))
+    end
 
-        -- task.spawn(function()
-        --     self:CreateItem(507, Vector3.new(185, 11.6, -7.8), 1, GameConfig.GetItemAttribute(), true)
-        -- end)
-    end)
+    self:CreateItem(0, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 10)
 end
 
 function ItemService:KnitInit()

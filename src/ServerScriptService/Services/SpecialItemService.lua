@@ -4,6 +4,7 @@ local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Kn
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+local TweenInterface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("TweenInterface"))
 
 local SpecialItemService = Knit.CreateService({
     Name = 'SpecialItemService',
@@ -24,27 +25,14 @@ function SpecialItemService:CreateDropItems(item, position)
         local height = item.PrimaryPart.Size.Y / 2
         local floorY = position.Y - height + 0.5
         local startPosition = target.Position
-        local upInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local downInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-
-        local upTween = TweenService:Create(target, upInfo, {
-            Position = startPosition + Vector3.new(0, 1, 0),
-        })
-
-        local downTween = TweenService:Create(target, downInfo, {
-            Position = Vector3.new(startPosition.X, floorY + target.Size.Y / 2, startPosition.Z),
-        })
-
-        upTween.Completed:Connect(function()
+        TweenInterface.TweenNodeMovePosition(target, startPosition + Vector3.new(0, 1, 0), 0.5, function()
             if target.Parent then
-                downTween:Play()
+                TweenInterface.TweenNodeMovePosition(target, Vector3.new(startPosition.X, floorY + target.Size.Y / 2, startPosition.Z), 0.2)
             end
         end)
-
-        upTween:Play()
     end
     for _, itemId in ipairs(itemArray) do
-        local itemTemp = Knit.GetService("ItemService"):CreateItem(itemId, position, 0, GameConfig.GetItemAttribute(), true)
+        local itemTemp = Knit.GetService("ItemService"):CreateItem(itemId, position, 0, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
         if itemTemp then
             playAction(itemTemp)
         end
@@ -63,7 +51,7 @@ function SpecialItemService:OpenMound(player, item)
     self:CreateDropItems(item, position)
 
     Knit.GetService("ItemService"):RemoveItem(item)
-    Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
+    Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position, 0, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
     self:PlaySound(player, "OpenMound")
     
     self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
@@ -91,7 +79,7 @@ function SpecialItemService:OpenOre(player, item)
     self:CreateDropItems(item, position)
 
     Knit.GetService("ItemService"):RemoveItem(item)
-    Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position)
+    Knit.GetService("ItemService"):CreateItemNoProximityPrompt(602, position, 0, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
     self:PlaySound(player, "OpenOre")
     
     self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
@@ -127,13 +115,6 @@ function SpecialItemService:JitterOre(player, item)
         -- 计算抖动后的位置
         local jitterCFrame = originalCFrame + randomOffset
         
-        -- 创建补间动画
-        local tweenInfo = TweenInfo.new(
-            jitterDuration,
-            Enum.EasingStyle.Bounce,
-            Enum.EasingDirection.Out
-        )
-        
         -- 延迟执行每次抖动
         task.spawn(function()
             task.wait((i - 1) * jitterDuration)
@@ -151,19 +132,9 @@ function SpecialItemService:JitterOre(player, item)
                         item:PivotTo(originalCFrame)
                     end
                 else
-                    -- 对于BasePart，使用Tween
-                    local jitterTween = TweenService:Create(item, tweenInfo, {
-                        CFrame = jitterCFrame
-                    })
-                    jitterTween:Play()
-                    
-                    -- 等待抖动完成后回到原位
-                    jitterTween.Completed:Connect(function()
+                    TweenInterface.TweenNodeMoveFrame(item, jitterCFrame, jitterDuration, function()
                         if item and item.Parent then
-                            local returnTween = TweenService:Create(item, tweenInfo, {
-                                CFrame = originalCFrame
-                            })
-                            returnTween:Play()
+                            TweenInterface.TweenNodeMoveFrame(item, originalCFrame, jitterDuration)
                         end
                     end)
                 end

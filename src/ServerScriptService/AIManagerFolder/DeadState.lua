@@ -15,9 +15,16 @@ function DeadState.new(AIManager)
 end
 
 function DeadState:Enter()
-    -- 播放死亡动画并分析
-     self.AIManager:PlayAnimation("dead", false)
-     self.AIManager:PlaySound("dead")
+    -- 播放死亡动画并分析是否需要播放死亡音效
+    local humanoid = self.AIManager.NPC:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+        humanoid.AutoRotate = false
+    end
+	 Knit.GetService("MonsterService"):PlayMonsterDead(self.AIManager.NPC)
+	 self.AIManager:PlaySound("dead")
 
     local HumanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
     if HumanoidRootPart then
@@ -27,7 +34,7 @@ function DeadState:Enter()
     -- 取消所有追逐
     Knit.GetService("MonsterService"):ChaseCannel(self.AIManager.NPC)
 
-    task.delay(5, function()
+    task.delay(500, function()
         task.spawn(function()
             if self.AIManager then
                 self.AIManager:Destroy()

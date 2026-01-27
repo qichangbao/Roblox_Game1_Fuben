@@ -1,10 +1,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
--- 初始化Knit框架
 local Knit = require(ReplicatedStorage:WaitForChild('Packages'):WaitForChild('Knit'):waitForChild('Knit'))
 local Interface = require(ReplicatedStorage:WaitForChild('ToolFolder'):WaitForChild('Interface'))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild('GameConfig'))
 local ConstantConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ConstantConfig"))
 local DesignConfig = require(ReplicatedStorage:WaitForChild('ConfigFolder'):WaitForChild('DesignConfig'))
+local ItemConfig = require(ReplicatedStorage:WaitForChild('ConfigFolder'):WaitForChild('ItemConfig'))
+local MonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("MonsterConfig"))
 local SimpleArrowNavigation = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("SimpleArrowNavigation"))
 
 local ClientData = {}
@@ -60,17 +61,18 @@ local function setInitData(data)
     end
 end
 
-local function showMonsterChaseFlag(monster, isShow)
-    if not monster then return end
-    local chaseFlag = monster:FindFirstChild("ChaseFlag")
-    if not chaseFlag then return end
 
-    -- 根据 isShow 显示/隐藏模型
-    for _, obj in ipairs(chaseFlag:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            obj.Transparency = isShow and 0 or 1
-        end
-    end
+local function showMonsterChaseFlag(monster, isShow)
+	if not monster then return end
+	local chaseFlag = monster:FindFirstChild("ChaseFlag")
+	if not chaseFlag then return end
+
+	-- 根据 isShow 显示/隐藏模型
+	for _, obj in ipairs(chaseFlag:GetDescendants()) do
+		if obj:IsA("BasePart") then
+			obj.Transparency = isShow and 0 or 1
+		end
+	end
 end
 
 local function init()
@@ -107,10 +109,10 @@ local function init()
             Knit.GetController("UIController").ShowAdditionalBackpackUI:Fire(equip)
         end)
 
-        Knit.GetService("InventoryService").PickUpItem:Connect(function(itemInfo)
-            if not itemInfo then
-                return
-            end
+        Knit.GetService("InventoryService").PickUpItem:Connect(function(itemId)
+            if not itemId then return end
+            local itemInfo = ItemConfig:GetByItemId(itemId)
+            if not itemInfo then return end
 
             Knit.GetController("UIController").PickUpItem:Fire(itemInfo)
 
@@ -222,6 +224,11 @@ local function init()
         Knit.GetService("MonsterService").Chase:Connect(function(npc, isShow)
             showMonsterChaseFlag(npc, isShow)
         end)
+
+		Knit.GetService("MonsterService").DeadAnim:Connect(function(npc)
+			print("[Client MonsterDead] 收到 DeadAnim 信号", npc, npc and npc.Name)
+			Knit.GetController("UIController").PlayMonsterDead:Fire(npc)
+		end)
 
         Knit.GetService("MapService").SendShowFlag:Connect(function(data)
             Knit.GetController("UIController").ShowMapFlag:Fire(data)

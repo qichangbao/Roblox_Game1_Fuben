@@ -4,7 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local TalentTreeConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("TalentTreeConfig"))
-local EffectFolder = game:GetService("ServerStorage"):FindFirstChild("Effect")
+local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local TalentService = Knit.CreateService {
 	Name = "TalentService",
@@ -142,15 +142,7 @@ function TalentService:Learn(player, talentId)
     if player.Character then
         local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
         if humanoidRootPart then
-            local effect = EffectFolder:FindFirstChild("LevelUp")
-            if effect then
-                local cloneEffect = effect:Clone()
-                cloneEffect:PivotTo(CFrame.new(humanoidRootPart.Position))
-                cloneEffect.Parent = humanoidRootPart
-                
-                -- 使用Debris服务在3秒后自动销毁特效
-                game:GetService("Debris"):AddItem(cloneEffect, 3)
-            end
+            Interface.PlayEffectByName("LevelUp", CFrame.new(humanoidRootPart.Position), 30, 3)
         end
     end
 

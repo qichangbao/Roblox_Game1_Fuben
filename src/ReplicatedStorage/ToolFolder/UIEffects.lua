@@ -1,4 +1,4 @@
-local TweenService = game:GetService("TweenService")
+local TweenInterface = require(game.ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("TweenInterface"))
 local GuiService = game:GetService("GuiService")
 
 local UIEffects = {}
@@ -126,9 +126,7 @@ function UIEffects.PlayUIBurst(parent, center, params)
             local flyTime = lifetime * 0.6
 
             if fadeIn > 0 then
-                local inInfo = TweenInfo.new(fadeIn, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-                local inTween = TweenService:Create(p, inInfo, { ImageTransparency = 0 })
-                inTween:Play()
+                local inTween = TweenInterface.TweenNodeTransparencyImage(p, 0, fadeIn)
                 inTween.Completed:Wait()
             else
                 p.ImageTransparency = 0
@@ -138,17 +136,14 @@ function UIEffects.PlayUIBurst(parent, center, params)
             local flyInfo = TweenInfo.new(flyTime, easing, Enum.EasingDirection.Out)
             local spinDir = (spinRandom and (math.random(0,1) == 0 and -1 or 1) or 1)
             local endRot = startRot + math.random(-rotRange, rotRange) + (spinTurns * 360 * spinDir)
-            local flyTween = TweenService:Create(p, flyInfo, {
+            local flyTween = TweenInterface.TweenNode(p, flyInfo, {
                 Position = UDim2.fromOffset(targetX, targetY),
                 Rotation = endRot,
                 Size = UDim2.fromOffset(sizePx * sizeScale, sizePx * sizeScale),
             })
-            flyTween:Play()
             flyTween.Completed:Wait()
 
-            local fadeInfo = TweenInfo.new(fadeOut, easing, Enum.EasingDirection.In)
-            local fadeTween = TweenService:Create(p, fadeInfo, { ImageTransparency = 1 })
-            fadeTween:Play()
+            local fadeTween = TweenInterface.TweenNodeTransparencyImage(p, 1, fadeOut)
             fadeTween.Completed:Wait()
 
             p:Destroy()

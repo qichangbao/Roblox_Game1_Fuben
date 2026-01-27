@@ -30,7 +30,6 @@ local UIController = Knit.CreateController {
     ShowNoticeUI = Signal.new(),
     ShowItemAttributeUI = Signal.new(),
     ShowDragonOrbLostUI = Signal.new(),
-    ShowCG = Signal.new(),
     ShowFlyItemUI = Signal.new(),
     SuccEvacuation = Signal.new(),
     ShowMapFlag = Signal.new(),
@@ -46,7 +45,9 @@ local UIController = Knit.CreateController {
     ShowMainUI = Signal.new(),
     ResetBoat = Signal.new(),
     OpenChest = Signal.new(),
+    PlayMonsterDead = Signal.new(),
 	ResetCamareDir = Signal.new(),
+    SwitchRun = Signal.new(),
 }
 
 function UIController:KnitInit()

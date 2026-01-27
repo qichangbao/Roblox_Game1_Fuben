@@ -4,9 +4,10 @@ local DesignResConfig = {}
 DesignResConfig.Coordinates = {
     [1] = {
         Index = 1,
-        Position = Vector3.new(1254.5, 0.1, -677.8),
+        Position = Vector3.new(98.2, 13.2, -33),
+        Orientation = Vector3.new(0, 0, 0),
         PosId = 1,
-        MapId = 101,
+        MapId = 100,
         Resource = 1,
         Refresh = 1,
         GoldRange = {
@@ -18,9 +19,10 @@ DesignResConfig.Coordinates = {
     },
     [2] = {
         Index = 2,
-        Position = Vector3.new(1249.5, 0.1, -672.8),
+        Position = Vector3.new(100.4, 13.2, 11),
+        Orientation = Vector3.new(0, 0, 0),
         PosId = 2,
-        MapId = 101,
+        MapId = 100,
         Resource = 1,
         Refresh = 1,
         GoldRange = {
@@ -32,9 +34,10 @@ DesignResConfig.Coordinates = {
     },
     [3] = {
         Index = 3,
-        Position = Vector3.new(1244.5, 0.1, -667.8),
+        Position = Vector3.new(49.5, 13.5, 13.5),
+        Orientation = Vector3.new(0, 0, 0),
         PosId = 3,
-        MapId = 101,
+        MapId = 100,
         Resource = 1,
         Refresh = 2,
         GoldRange = {
@@ -46,9 +49,10 @@ DesignResConfig.Coordinates = {
     },
     [4] = {
         Index = 4,
-        Position = Vector3.new(1239.5, 0.1, -662.8),
+        Position = Vector3.new(38.2, 13.3, -25.3),
+        Orientation = Vector3.new(0, 0, 0),
         PosId = 4,
-        MapId = 101,
+        MapId = 100,
         Resource = 1,
         Refresh = 2,
         GoldRange = {
@@ -60,9 +64,10 @@ DesignResConfig.Coordinates = {
     },
     [5] = {
         Index = 5,
-        Position = Vector3.new(1234.5, 0.1, -657.8),
+        Position = Vector3.new(-6.4, 13.4, 14.3),
+        Orientation = Vector3.new(0, 0, 0),
         PosId = 5,
-        MapId = 101,
+        MapId = 100,
         Resource = 1,
         Refresh = 2,
         GoldRange = {
@@ -74,9 +79,10 @@ DesignResConfig.Coordinates = {
     },
     [6] = {
         Index = 6,
-        Position = Vector3.new(1229.5, 0.1, -652.8),
+        Position = Vector3.new(-46.5, 12.9, -28.7),
+        Orientation = Vector3.new(0, -130, 0),
         PosId = 6,
-        MapId = 101,
+        MapId = 100,
         Resource = 2,
         Refresh = 1,
         GoldRange = nil,
@@ -85,9 +91,10 @@ DesignResConfig.Coordinates = {
     },
     [7] = {
         Index = 7,
-        Position = Vector3.new(1224.5, 0.1, -647.8),
+        Position = Vector3.new(-17.1, 13.2, 60.7),
+        Orientation = Vector3.new(0, 80, 0),
         PosId = 7,
-        MapId = 101,
+        MapId = 100,
         Resource = 2,
         Refresh = 1,
         GoldRange = nil,
@@ -96,9 +103,10 @@ DesignResConfig.Coordinates = {
     },
     [8] = {
         Index = 8,
-        Position = Vector3.new(1219.5, 0.1, -642.8),
+        Position = Vector3.new(-38.7, 12.9, 59.8),
+        Orientation = Vector3.new(0, -90, 0),
         PosId = 8,
-        MapId = 101,
+        MapId = 100,
         Resource = 2,
         Refresh = 2,
         GoldRange = nil,
@@ -107,9 +115,10 @@ DesignResConfig.Coordinates = {
     },
     [9] = {
         Index = 9,
-        Position = Vector3.new(1214.5, 0.1, -637.8),
+        Position = Vector3.new(-90, 13.2, 7.2),
+        Orientation = Vector3.new(0, 0, 0),
         PosId = 9,
-        MapId = 101,
+        MapId = 100,
         Resource = 2,
         Refresh = 2,
         GoldRange = nil,
@@ -118,20 +127,22 @@ DesignResConfig.Coordinates = {
     },
     [10] = {
         Index = 10,
-        Position = Vector3.new(1209.5, 0.1, -632.8),
+        Position = Vector3.new(-83.6, 12.9, -13.9),
+        Orientation = Vector3.new(0, 180, 0),
         PosId = 10,
-        MapId = 101,
+        MapId = 100,
         Resource = 2,
         Refresh = 2,
         GoldRange = nil,
         DropGroup = 1,
-        CanisterId = 501,
+        CanisterId = 502,
     },
     [11] = {
         Index = 11,
-        Position = Vector3.new(1204.5, 0.1, -627.8),
+        Position = Vector3.new(-36.8, 13.1, -75.4),
+        Orientation = Vector3.new(0, -110, 0),
         PosId = 11,
-        MapId = 101,
+        MapId = 100,
         Resource = 3,
         Refresh = 1,
         GoldRange = nil,
@@ -140,101 +151,14 @@ DesignResConfig.Coordinates = {
     },
     [12] = {
         Index = 12,
-        Position = Vector3.new(1199.5, 0.1, -622.8),
+        Position = Vector3.new(-14.5, 12.9, -67.6),
+        Orientation = Vector3.new(0, 70, 0),
         PosId = 12,
-        MapId = 101,
-        Resource = 3,
-        Refresh = 1,
-        GoldRange = nil,
-        DropGroup = 2,
-        CanisterId = 502,
-    },
-    [13] = {
-        Index = 13,
-        Position = Vector3.new(1194.5, 0.1, -617.8),
-        PosId = 13,
-        MapId = 101,
-        Resource = 3,
-        Refresh = 2,
-        GoldRange = nil,
-        DropGroup = 1,
-        CanisterId = 502,
-    },
-    [14] = {
-        Index = 14,
-        Position = Vector3.new(1189.5, 0.1, -612.8),
-        PosId = 14,
-        MapId = 101,
-        Resource = 3,
-        Refresh = 2,
-        GoldRange = nil,
-        DropGroup = 2,
-        CanisterId = 502,
-    },
-    [15] = {
-        Index = 15,
-        Position = Vector3.new(1184.5, 0.1, -607.8),
-        PosId = 15,
-        MapId = 101,
-        Resource = 3,
-        Refresh = 2,
-        GoldRange = nil,
-        DropGroup = 1,
-        CanisterId = 502,
-    },
-    [16] = {
-        Index = 16,
-        Position = Vector3.new(1179.5, 0.1, -602.8),
-        PosId = 16,
-        MapId = 101,
-        Resource = 4,
-        Refresh = 1,
-        GoldRange = nil,
-        DropGroup = 1,
-        CanisterId = 503,
-    },
-    [17] = {
-        Index = 17,
-        Position = Vector3.new(1174.5, 0.1, -597.8),
-        PosId = 17,
-        MapId = 101,
+        MapId = 100,
         Resource = 4,
         Refresh = 1,
         GoldRange = nil,
         DropGroup = 2,
-        CanisterId = 503,
-    },
-    [18] = {
-        Index = 18,
-        Position = Vector3.new(1169.5, 0.1, -592.8),
-        PosId = 18,
-        MapId = 101,
-        Resource = 4,
-        Refresh = 2,
-        GoldRange = nil,
-        DropGroup = 1,
-        CanisterId = 503,
-    },
-    [19] = {
-        Index = 19,
-        Position = Vector3.new(1164.5, 0.1, -587.8),
-        PosId = 19,
-        MapId = 101,
-        Resource = 4,
-        Refresh = 2,
-        GoldRange = nil,
-        DropGroup = 2,
-        CanisterId = 503,
-    },
-    [20] = {
-        Index = 20,
-        Position = Vector3.new(1159.5, 0.1, -582.8),
-        PosId = 20,
-        MapId = 101,
-        Resource = 4,
-        Refresh = 2,
-        GoldRange = nil,
-        DropGroup = 1,
         CanisterId = 503,
     },
 }
@@ -301,6 +225,60 @@ end
 function DesignResConfig:GetByCanisterId(value)
     for i, item in pairs(self.Coordinates) do
         if item.CanisterId == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function DesignResConfig:GetByPosition_X(value)
+    for i, item in pairs(self.Coordinates) do
+        if item.Position_X == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function DesignResConfig:GetByPosition_Y(value)
+    for i, item in pairs(self.Coordinates) do
+        if item.Position_Y == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function DesignResConfig:GetByPosition_Z(value)
+    for i, item in pairs(self.Coordinates) do
+        if item.Position_Z == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function DesignResConfig:GetByOrientation_X(value)
+    for i, item in pairs(self.Coordinates) do
+        if item.Orientation_X == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function DesignResConfig:GetByOrientation_Y(value)
+    for i, item in pairs(self.Coordinates) do
+        if item.Orientation_Y == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function DesignResConfig:GetByOrientation_Z(value)
+    for i, item in pairs(self.Coordinates) do
+        if item.Orientation_Z == value then
             return item
         end
     end

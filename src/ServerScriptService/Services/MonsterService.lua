@@ -9,7 +9,7 @@ local AIManager = require(script.Parent.Parent:WaitForChild("AIManagerFolder"):W
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local DesignMonsterConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DesignMonsterConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
-local TweenService = game:GetService("TweenService")
+local TweenInterface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("TweenInterface"))
 
 local MonsterWorkspaceFolder = workspace:WaitForChild("Monster")
 if not MonsterWorkspaceFolder then
@@ -20,7 +20,8 @@ end
 local MonsterService = Knit.CreateService {
 	Name = "MonsterService",
 	Client = {
-        Chase = Knit.CreateSignal(),
+	    Chase = Knit.CreateSignal(),
+	    DeadAnim = Knit.CreateSignal(),
 	},
 
     Monsters = {},
@@ -62,6 +63,17 @@ function MonsterService:PlayerAdded(player)
     self.KillMonsters[player.UserId] = {}
 end
 
+-- 通知客户端播放怪物死亡动画（函数级注释）：
+-- @param npc Model 怪物模型
+function MonsterService:PlayMonsterDead(npc)
+    if not npc or not npc.Parent then
+        return
+    end
+	    local monsterId = npc:GetAttribute("MonsterId")
+	    print("[Server MonsterDead] PlayMonsterDead", npc, npc.Name, "MonsterId=", monsterId)
+	    self.Client.DeadAnim:FireAll(npc)
+end
+
 -- 创建怪物血条UI
 -- @param monster Model 怪物模型
 -- @return BillboardGui 返回创建的血条UI
@@ -79,7 +91,7 @@ function MonsterService:CreateHealthBar(monster)
     billboardGui.Name = "HealthBar"
     -- 根据怪物尺寸动态设置血条容器大小与高度偏移
     billboardGui.Size = self:_ComputeHealthBarBillboardSize(monster)
-    local offsetY = HumanoidRootPart.Position.Y + HumanoidRootPart.Size.Y / 2 + 1
+    local offsetY = HumanoidRootPart.Size.Y / 2 + 1
     billboardGui.StudsOffset = Vector3.new(0, offsetY, 0)
     billboardGui.Parent = HumanoidRootPart
     
@@ -135,25 +147,18 @@ function MonsterService:UpdateHealthBar(monster)
     local humanoid = monster:FindFirstChild("Humanoid")
     if not humanoid  then return end
     local humanoidRootPart = monster:FindFirstChild("HumanoidRootPart")
-    
+    if not humanoidRootPart then return end
     local billboardGui = humanoidRootPart:FindFirstChild("HealthBar")
-    if not billboardGui then
-        return
-    end
+    if not billboardGui then return end
+    local backgroundFrame = billboardGui:FindFirstChild("Background")
+    if not backgroundFrame then return end
     -- 动态调整血条容器尺寸（若怪物缩放变化）
     billboardGui.Size = self:_ComputeHealthBarBillboardSize(monster)
-    local extents2 = monster:GetExtentsSize()
-    local offsetY2 = ((extents2 and extents2.Y) or humanoidRootPart.Size.Y) / 2 + 1
-    billboardGui.StudsOffset = Vector3.new(0, offsetY2, 0)
-    
-    local backgroundFrame = billboardGui:FindFirstChild("Background")
-    if not backgroundFrame then
-        return
-    end
+    local offsetY = humanoidRootPart.Size.Y / 2 + 1
+    billboardGui.StudsOffset = Vector3.new(0, offsetY, 0)
     
     local healthBar = backgroundFrame:FindFirstChild("HealthBar")
     local healthText = backgroundFrame:FindFirstChild("HealthText")
-    
     if healthBar and healthText then
         -- 计算血量百分比（限制在0~1）
         local healthPercent = humanoid.Health / humanoid.MaxHealth
@@ -178,12 +183,9 @@ function MonsterService:UpdateHealthBar(monster)
                 end)
                 state.tween = nil
             end
+
             local targetSize = UDim2.new(healthPercent, -2, 1, -2)
-            local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-            local tween = TweenService:Create(healthBar, tweenInfo, { Size = targetSize })
-            state.tween = tween
-            tween:Play()
-            tween.Completed:Connect(function()
+            state.tween = TweenInterface.TweenNodeSize(healthBar, targetSize, 0.25, function()
                 -- 动画结束后记录当前百分比
                 if self.MonsterHealthBarState[monster] == state then
                     state.tween = nil
@@ -233,10 +235,10 @@ function MonsterService:KillMonster(player, monster)
     local config = MonsterConfig:GetByMonsterId(monsterId)
     if config then
         -- 获取NPC当前位置
-        local npcPosition = self.AIManager.NPC:GetPivot().Position
+        local npcPosition = monster:GetPivot().Position
         
         -- 使用高级射线检测获取最佳地面位置
-        local ignoreList = {self.AIManager.NPC} -- 忽略NPC本身
+        local ignoreList = {monster} -- 忽略NPC本身
         local groundPosition = Interface.getGroundPosition(npcPosition, ignoreList)
         
         -- 在地面位置创建物品
@@ -247,9 +249,9 @@ function MonsterService:KillMonster(player, monster)
             local isDoubleDrop = math.random(10000) <= doubleDropProbability
             for _, itemId in ipairs(itemArray) do
                 if isDoubleDrop then
-                    Knit.GetService("ItemService"):CreateItem(itemId, groundPosition, 0, GameConfig.GetItemAttribute(), true)
+                    Knit.GetService("ItemService"):CreateItem(itemId, groundPosition, 0, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
                 end
-                Knit.GetService("ItemService"):CreateItem(itemId, groundPosition, 0, GameConfig.GetItemAttribute(), true)
+                Knit.GetService("ItemService"):CreateItem(itemId, groundPosition, 0, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
             end
         end
     end
@@ -414,18 +416,12 @@ end
 
 -- 取消所有追逐
 function MonsterService:ChaseCannel(npc)
-    if not self.ChaseMonsters[npc.Name] then
-        return
-    end
-
+    if not self.ChaseMonsters[npc.Name] then return end
     local userId = self.ChaseMonsters[npc.Name]
-    if not userId then
-        return
-    end
+    if not userId then return end
     local player = game.Players:GetPlayerByUserId(userId)
-    if not player then
-        return
-    end
+    if not player then return end
+    
     self.Client.Chase:Fire(player, npc, false)
     self.ChaseMonsters[npc.Name] = nil
 end
@@ -451,7 +447,7 @@ function MonsterService:InitMonsters()
     --         end
     --     end
     -- end)
-    self:CreateMonster({Refresh = 1, MonsterId = 30007, Position = Vector3.new(91, -1.4, -27)})
+    self:CreateMonster({Refresh = 1, MonsterId = 30001, Position = Vector3.new(159, 12.4, -22)})
     --self:CreateMonster({Refresh = 1, MonsterId = 30008, Position = Vector3.new(91, -1.4, -37)})
 end
 

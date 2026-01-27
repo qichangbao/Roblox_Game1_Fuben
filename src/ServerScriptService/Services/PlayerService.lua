@@ -608,12 +608,7 @@ end
 
 function PlayerService:InitAnimEffect(player)
     -- 生成并摆放命中特效到边缘中心
-    local effectTemplateFolder = ReplicatedStorage:FindFirstChild("Effect")
-    if not effectTemplateFolder then return end
-    local template1 = effectTemplateFolder:FindFirstChild("AttackEffect")
-    if not template1 then return end
-
-    local effect1 = template1:Clone()
+    local effect1 = Interface.GetEffect("AttackEffect")
     effect1.Parent = player.Character
     effect1.Name = "AttackEffect"
 	for _, part in pairs(effect1:GetDescendants()) do
@@ -625,10 +620,7 @@ function PlayerService:InitAnimEffect(player)
         end
     end
 
-    local template2 = effectTemplateFolder:FindFirstChild("HitEffect")
-    if not template2 then return end
-
-    local effect2 = template2:Clone()
+    local effect2 = Interface.GetEffect("HitEffect")
     effect2.Parent = player.Character
     effect2.Name = "HitEffect"
 	for _, part in pairs(effect2:GetDescendants()) do
@@ -740,7 +732,7 @@ end
 -- @param soundName string 声音资源名（角色下预置的音效）
 -- @param cd number 冷却时长，控制动画播放速度（动画在 cd 秒内完成）
 -- 行为：调用 PlayAnimationByNameRandom 实现按名随机播放；
---       非 "dig" 动画保持原有调用 ItemInterface.showAttackEffect(player)。
+-- "swing" 动画保持原有调用 ItemInterface.showAttackEffect(player)。
 function PlayerService:playAnimation(player, animationName, soundName, cd)
     local character = player.Character
     if not character then return end
@@ -753,7 +745,7 @@ function PlayerService:playAnimation(player, animationName, soundName, cd)
     self:PlayAnimationByNameRandom(player, animationName, cd)
 
     -- 非挖掘动作保留命中特效触发
-    if animationName ~= "dig" then
+    if animationName == "swing" then
         ItemInterface.showAttackEffect(player)
     end
 

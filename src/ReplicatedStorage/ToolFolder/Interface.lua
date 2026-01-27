@@ -7,7 +7,6 @@ local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitFo
 local DropPoolConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DropPoolConfig"))
 local DropTableConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("DropTableConfig"))
 local HeroConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("HeroConfig"))
-local TweenService = game:GetService("TweenService")
 local ContentProvider = game:GetService("ContentProvider")
 
 --[[
@@ -436,181 +435,6 @@ function Interface.isPlayerOnBoat(player)
     return false
 end
 
--- 存储每个TextLabel的动画状态，避免重复动画冲突
-local animationStates = {}
-
---[[
-    数字递增动画接口
-    @param labelOrFrom TextLabel|number 如果是TextLabel则自动更新文本，如果是数字则作为起始值
-    @param to number 目标值
-    @return NumberValue 可监听Changed事件的数值容器
-    @return Tween 动画对象（可用于控制暂停/取消）
-]]
-function Interface.AnimateNumberIncrease(labelOrFrom, to)
-    local label = nil
-    local from = 0
-    local target = 0
-
-    if typeof(labelOrFrom) == "Instance" and labelOrFrom:IsA("TextLabel") then
-        label = labelOrFrom
-        from = tonumber(label.Text) or 0
-        target = tonumber(to) or from
-        
-        -- 如果该TextLabel已有动画在运行，先取消旧动画
-        if animationStates[label] then
-            local oldState = animationStates[label]
-            if oldState.tween then
-                oldState.tween:Cancel()
-            end
-            if oldState.num then
-                oldState.num:Destroy()
-            end
-            -- 从当前动画值开始新动画，保持连贯性
-            from = oldState.num and oldState.num.Value or from
-        end
-    else
-        from = tonumber(labelOrFrom) or 0
-        target = tonumber(to) or from
-    end
-
-    -- 使用NumberValue承载动画数值，便于外部监听数值变化
-    local num = Instance.new("NumberValue")
-    num.Name = "Interface_AnimateNumber"
-    num.Value = from
-
-    -- 根据数值差计算时长：保持统一速度，限定上下限
-    local delta = math.abs(target - from)
-    local duration = math.clamp(delta / 100, 0.3, 1)
-
-    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(num, tweenInfo, { Value = target })
-
-    -- 如果传入了TextLabel，则自动更新文本显示（取整）
-    if label then
-        -- 记录当前动画状态
-        animationStates[label] = {
-            num = num,
-            tween = tween
-        }
-        
-        num.Changed:Connect(function(v)
-            label.Text = tostring(math.floor(v))
-        end)
-    end
-
-    tween:Play()
-    
-    -- 动画完成时的清理工作
-    tween.Completed:Connect(function()
-        num.Value = target
-        if label then
-            label.Text = tostring(math.floor(target))
-            -- 清理动画状态记录
-            animationStates[label] = nil
-        end
-        -- 清理NumberValue对象
-        num:Destroy()
-    end)
-    
-    return num, tween
-end
-
--- 将进度条通过补间动画平滑更新（函数级注释）：
--- @param bar GuiObject 进度条UI对象（通常为 Frame 或 ImageLabel）
--- @param targetRatio number 目标比例（0-1），会被 clamp 到 [0,1]
--- @param duration number 动画时长（秒），可选，默认 0.35 秒
--- @return void
-function Interface.TweenProgressBarSize(bar, targetRatio, duration)
-    duration = duration or 0.35
-    if not bar or not bar:IsA("GuiObject") then
-        return
-    end
-    targetRatio = math.clamp(targetRatio or 0, 0, 1)
-    local currentSize = bar.Size
-    local goal = {
-        Size = UDim2.new(targetRatio, 0, currentSize.Y.Scale, currentSize.Y.Offset),
-    }
-    local info = TweenInfo.new(duration, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(bar, info, goal)
-    tween:Play()
-end
-
--- 启动Gui颜色黑色脉冲循环（函数级注释）：
--- @param gui GuiObject 需要循环变色的UI对象（Frame/ImageLabel/TextLabel等）
--- @param toBlackDuration number 变为黑色的时长（秒），默认1.0
--- @param backDuration number 从黑色恢复到原色的时长（秒），默认1.0
--- 行为：持续“到黑→回原”循环，直到调用 StopPulseGuiColorLoop 或对象销毁
-function Interface.StartPulseGuiColorLoop(gui, toColor, toBlackDuration, backDuration)
-    if not gui or not gui:IsA("GuiObject") then
-        return
-    end
-    -- 已在循环中则跳过
-    if gui:GetAttribute("Interface_ColorPulseLoopRunning") then
-        return
-    end
-    gui:SetAttribute("Interface_ColorPulseLoopRunning", true)
-
-    toBlackDuration = toBlackDuration or 1.0
-    backDuration = backDuration or 1.0
-
-    local function getColorPropName(instance)
-        if instance:IsA("ImageLabel") or instance:IsA("ImageButton") then
-            return "ImageColor3"
-        elseif instance:IsA("TextLabel") or instance:IsA("TextButton") then
-            return "TextColor3"
-        else
-            return "BackgroundColor3"
-        end
-    end
-
-    local propName = getColorPropName(gui)
-    -- 读取当前颜色（允许外部改变原色时能跟随）
-    local ok1, initColor = pcall(function()
-        return gui[propName]
-    end)
-    task.spawn(function()
-        while gui.Parent and gui:GetAttribute("Interface_ColorPulseLoopRunning") do
-            -- 读取当前颜色（允许外部改变原色时能跟随）
-            local ok2, currentColor = pcall(function()
-                return gui[propName]
-            end)
-            if not ok2 or typeof(currentColor) ~= "Color3" then
-                break
-            end
-
-            local tweenToBlack = TweenService:Create(gui, TweenInfo.new(toBlackDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), { [propName] = toColor })
-            tweenToBlack:Play()
-            tweenToBlack.Completed:Wait()
-
-            -- 循环可能在到黑期间被停止
-            if not gui.Parent or not gui:GetAttribute("Interface_ColorPulseLoopRunning") then
-                break
-            end
-
-            local tweenBack = TweenService:Create(gui, TweenInfo.new(backDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), { [propName] = currentColor })
-            tweenBack:Play()
-            tweenBack.Completed:Wait()
-        end
-
-        pcall(function()
-            gui[propName] = initColor
-        end)
-        gui:SetAttribute("Interface_ColorPulseLoopRunning", false)
-    end)
-end
-
--- 停止Gui颜色黑色脉冲循环（函数级注释）：
--- @param gui GuiObject 待停止的UI对象
--- 行为：将运行标记置为false，正在进行的当前补间完成后退出循环
-function Interface.StopPulseGuiColorLoop(gui)
-    if not gui or not gui:IsA("GuiObject") then
-        return
-    end
-    if gui:GetAttribute("Interface_ColorPulseLoopRunning") then
-        gui:SetAttribute("Interface_ColorPulseLoopRunning", false)
-    end
-end
-
 function Interface.addHp(character, hp)
     if not character or not character.Parent then
         return
@@ -642,96 +466,13 @@ function Interface.addHp(character, hp)
 end
 
 function Interface.decHp(character, damage, isCrit)
-    if not character or not character.Parent then
-        return
-    end
+    if not character or not character.Parent then return end
 	local humanoid = character:FindFirstChild("Humanoid")
-	if not humanoid then
-		return
-	end
+	if not humanoid then return end
 	humanoid:TakeDamage(damage)
 	
 	local part = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
 	Knit.GetService("ClientUIService"):BroadcastHpChange(part, -damage, isCrit)
-end
-
--- 存储每个GuiObject的缩放动画状态，避免重复动画冲突
-local uiScaleStates = {}
-
---[[
-    UI显示动画：使用 UIScale 将尺寸从 0 缩放到 1
-    @param guiObject GuiObject|ScreenGui 目标UI元素（Frame、ImageLabel、TextLabel等）或屏幕容器
-    @param opts table? 可选配置
-        - duration number 动画时长（秒），默认 0.1
-        - easingStyle Enum.EasingStyle 缓动类型，默认 Quad
-        - easingDirection Enum.EasingDirection 缓动方向，默认 Out
-        - setVisible boolean 是否在播放前设置为可见：
-            GuiObject 使用 Visible=true，ScreenGui/SurfaceGui/BillboardGui 使用 Enabled=true，默认 true
-        - center boolean 是否将 AnchorPoint 设为居中 (0.5,0.5)，仅 GuiObject 生效，默认 false
-    @return UIScale, Tween 返回 UIScale 与 Tween 对象（便于外部控制/监听）
-    说明：
-    - 优先使用 UIScale 缩放，不会破坏原始 Size/Position 布局
-    - 若目标下不存在 UIScale，会自动创建一个
-]]
-function Interface.AnimateUIShowScale(guiObject, opts)
-    if typeof(guiObject) ~= "Instance" or not guiObject:IsA("GuiBase2d") then
-        warn("AnimateUIShowScale: 需要传入 GuiObject 或 ScreenGui（GuiBase2d）")
-        return nil, nil
-    end
-
-    opts = opts or {}
-    local duration = typeof(opts.duration) == "number" and opts.duration or 0.1
-    local easingStyle = opts.easingStyle or Enum.EasingStyle.Quad
-    local easingDirection = opts.easingDirection or Enum.EasingDirection.Out
-    local setVisible = (opts.setVisible == nil) and true or opts.setVisible
-    local center = opts.center == true
-    local isGuiObject = guiObject:IsA("GuiObject")
-
-    if center and isGuiObject then
-        guiObject.AnchorPoint = Vector2.new(0.5, 0.5)
-    end
-    if setVisible then
-        if isGuiObject then
-            guiObject.Visible = true
-        else
-            if guiObject:IsA("ScreenGui") or guiObject:IsA("SurfaceGui") or guiObject:IsA("BillboardGui") then
-                guiObject.Enabled = true
-            end
-        end
-    end
-
-    local scale = guiObject:FindFirstChildOfClass("UIScale")
-    if not scale then
-        scale = Instance.new("UIScale")
-        scale.Scale = 0
-        scale.Parent = guiObject
-    else
-        -- 从 0 开始，保证有缩放过渡
-        scale.Scale = 0
-    end
-
-    -- 如果该 GuiObject 有动画在运行，先取消旧动画
-    if uiScaleStates[guiObject] then
-        local old = uiScaleStates[guiObject]
-        if old.tween then old.tween:Cancel() end
-    end
-
-    local tweenInfo = TweenInfo.new(duration, easingStyle, easingDirection)
-    local tween = TweenService:Create(scale, tweenInfo, { Scale = 1 })
-
-    -- 记录当前动画状态
-    uiScaleStates[guiObject] = {
-        scale = scale,
-        tween = tween,
-    }
-
-    tween:Play()
-    tween.Completed:Connect(function()
-        -- 动画完成后清理状态记录
-        uiScaleStates[guiObject] = nil
-    end)
-
-    return scale, tween
 end
 
 -- 获取掉落物品
@@ -740,34 +481,24 @@ function Interface.GetDropItems(dropId)
     if not dropConfig then return end
 
     local dropTables = {}
-    if dropConfig.dropType == 1 then        -- 1为唯一掉落（多个里面按权重必定抽1个）
+    if dropConfig.DropType == 1 then        -- 1为唯一掉落（多个里面按权重必定抽1个）
         local totalProbability = 0
-        if #dropConfig.weight > 2 then
-            for _, weight in ipairs(dropConfig.weight) do
-                totalProbability = totalProbability + weight[2]
-            end
-            local randomNum = math.random(totalProbability)
-            local currentProbability = 0
-            for _, weight in ipairs(dropConfig.weight) do
-                currentProbability = currentProbability + weight[2]
-                if randomNum <= currentProbability then
-                    table.insert(dropTables, weight[1])
-                    break
-                end
-            end
-        else
-            table.insert(dropTables, dropConfig.weight[1])
+        for _, weight in ipairs(dropConfig.Weight) do
+            totalProbability = totalProbability + weight[2]
         end
-    elseif dropConfig.dropType == 2 then    -- 2为独立掉落（每一个为独立概率掉落互不影响）
-        if #dropConfig.weight > 2 then
-            for _, weight in ipairs(dropConfig.weight) do
-                if math.random(10000) <= weight[2] then
-                    table.insert(dropTables, weight[1])
-                end
+        local randomNum = math.random(totalProbability)
+        local currentProbability = 0
+        for _, weight in ipairs(dropConfig.Weight) do
+            currentProbability = currentProbability + weight[2]
+            if randomNum <= currentProbability then
+                table.insert(dropTables, weight[1])
+                break
             end
-        else
-            if math.random(10000) <= dropConfig.weight[2] then
-                table.insert(dropTables, dropConfig.weight[1])
+        end
+    elseif dropConfig.DropType == 2 then    -- 2为独立掉落（每一个为独立概率掉落互不影响）
+        for _, weight in ipairs(dropConfig.Weight) do
+            if math.random(10000) <= weight[2] then
+                table.insert(dropTables, weight[1])
             end
         end
     end
@@ -776,12 +507,12 @@ function Interface.GetDropItems(dropId)
 
     local itemArray = {}
     for _, dropTableId in ipairs(dropTables) do
-        local dropTable = DropTableConfig:GetByID(dropTableId)
+        local dropTable = DropTableConfig:GetById(dropTableId)
         if not dropTable then continue end
 
         -- 把掉落数据存在表中
         local dropArray = {}
-        for _, info in ipairs(dropTable.dropInfo) do
+        for _, info in ipairs(dropTable.DropInfo) do
             local itemId = info[1]
             local num = info[2]
             local probability = info[3]
@@ -791,14 +522,14 @@ function Interface.GetDropItems(dropId)
         end
 
         local curNum = 0
-        local dropNum = math.random(dropTable.minDrop or 0, dropTable.maxDrop or 0)
+        local dropNum = math.random(dropTable.MinDrop or 0, dropTable.MaxDrop or 0)
         while curNum < dropNum do
             if #dropArray == 0 then
                 break
             end
             for i = #dropArray, 1, -1 do
                 local info = dropArray[i]
-                if dropTable.type == 2 then
+                if dropTable.Type == 2 then
                     table.remove(dropArray, i)
                 end
                 local itemId = info[1]
@@ -888,6 +619,63 @@ function Interface.GetJobEffect(player)
     end
 
     return effects
+end
+
+function Interface.GetEffect(effectName)
+    local effectFolder = ReplicatedStorage:FindFirstChild("Effect")
+    if not effectFolder then return end
+    local effect = effectFolder:FindFirstChild(effectName)
+    if not effect then return end
+    return effect:Clone()
+end
+
+function Interface.PlayEffect(effect, effectCFrame,emitCount, liveTime, isDestroy, callFunc)
+    if not effect then return end
+    if effect:IsA("Model") then
+        effect:PivotTo(effectCFrame)
+    elseif effect:IsA("BasePart") then
+        effect.CFrame = effectCFrame
+    end
+    for _, particleEmitter in pairs(effect:GetDescendants()) do
+        if particleEmitter:IsA("ParticleEmitter") then
+            particleEmitter.Enabled = true
+            particleEmitter:Emit(emitCount)
+        elseif particleEmitter:IsA("BasePart") then
+            particleEmitter.CanCollide = false
+            particleEmitter.Anchored = true
+        end
+    end
+    if liveTime and liveTime > 0 then
+        task.delay(liveTime, function()
+            for _, particleEmitter in pairs(effect:GetDescendants()) do
+                if particleEmitter:IsA("ParticleEmitter") then
+                    particleEmitter.Enabled = false
+                end
+            end
+            if callFunc then
+                callFunc(effect)
+            end
+            if isDestroy then
+                effect:Destroy()
+            end
+        end)
+    end
+end
+
+-- 播放特效
+-- @param effectName 特效名称
+-- @param effectCFrame 特效位置
+-- @param liveTime 特效生命周期
+-- @param callFunc 特效销毁后回调函数
+function Interface.PlayEffectByName(effectName, effectCFrame, emitCount, liveTime, callFunc)
+    local effect = Interface.GetEffect(effectName)
+    if not effect then return end
+    local parent = workspace:FindFirstChild("Effect")
+    if not parent then return end
+    effect.Parent = parent
+
+    Interface.PlayEffect(effect, effectCFrame, emitCount, liveTime, true, callFunc)
+    return effect
 end
 
 return Interface

@@ -298,7 +298,7 @@ ItemConfig.Data = {
         PickTime = 1,
         CD = 0,
         DropSources = nil,
-        Icon = "105720102314961",
+        Icon = "89337655253380",
         Model = "石棺",
         Description = nil,
     },

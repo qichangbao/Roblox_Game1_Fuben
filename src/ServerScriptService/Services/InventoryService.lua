@@ -1,14 +1,12 @@
 -- InventoryService 服务
 -- 使用Knit框架管理服务器数据
 local Debris = game:GetService("Debris")
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+local WeaponConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("WeaponConfig"))
 
 local InventoryService = Knit.CreateService {
 	Name = "InventoryService",
@@ -242,16 +240,6 @@ function InventoryService:GetToolData(player)
     return self.ToolData[player.UserId] or {}
 end
 
--- 创建物品捡取特效
-function InventoryService:CreatePickUpEffect(position)
-    local effect = ReplicatedStorage:WaitForChild("Effect"):WaitForChild("PickUpEffect"):Clone()
-    effect.Parent = workspace
-    effect:PivotTo(CFrame.new(position))
-    
-    -- 使用Debris服务在3秒后自动回收特效
-    game:GetService("Debris"):AddItem(effect, 5)
-end
-
 function InventoryService:GiveToolToPlayer(player, item)
     local toolData = self.ToolData[player.UserId]
     if not toolData then
@@ -314,9 +302,7 @@ function InventoryService:GiveToolToPlayer(player, item)
     end
     -- 触发物品拾取条件
     _G.TriggerManager:PickUpItem(player, itemId)
-    -- 成功添加到背包，销毁世界中的物品
-    self:CreatePickUpEffect(item:GetPivot().Position)
-    self.Client.PickUpItem:Fire(player, itemInfo)
+    self.Client.PickUpItem:Fire(player, itemId)
     return true, "物品添加成功"
 end
 
@@ -394,12 +380,6 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
         if part:IsA("BasePart") then
             part.CanCollide = false
             part.Anchored = false
-            -- if part ~= handle then
-            --     local weld = Instance.new("WeldConstraint")
-            --     weld.Part0 = handle
-            --     weld.Part1 = part
-            --     weld.Parent = handle
-            -- end
         end
     end
     
@@ -416,13 +396,6 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
 
     -- 销毁空的模板模型
     templateModel:Destroy()
-
-    -- -- 直接设置Tool的Grip属性来控制握持方向
-    -- if itemInfo.ItemId == 202 then
-    --     tool.Grip = CFrame.Angles(0, math.rad(180), 0)  -- 只旋转，不偏移位置
-    -- elseif itemInfo.ItemId == 203 then
-    --     tool.Grip = CFrame.new(0, -0.6, 0) * CFrame.Angles(0, math.rad(90), 0)  -- y轴偏移0.6并旋转
-    -- end
     
     -- 连接工具装备事件，重置状态
     tool.Equipped:Connect(function()
@@ -484,12 +457,17 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
         self:SendToolData(player)
 
         if itemInfo.Type == GameConfig.ItemType.Weapon then    -- 进攻类
-            if itemInfo.ItemId == 203 then
-                Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD)
-            elseif itemInfo.ItemId == 202 then
-                Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
-            else
-                Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
+            local weaponInfo = WeaponConfig:GetByItemId(itemInfo.ItemId)
+            if weaponInfo then
+                if weaponInfo.Type == GameConfig.WeaponType.Dig then
+                    Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD)
+                elseif weaponInfo.Type == GameConfig.WeaponType.Swing then
+                    Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
+                elseif weaponInfo.Type == GameConfig.WeaponType.Ranged then
+                    Knit.GetService("PlayerService"):playAnimation(player, "ranged", "Attack1", itemInfo.CD)
+                else
+                    Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
+                end
             end
         end
     end)
@@ -697,7 +675,7 @@ function InventoryService:CreateItemToFloor(character, itemInfo, attribute)
     
     -- 通过ItemService创建物品
     local ItemService = Knit.GetService("ItemService")
-    ItemService:CreateItem(itemInfo.ItemId, dropPosition, 0, attribute, true)
+    ItemService:CreateItem(itemInfo.ItemId, dropPosition, 0, Vector3.new(0, 0, 0), attribute, 0)
 end
 
 -- 丢弃工具实现

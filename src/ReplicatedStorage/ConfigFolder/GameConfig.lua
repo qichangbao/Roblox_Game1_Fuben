@@ -16,7 +16,7 @@ GameConfig.ItemType = {
     Collect = 4,    -- 搜集类
     Chest = 5,      -- 宝箱类
     Mound = 6,      -- 土堆
-    Buff = 7,       --  buff类
+    Buff = 7,       -- buff类
     Treatment = 8,  -- 治疗类
     Max = 9,        -- 最大物品类型
 }
@@ -30,6 +30,12 @@ GameConfig.ItemTypeFolder = {
     [GameConfig.ItemType.Mound] = "土堆",
     [GameConfig.ItemType.Buff] = "Buff",
     [GameConfig.ItemType.Treatment] = "治疗",
+}
+
+GameConfig.WeaponType = {
+    Swing = 1,      -- 挥砍类
+    dig = 1,        -- 挥砍类
+    Ranged = 3,     -- 远程类
 }
 
 GameConfig.NpcUIType = {
@@ -279,5 +285,8 @@ GameConfig.DuanWeiType = {
         allowDeduction = true,
     },
 }
+
+GameConfig.TestItemPos = false   -- 测试物品位置方向
+GameConfig.TestDesignTotalValue = false -- 测试关卡总价值
 
 return GameConfig

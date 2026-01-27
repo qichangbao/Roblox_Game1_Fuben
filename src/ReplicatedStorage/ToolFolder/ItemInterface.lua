@@ -66,8 +66,13 @@ local function _showHitEffect(player)
         end
     end
     local effect = character:FindFirstChild("HitEffect")
+	if not effect then return end
     -- 朝向前方，便于某些发射型或方向性特效对齐
-    effect.CFrame = CFrame.lookAt(edgePos, edgePos + forward)
+	if effect:IsA("Model") then
+		effect:PivotTo(CFrame.lookAt(edgePos, edgePos + forward))
+	elseif effect:IsA("BasePart") then
+    	effect.CFrame = CFrame.lookAt(edgePos, edgePos + forward)
+	end
     for _, particleEmitter in pairs(effect:GetDescendants()) do
         if particleEmitter:IsA("ParticleEmitter") then
             particleEmitter.Enabled = true
@@ -104,8 +109,6 @@ function ItemInterface.showAttackEffect(player)
     local forward = hrp.CFrame.LookVector
 
     -- 在角色下查找 AttackEffect（避免误查 Player 根节点）·
-    local effect = character:FindFirstChild("AttackEffect")
-    if not effect then return end
     -- 水平前向（忽略Y抬头/低头），更稳定的朝向
     local horizForward = Vector3.new(forward.X, 0, forward.Z)
     if horizForward.Magnitude > 0 then
@@ -113,22 +116,8 @@ function ItemInterface.showAttackEffect(player)
     else
         horizForward = forward
     end
-    effect.CFrame = CFrame.lookAt(pos, pos + horizForward)
 
-    for _, particleEmitter in pairs(effect:GetDescendants()) do
-        if particleEmitter:IsA("ParticleEmitter") then
-            particleEmitter.Enabled = true
-            particleEmitter:Emit(30)
-        end
-    end
-
-    task.delay(1, function()
-        for _, particleEmitter in pairs(effect:GetDescendants()) do
-            if particleEmitter:IsA("ParticleEmitter") then
-                particleEmitter.Enabled = false
-            end
-        end
-    end)
+	Interface.PlayEffectByName("AttackEffect", CFrame.lookAt(pos, pos + horizForward), 30, 1)
 end
 
 local function _takeDamage(player, hitCharacter, damage)
@@ -146,7 +135,7 @@ local function _takeDamage(player, hitCharacter, damage)
 	local normalDamage = attack + damage
 	local isCrit = false
 	local random = math.random(100)
-	if random <= criticalProbability then			-- 暴击
+	if random <= criticalProbability * 100 then			-- 暴击
 		local criticalValue = Knit.GetService("PlayerService"):GetCriticalValue(player)
 		normalDamage = normalDamage * criticalValue % 100
 		isCrit = true
