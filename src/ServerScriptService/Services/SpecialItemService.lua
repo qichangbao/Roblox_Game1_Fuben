@@ -163,7 +163,7 @@ function SpecialItemService:OpenChest(player, item)
     end)
     self:PlaySound(player, "OpenChest")
 
-    self.Client.OpenChest:FireAll(player.Character:GetPivot(), item)
+    self.Client.OpenChest:FireAll(item)
     self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
     
     return true

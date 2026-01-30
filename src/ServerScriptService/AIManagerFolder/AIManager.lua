@@ -122,8 +122,8 @@ function AIManager:InitializeAttributes(monsterInfo, position)
     
     local humanoid = self.NPC:FindFirstChildOfClass("Humanoid")
     humanoid.WalkSpeed = monsterInfo.MoveSpeed
-    humanoid.Health = monsterInfo.HP
     humanoid.MaxHealth = monsterInfo.HP
+    humanoid.Health = monsterInfo.HP
 end
 
 function AIManager:SetState(newState)
@@ -303,71 +303,6 @@ function AIManager:PlayAnimation(animName, isLoop, playTimeScale, maxTime)
     self.currentTrack = track
 end
 
--- 播放死亡动画并在最后一帧冻结（函数级注释）：
--- 行为：
--- 1. 使用预加载的 "dead" 动画轨道播放死亡动作；
--- 2. 优先监听动画事件标记 "Finish"，在关键帧处将速度设为0并停在最后一帧；
--- 3. 若没有事件标记，则在 Stopped 回调中二次播放并跳到 Length 处后将速度设为0。
-function AIManager:PlayDeathAnimation()
-    self:StopAnimation()
-
-    local track = self.animationTracks and self.animationTracks["dead"]
-    if not track then
-        warn("未找到死亡动画轨道: dead")
-        return
-    end
-
-    track.Looped = false
-    track:Play()
-    self.currentTrack = track
-
-    local function freezeToLastFrame()
-        local length = track.Length or 0
-        if length <= 0 then
-            local lenConn
-            lenConn = track:GetPropertyChangedSignal("Length"):Connect(function()
-                if track.Length and track.Length > 0 then
-                    lenConn:Disconnect()
-                    freezeToLastFrame()
-                end
-            end)
-            return
-        end
-
-        track:Play(0, 1, 0)
-        track.TimePosition = length
-        track:AdjustSpeed(0)
-    end
-
-    local hasMarker = false
-    local ok, _ = pcall(function()
-        track:GetMarkerReachedSignal("Finish")
-    end)
-    if ok then
-        hasMarker = true
-    end
-
-    if hasMarker then
-        local markerConn
-        markerConn = track:GetMarkerReachedSignal("Finish"):Connect(function()
-            if markerConn then
-                markerConn:Disconnect()
-                markerConn = nil
-            end
-            freezeToLastFrame()
-        end)
-    else
-        local stoppedConn
-        stoppedConn = track.Stopped:Connect(function()
-            if stoppedConn then
-                stoppedConn:Disconnect()
-                stoppedConn = nil
-            end
-            freezeToLastFrame()
-        end)
-    end
-end
-
 function AIManager:PlaySound(soundName, loop)
     self:StopSound()
 
@@ -515,55 +450,55 @@ function AIManager:UpdateVisionMarkers()
     if not self.VisionMarkers then return end
     local hrp = self.NPC:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
+    local landId = Knit.GetService("IslandService"):GetIslandId()
+    if not landId or landId == 0 then return end
+    local land = workspace:FindFirstChild(landId)
+    if not land then return end
+    if not self.InnerGuiPart or not self.SectorGuiPart then return end
 
     local visionRange = self.NPC:GetAttribute("VisionRange") or 0
     -- 动态更新内圈大小（SurfaceGui + Image 方案）
-    if self.InnerGuiPart then
-        local innerDiameter = (visionRange/3) * 2
-        self.InnerGuiPart.Size = Vector3.new(innerDiameter, 0.05, innerDiameter)
-        if self.InnerImage and self.InnerSurfaceGui then
-            local pxW = self.InnerGuiPart.Size.X * self.InnerSurfaceGui.PixelsPerStud
-            local pxH = self.InnerGuiPart.Size.Z * self.InnerSurfaceGui.PixelsPerStud
-            self.InnerImage.Size = UDim2.fromOffset(pxW, pxH)
-        end
+    local innerDiameter = (visionRange/3) * 2
+    self.InnerGuiPart.Size = Vector3.new(innerDiameter, 0.05, innerDiameter)
+    if self.InnerImage and self.InnerSurfaceGui then
+        local pxW = self.InnerGuiPart.Size.X * self.InnerSurfaceGui.PixelsPerStud
+        local pxH = self.InnerGuiPart.Size.Z * self.InnerSurfaceGui.PixelsPerStud
+        self.InnerImage.Size = UDim2.fromOffset(pxW, pxH)
     end
 
     -- 射线检测地面高度，将标记贴地
     local rayParams = RaycastParams.new()
-    rayParams.FilterType = Enum.RaycastFilterType.Exclude
-    rayParams.FilterDescendantsInstances = {self.NPC}
+    rayParams.FilterType = Enum.RaycastFilterType.Include
+    rayParams.FilterDescendantsInstances = {land}
     local origin = hrp.Position
     local result = workspace:Raycast(origin, Vector3.new(0, -500, 0), rayParams)
     local groundY = (result and result.Position.Y) or (origin.Y - hrp.Size.Y/2)
 
     -- 让圆盘略高于地面：抬起厚度的一半再加微小偏移，避免被地面遮挡
-    local innerT = (self.InnerGuiPart and self.InnerGuiPart.Size.Y) or 0.05
-    local lift = innerT * 0.5 + 0.02
+    local lift = self.InnerGuiPart.Size.Y * 0.5 + 0.02
     local basePos = Vector3.new(origin.X, groundY + lift, origin.Z)
     -- 将内圈画布置于脚下中心（Top面向上）
-    if self.InnerGuiPart then self.InnerGuiPart.CFrame = CFrame.new(basePos) end
+    self.InnerGuiPart.CFrame = CFrame.new(basePos)
 
     -- 计算前向与边界方向（水平分量）
     local forward = hrp.CFrame.LookVector
     local forwardXZ = Vector3.new(forward.X, 0, forward.Z).Unit
 
     -- 更新扇形画布Part：大小与朝向（局部Z轴指向怪物前方，Top面向上）
-    if self.SectorGuiPart then
-        local widthScale = _fovDegrees / 180
-        self.SectorGuiPart.Size = Vector3.new(visionRange * 2 * widthScale, 0.05, visionRange)
-        local baseCf = CFrame.lookAt(basePos, basePos + forwardXZ, Vector3.new(0, 1, 0))
-        local yaw = CFrame.Angles(0, math.rad(self.SectorYawOffset or 0), 0)
-        -- 让“图片底部中心”（扇形顶点）正好落在怪物脚下：
-        -- 将画布中心沿前方移动半深度，使面板的近边中心位于怪物脚下
-        local halfDepth = self.SectorGuiPart.Size.Z * 0.5
-        self.SectorGuiPart.CFrame = (baseCf * yaw) + (forwardXZ * halfDepth)
-        -- 手动同步图片尺寸，使其宽高与 Part 的 X/Z 一致
-        if self.SectorImage and self.SectorSurfaceGui then
-            local pxW = self.SectorGuiPart.Size.X * self.SectorSurfaceGui.PixelsPerStud
-            local pxH = self.SectorGuiPart.Size.Z * self.SectorSurfaceGui.PixelsPerStud
-            self.SectorImage.Size = UDim2.fromOffset(pxW, pxH)
-            self.SectorImage.Position = UDim2.new(0.5, 0, 0.5, 0)
-        end
+    local widthScale = _fovDegrees / 180
+    self.SectorGuiPart.Size = Vector3.new(visionRange * 2 * widthScale, 0.05, visionRange)
+    local baseCf = CFrame.lookAt(basePos, basePos + forwardXZ, Vector3.new(0, 1, 0))
+    local yaw = CFrame.Angles(0, math.rad(self.SectorYawOffset or 0), 0)
+    -- 让“图片底部中心”（扇形顶点）正好落在怪物脚下：
+    -- 将画布中心沿前方移动半深度，使面板的近边中心位于怪物脚下
+    local halfDepth = self.SectorGuiPart.Size.Z * 0.5
+    self.SectorGuiPart.CFrame = (baseCf * yaw) + (forwardXZ * halfDepth)
+    -- 手动同步图片尺寸，使其宽高与 Part 的 X/Z 一致
+    if self.SectorImage and self.SectorSurfaceGui then
+        local pxW = self.SectorGuiPart.Size.X * self.SectorSurfaceGui.PixelsPerStud
+        local pxH = self.SectorGuiPart.Size.Z * self.SectorSurfaceGui.PixelsPerStud
+        self.SectorImage.Size = UDim2.fromOffset(pxW, pxH)
+        self.SectorImage.Position = UDim2.new(0.5, 0, 0.5, 0)
     end
 end
 

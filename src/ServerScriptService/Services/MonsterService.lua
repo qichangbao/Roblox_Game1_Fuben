@@ -88,7 +88,7 @@ function MonsterService:CreateHealthBar(monster)
     
     -- 创建BillboardGui
     local billboardGui = Instance.new("BillboardGui")
-    billboardGui.Name = "HealthBar"
+    billboardGui.Name = "BillboardHealthBar"
     -- 根据怪物尺寸动态设置血条容器大小与高度偏移
     billboardGui.Size = self:_ComputeHealthBarBillboardSize(monster)
     local offsetY = HumanoidRootPart.Size.Y / 2 + 1
@@ -109,18 +109,36 @@ function MonsterService:CreateHealthBar(monster)
     backgroundCorner.CornerRadius = UDim.new(0, 8)
     backgroundCorner.Parent = backgroundFrame
     
+    local barSize = UDim2.new(1, -4, 1, -4)
+    local barPosition = UDim2.new(0, 2, 0, 2)
+    local barBorderSizePixel = 0
+    local barCornerRadius = UDim.new(0, 4)
+    -- 创建白条
+    local whiteBar = Instance.new("Frame")
+    whiteBar.Name = "WhiteBar"
+    whiteBar.Size = barSize
+    whiteBar.Position = barPosition
+    whiteBar.BackgroundColor3 = Color3.fromRGB(243, 237, 233) -- 白色
+    whiteBar.BorderSizePixel = barBorderSizePixel
+    whiteBar.Parent = backgroundFrame
+    
+    -- 为血条添加圆角
+    local whiteBarCorner = Instance.new("UICorner")
+    whiteBarCorner.CornerRadius = barCornerRadius
+    whiteBarCorner.Parent = whiteBar
+    
     -- 创建血条
     local healthBar = Instance.new("Frame")
     healthBar.Name = "HealthBar"
-    healthBar.Size = UDim2.new(1, -4, 1, -4)
-    healthBar.Position = UDim2.new(0, 2, 0, 2)
-    healthBar.BackgroundColor3 = Color3.new(0, 1, 0) -- 绿色
-    healthBar.BorderSizePixel = 0
+    healthBar.Size = barSize
+    healthBar.Position = barPosition
+    healthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- 绿色
+    healthBar.BorderSizePixel = barBorderSizePixel
     healthBar.Parent = backgroundFrame
     
     -- 为血条添加圆角
     local healthBarCorner = Instance.new("UICorner")
-    healthBarCorner.CornerRadius = UDim.new(0, 4)
+    healthBarCorner.CornerRadius = barCornerRadius
     healthBarCorner.Parent = healthBar
     
     -- 创建血量文本
@@ -148,7 +166,7 @@ function MonsterService:UpdateHealthBar(monster)
     if not humanoid  then return end
     local humanoidRootPart = monster:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then return end
-    local billboardGui = humanoidRootPart:FindFirstChild("HealthBar")
+    local billboardGui = humanoidRootPart:FindFirstChild("BillboardHealthBar")
     if not billboardGui then return end
     local backgroundFrame = billboardGui:FindFirstChild("Background")
     if not backgroundFrame then return end
@@ -158,6 +176,7 @@ function MonsterService:UpdateHealthBar(monster)
     billboardGui.StudsOffset = Vector3.new(0, offsetY, 0)
     
     local healthBar = backgroundFrame:FindFirstChild("HealthBar")
+    local whiteBar = backgroundFrame:FindFirstChild("WhiteBar")
     local healthText = backgroundFrame:FindFirstChild("HealthText")
     if healthBar and healthText then
         -- 计算血量百分比（限制在0~1）
@@ -170,28 +189,47 @@ function MonsterService:UpdateHealthBar(monster)
         -- 获取并维护该怪物的血条动画状态
         local state = self.MonsterHealthBarState[monster]
         if not state then
-            state = { currentPercent = currentPercent, tween = nil }
+            state = { currentPercent = currentPercent, tween = {} }
             self.MonsterHealthBarState[monster] = state
         end
 
         -- 当血量减少时，使用Tween动画平滑缩短血条；增加或不变则直接更新
         if healthPercent < currentPercent then
             -- 取消之前可能存在的Tween，避免叠加
-            if state.tween then
+            for _, tween in pairs(state.tween) do
                 pcall(function()
-                    state.tween:Cancel()
+                    tween:Cancel()
                 end)
-                state.tween = nil
             end
+            state.tween = {}
 
             local targetSize = UDim2.new(healthPercent, -2, 1, -2)
-            state.tween = TweenInterface.TweenNodeSize(healthBar, targetSize, 0.25, function()
+            local tween1, tween2
+            tween1 = TweenInterface.TweenNodeSize(healthBar, targetSize, 0.35, function()
                 -- 动画结束后记录当前百分比
                 if self.MonsterHealthBarState[monster] == state then
-                    state.tween = nil
                     state.currentPercent = healthPercent
+                    for i, v in ipairs(state.tween) do
+                        if v == tween1 then
+                            table.remove(state.tween, i)
+                            break
+                        end
+                    end
                 end
             end)
+            tween2 = TweenInterface.TweenNodeSize(whiteBar, targetSize, 1, function()
+                -- 动画结束后记录当前百分比
+                if self.MonsterHealthBarState[monster] == state then
+                    for i, v in ipairs(state.tween) do
+                        if v == tween2 then
+                            table.remove(state.tween, i)
+                            break
+                        end
+                    end
+                end
+            end)
+            table.insert(state.tween, tween1)
+            table.insert(state.tween, tween2)
         else
             -- 非减少：直接更新尺寸
             healthBar.Size = UDim2.new(healthPercent, -2, 1, -2)
@@ -315,9 +353,12 @@ function MonsterService:CreateMonster(data)
                 -- 清理血条动画状态
                 local state = self.MonsterHealthBarState[monster]
                 if state and state.tween then
-                    pcall(function()
-                        state.tween:Cancel()
-                    end)
+                    for _, tween in pairs(state.tween) do
+                        pcall(function()
+                            tween:Cancel()
+                        end)
+                    end
+                    state.tween = {}
                 end
                 self.MonsterHealthBarState[monster] = nil
                 
@@ -344,9 +385,12 @@ function MonsterService:MonsterRemoved(monster)
     -- 清理血条动画状态
     local state = self.MonsterHealthBarState[monster]
     if state and state.tween then
-        pcall(function()
-            state.tween:Cancel()
-        end)
+        for _, tween in pairs(state.tween) do
+            pcall(function()
+                tween:Cancel()
+            end)
+        end
+        state.tween = {}
     end
     self.MonsterHealthBarState[monster] = nil
     
@@ -447,8 +491,14 @@ function MonsterService:InitMonsters()
     --         end
     --     end
     -- end)
-    self:CreateMonster({Refresh = 1, MonsterId = 30001, Position = Vector3.new(159, 12.4, -22)})
-    --self:CreateMonster({Refresh = 1, MonsterId = 30008, Position = Vector3.new(91, -1.4, -37)})
+    -- self:CreateMonster({Refresh = 1, MonsterId = 30002, Position = Vector3.new(159, 12.4, -22)})
+    -- --self:CreateMonster({Refresh = 1, MonsterId = 30003, Position = Vector3.new(159, 12.4, -32)})
+    -- self:CreateMonster({Refresh = 1, MonsterId = 30004, Position = Vector3.new(159, 12.4, -42)})
+    -- self:CreateMonster({Refresh = 1, MonsterId = 30005, Position = Vector3.new(159, 12.4, -52)})
+    -- self:CreateMonster({Refresh = 1, MonsterId = 30006, Position = Vector3.new(159, 12.4, -62)})
+    -- self:CreateMonster({Refresh = 1, MonsterId = 30007, Position = Vector3.new(159, 12.4, -72)})
+    -- self:CreateMonster({Refresh = 1, MonsterId = 30008, Position = Vector3.new(159, 12.4, -82)})
+    -- self:CreateMonster({Refresh = 1, MonsterId = 30009, Position = Vector3.new(159, 12.4, -92)})
 end
 
 function MonsterService:KnitInit()

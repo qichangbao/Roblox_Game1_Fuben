@@ -460,13 +460,13 @@ function InventoryService:CreateToolFromItemId(itemData, slot)
             local weaponInfo = WeaponConfig:GetByItemId(itemInfo.ItemId)
             if weaponInfo then
                 if weaponInfo.Type == GameConfig.WeaponType.Dig then
-                    Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD)
+                    Knit.GetService("PlayerService"):playAnimation(player, "dig", "Attack2", itemInfo.CD, false)
                 elseif weaponInfo.Type == GameConfig.WeaponType.Swing then
-                    Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
+                    Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD, false)
                 elseif weaponInfo.Type == GameConfig.WeaponType.Ranged then
-                    Knit.GetService("PlayerService"):playAnimation(player, "ranged", "Attack1", itemInfo.CD)
+                    Knit.GetService("PlayerService"):playAnimation(player, "ranged", "Attack1", itemInfo.CD, false)
                 else
-                    Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD)
+                    Knit.GetService("PlayerService"):playAnimation(player, "swing", "Attack1", itemInfo.CD, false)
                 end
             end
         end
@@ -606,6 +606,7 @@ function InventoryService:EquipToolByKey(player, slot)
                 end
                 GameConfig.UpdateItemAttribute(currentTool, "IsEquipped", 0)
                 Debris:AddItem(currentTool, 0.05)
+                Knit.GetService("PlayerService"):UpdateHoldItemState(player, false)
             end
             return 1, toolData
         end
@@ -626,6 +627,7 @@ function InventoryService:EquipToolByKey(player, slot)
     local newTool = self:CreateToolFromItemId(itemData, slotNumber)
     if newTool then
         newTool.Parent = character
+        Knit.GetService("PlayerService"):UpdateHoldItemState(player, true)
         
         -- 确保工具被正确装备
         if character:FindFirstChild("Humanoid") then
@@ -641,14 +643,15 @@ function InventoryService:EquipToolByKey(player, slot)
 end
 
 function InventoryService:CreateItemToFloor(character, itemInfo, attribute)
-    if not character then
-        return
-    end
-    -- 获取玩家位置
+    if not character then return end
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then
-        return
-    end
+    if not humanoidRootPart then return end
+    local landId = Knit.GetService("IslandService"):GetIslandId()
+    if not landId or landId == 0 then return end
+    local land = workspace:FindFirstChild(landId)
+    if not land then return end
+    local boat = workspace:FindFirstChild(GameConfig.TeleportPartNames)
+    if not boat then return end
     
     -- 在玩家前方创建物品，使用射线检测找到地面位置
     local basePosition = humanoidRootPart.Position + humanoidRootPart.CFrame.LookVector * 3
@@ -659,11 +662,9 @@ function InventoryService:CreateItemToFloor(character, itemInfo, attribute)
     local rayDirection = Vector3.new(0, -10, 0) -- 向下射线
     
     local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    raycastParams.FilterDescendantsInstances = {character} -- 忽略玩家自身
-    
+    raycastParams.FilterType = Enum.RaycastFilterType.Include
+    raycastParams.FilterDescendantsInstances = {land, boat}
     local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-    
     local dropPosition
     if raycastResult then
         -- 找到地面，使用地面Y坐标 + 一点偏移
@@ -709,6 +710,7 @@ function InventoryService:DiscardTool(player, slot)
         -- 如果当前装备的工具就是要丢弃的工具，则销毁它
         if equippedItemId == itemId then
             equippedTool:Destroy()
+            Knit.GetService("PlayerService"):UpdateHoldItemState(player, false)
         end
     end
     

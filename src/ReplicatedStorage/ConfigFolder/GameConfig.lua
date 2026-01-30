@@ -32,6 +32,17 @@ GameConfig.ItemTypeFolder = {
     [GameConfig.ItemType.Treatment] = "治疗",
 }
 
+-- 物品品质类型
+GameConfig.ItemQualityType = {
+    White = 1,      -- 白色
+    Green = 2,      -- 绿色
+    Blue = 3,       -- 蓝色
+    Purple = 4,     -- 紫色
+    Orange = 5,     -- 橙色
+    Red = 6,        -- 红色
+    Rainbow = 7,    -- 彩虹
+}
+
 GameConfig.WeaponType = {
     Swing = 1,      -- 挥砍类
     dig = 1,        -- 挥砍类
@@ -83,7 +94,10 @@ GameConfig.OverwhelmedWeight = {
 GameConfig.AnimationMap = {
     swing = {"rbxassetid://122275399055808", "rbxassetid://106851209030806"},
     dig = {"rbxassetid://133396559381410"},
+    holdItem = {"rbxassetid://83805714092081"},
 }
+
+GameConfig.MaxJobLevel = 3      -- 最大职业等级
 
 -- 职业升级成本枚举
 GameConfig.JobUpgradeCost = {

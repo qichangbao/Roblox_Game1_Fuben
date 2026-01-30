@@ -4,6 +4,7 @@ local WeaponConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):Wait
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local DesignConfig = require(ReplicatedStorage:WaitForChild('ConfigFolder'):WaitForChild('DesignConfig'))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
+local PlayerAttribute = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("PlayerAttribute"))
 
 local ItemInterface = {}
 
@@ -130,7 +131,7 @@ local function _takeDamage(player, hitCharacter, damage)
 	end
 
 	local criticalProbability = Knit.GetService("PlayerService"):GetCriticalProbability(player)
-	local attack = sourceHumanoid:GetAttribute("Attack")
+	local attack = PlayerAttribute.GetAttack(player)
 	local humanoidType = hitCharacter:GetAttribute("HumanoidType")
 	local normalDamage = attack + damage
 	local isCrit = false

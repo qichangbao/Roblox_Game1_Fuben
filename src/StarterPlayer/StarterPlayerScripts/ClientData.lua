@@ -119,9 +119,9 @@ local function init()
             local gameSound = Interface.safeWaitPart(game:GetService("SoundService"), "GAME")
             local sound = nil
             if itemInfo.Type == GameConfig.ItemType.Collect then
-                if itemInfo.SellPrice > 0 and itemInfo.SellPrice < 3000 then
+                if itemInfo.SellPrice >= 0 and itemInfo.SellPrice < 3000 then
                     sound = Interface.safeWaitPart(gameSound, "PickUpLow")
-                elseif itemInfo.SellPrice >= 3000 and itemInfo.SellPrice < 1000 then
+                elseif itemInfo.SellPrice >= 3000 and itemInfo.SellPrice < 10000 then
                     sound = Interface.safeWaitPart(gameSound, "PickUpMiddle")
                 else
                     sound = Interface.safeWaitPart(gameSound, "PickUpHigh")
@@ -242,8 +242,8 @@ local function init()
         Knit.GetService("SpecialItemService").ShakeCarame:Connect(function(info)
             Knit.GetController("UIController").ShakeCarame:Fire(info)
         end)
-        Knit.GetService("SpecialItemService").OpenChest:Connect(function(cframe, item)
-            Knit.GetController("UIController").OpenChest:Fire(cframe, item)
+        Knit.GetService("SpecialItemService").OpenChest:Connect(function(item)
+            Knit.GetController("UIController").OpenChest:Fire(item)
         end)
 
         Knit.GetService("BoatService").ChooseEscape:Connect(function()

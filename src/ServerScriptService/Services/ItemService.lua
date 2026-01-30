@@ -85,11 +85,42 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, or
         attribute.IsEquipped = 0
     end
     GameConfig.SetItemAttribute(item, attribute)
+
+    local scaleFactor = 1
+    if itemInfo.Quality == GameConfig.ItemQualityType.White then
+        scaleFactor = 1
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Green then
+        scaleFactor = 1.2
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Blue then
+        scaleFactor = 1.4
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Purple then
+        scaleFactor = 1.6
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Orange then
+        scaleFactor = 1.8
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Red then
+        scaleFactor = 2
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Rainbow then
+        scaleFactor = 2.2
+    end
+
+    if scaleFactor ~= 1 then
+        if item:IsA("Model") then
+            local baseScale = item:GetScale()
+            item:ScaleTo(baseScale * scaleFactor)
+        elseif item:IsA("BasePart") then
+            item.Size = item.Size * scaleFactor
+        end
+    end
+
     for _, descendant in pairs(item:GetDescendants()) do
         if descendant:IsA("BasePart") then
             descendant.Anchored = false
             descendant.CanCollide = true
-            descendant.CollisionGroup = "Item"
+            if itemInfo.Type == GameConfig.ItemType.Chest then
+                descendant.CollisionGroup = "Chest"
+            else
+                descendant.CollisionGroup = "Item"
+            end
         end
     end
 
@@ -109,7 +140,25 @@ function ItemService:CreateItem(itemId, position, dropGroup, orientation, attrib
     highlight.Parent = item
     highlight.FillTransparency = 1
     highlight.OutlineTransparency = 0.5
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+
+    local qualityColor
+    if itemInfo.Quality == GameConfig.ItemQualityType.White then
+        qualityColor = Color3.fromRGB(255, 255, 255)
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Green then
+        qualityColor = Color3.fromRGB(80, 255, 80)
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Blue then
+        qualityColor = Color3.fromRGB(80, 160, 255)
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Purple then
+        qualityColor = Color3.fromRGB(200, 120, 255)
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Orange then
+        qualityColor = Color3.fromRGB(255, 180, 80)
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Red then
+        qualityColor = Color3.fromRGB(255, 90, 90)
+    elseif itemInfo.Quality == GameConfig.ItemQualityType.Rainbow then
+        qualityColor = Color3.fromRGB(255, 255, 0)
+    end
+
+    highlight.OutlineColor = qualityColor or Color3.fromRGB(255, 255, 255)
     highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 
     -- 创建 ProximityPrompt 实例
@@ -392,7 +441,8 @@ function ItemService:InitItems()
         print(string.format("✅ 运行关卡%d次, 平均物品总价值%.2f", _testTotalValueInfo.Count, _testTotalValueInfo.Value / _testTotalValueInfo.Count))
     end
 
-    self:CreateItem(0, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 10)
+    --self:CreateItem(0, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 10)
+    self:CreateItem(10041, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
 end
 
 function ItemService:KnitInit()

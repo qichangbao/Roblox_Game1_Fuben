@@ -19,9 +19,10 @@ function IslandService:SetIslandId(islandId)
     end
     local island = workspace:FindFirstChild(islandId)
     if not island then
-        local newland = Map:FindFirstChild(islandId)
-        if not newland then return end
-        newland:Clone().Parent = workspace
+        local land = Map:FindFirstChild(islandId)
+        if not land then return end
+        local newLand = land:Clone()
+        newLand.Parent = workspace
         self.IslandId = islandId
     end
 end

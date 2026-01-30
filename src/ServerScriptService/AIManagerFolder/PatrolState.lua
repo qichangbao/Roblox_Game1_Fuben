@@ -1,5 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local PathfindingMove = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("PathfindingMove"))
+local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
+local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
 
 local PatrolState = {}
 PatrolState.__index = PatrolState
@@ -22,51 +25,35 @@ end
     @return boolean 如果位置安全返回true，否则返回false
 ]]
 function PatrolState:isPositionSafe(position)
+    local landId = Knit.GetService("IslandService"):GetIslandId()
+    if not landId or landId == 0 then return false end
+    local land = workspace:FindFirstChild(landId)
+    if not land then return false end
+
     -- 关键检测：射线检测是否有陆地Part
     local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    raycastParams.FilterDescendantsInstances = {self.AIManager.NPC}
-    
-    local checkPoints = {
-        position, -- 中心点
-        position + Vector3.new(1, 0, 0), -- 右
-        position + Vector3.new(-1, 0, 0), -- 左
-        position + Vector3.new(0, 0, 1), -- 前
-        position + Vector3.new(0, 0, -1), -- 后
-    }
-    
-    for i, checkPos in ipairs(checkPoints) do
-        local rayOrigin = Vector3.new(checkPos.X, checkPos.Y + 10, checkPos.Z)
-        local rayDirection = Vector3.new(0, -40, 0)
-        local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-        if not raycastResult then
-            -- 没有击中任何Part，说明这里只有水，不安全
-            return false
-        end
-    end
+    raycastParams.FilterType = Enum.RaycastFilterType.Include
+    raycastParams.FilterDescendantsInstances = {land}
+
+    local rayOrigin = Vector3.new(position.X, position.Y + 10, position.Z)
+    local rayDirection = Vector3.new(0, -40, 0)
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    if not raycastResult then return false end
     
     -- 检测目标位置周围是否有物品（检测半径2单位内的物品）
     local itemCheckRadius = 2
     local checkSize = Vector3.new(itemCheckRadius * 2, 4, itemCheckRadius * 2)
-    local checkCFrame = CFrame.new(position + Vector3.new(0, 1, 0))
-    
+    local checkCFrame = CFrame.new(position)
     local partsInRegion = workspace:GetPartBoundsInBox(checkCFrame, checkSize)
     for _, part in ipairs(partsInRegion) do
         -- 检测是否是物品（通过检查父级是否有ItemId属性或特定名称模式）
         local parent = part.Parent
-        if parent and (parent:GetAttribute("ItemId") or parent.Name:find("Item") or parent.Name:find("物品")) then
-            return false
-        end
-        
-        -- 检测是否是工具
-        if parent and parent:IsA("Tool") then
-            return false
-        end
-        
-        -- 检测是否是掉落的物品模型
-        if parent and parent:IsA("Model") and parent:FindFirstChild("Handle") then
-            return false
-        end
+        if not parent then continue end
+        local itemId = parent:GetAttribute("ItemId")
+        if not itemId then continue end
+        local itemInfo = ItemConfig:GetByItemId(itemId)
+        if not itemInfo then continue end
+        if itemInfo.ItemType == GameConfig.ItemType.Chest then return false end
     end
     
     return true
@@ -80,7 +67,7 @@ end
     @return Vector3|nil 安全的目标位置，如果找不到返回nil
 ]]
 function PatrolState:generateSafeTargetPosition(npcPosition, patrolRadius, maxAttempts)
-    for attempt = 1, maxAttempts do
+    for _ = 1, maxAttempts do
         local targetPosition = Vector3.new(
             npcPosition.X + 5 + math.random(-patrolRadius, patrolRadius),
             npcPosition.Y,
@@ -129,12 +116,6 @@ end
 
 -- 每帧更新
 function PatrolState:Update(dt)
-    local HumanoidRootPart = self.AIManager.NPC:FindFirstChild('HumanoidRootPart')
-    if not HumanoidRootPart then
-        print("HumanoidRootPart not found")
-        return
-    end
-
     local target = self.AIManager:FindVisionRangeTarget()
     if target then
         self.AIManager:SetState("Chase")

@@ -51,8 +51,16 @@ function JobService:GetJobData(player)
     return self.JobData[player.UserId]
 end
 
+function JobService.Client:GetJobData(player)
+    return self.Server:GetJobData(player)
+end
+
 function JobService:GetCurJobId(player)
     return self.curJobId[player.UserId]
+end
+
+function JobService.Client:GetCurJobId(player)
+    return self.Server:GetCurJobId(player)
 end
 
 function JobService:TriggerJob(player, jobType, jobValue)
@@ -61,7 +69,8 @@ function JobService:TriggerJob(player, jobType, jobValue)
     for id, data in pairs(jobData) do
         local config = HeroConfig:GetById(tonumber(id))
         if not config then continue end
-        local unlock = Interface.Split(config.Unlock[data.Level], "_")
+		if data.IsFinished then continue end
+        local unlock = Interface.Split(config.Unlock[data.Level + 1], "_")
 		local unlockType = tonumber(unlock[1])
         if unlockType == jobType then
             if unlockType == GameConfig.JobUnlockCondition.IslandLevel
@@ -96,8 +105,9 @@ function JobService.Client:LevelUp(player, jobId)
     if not data then return end
     local config = HeroConfig:GetById(tonumber(jobId))
     if not config then return end
+	if data.IsFinished then return end
 
-    local unlock = Interface.Split(config.Unlock[data.Level], "_")
+    local unlock = Interface.Split(config.Unlock[data.Level + 1], "_")
     local unlockType = tonumber(unlock[1])
     if unlockType == GameConfig.JobUnlockCondition.DamageMonster
     or unlockType == GameConfig.JobUnlockCondition.DamageMonsterNum
@@ -129,16 +139,6 @@ function JobService.Client:LevelUp(player, jobId)
     end
     data.Unlock = 0
     self.UpdateJobData:Fire(player, jobData)
-end
-
--- 玩家切换职业
--- @param player Player 玩家对象
--- @param jobId number 任务ID
--- @return boolean 是否激活:ture 激活，false 解除激活
-function JobService.Client:ChangeJob(player, jobId)
-    self.Server.curJobId[player.UserId] = jobId
-    Knit.GetService("DBService"):Set(player.UserId, "CurJobId", jobId)
-    self.ChangeCurJobId:Fire(player, tonumber(jobId))
 end
 
 return JobService

@@ -28,6 +28,7 @@ function DeadState:Enter()
 
     local HumanoidRootPart = self.AIManager.NPC:FindFirstChild("HumanoidRootPart")
     if HumanoidRootPart then
+        HumanoidRootPart.CanCollide = false
         HumanoidRootPart.Anchored = true
     end
 

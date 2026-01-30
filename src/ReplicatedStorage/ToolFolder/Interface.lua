@@ -421,8 +421,8 @@ function Interface.isPlayerOnBoat(player)
     local origin = hrp.Position + Vector3.new(0, 1, 0)
     local direction = Vector3.new(0, -50, 0)
     local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    params.FilterDescendantsInstances = { player.Character }
+    params.FilterType = Enum.RaycastFilterType.Include
+    params.FilterDescendantsInstances = {boat}
 
     local result = workspace:Raycast(origin, direction, params)
     if not result or not result.Instance then return false end
