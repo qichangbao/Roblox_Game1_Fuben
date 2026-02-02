@@ -28,6 +28,7 @@ local PlayerService = Knit.CreateService {
     WaterData = {},     -- 存储玩家水中状态数据
     AttributeData = {}, -- 存储玩家属性数据
     AnimationMarkerConns = {},  -- 动画标记事件连接
+    ModelCache = {},            -- 模型缓存
 }
 -- 配置参数
 local FALL_HEIGHT_THRESHOLD = 17 -- 下落高度阈值（单位：stud）
@@ -50,6 +51,10 @@ function PlayerService:KnitStart()
             humanoid.Health = GameConfig.PlayerInitAttribute.Health
             humanoid.WalkSpeed = GameConfig.PlayerInitAttribute.WalkSpeed
             humanoid.JumpPower = GameConfig.PlayerInitAttribute.JumpPower
+            self.ModelCache[player.UserId] = {
+                ShirtTemplate = character.Shirt.ShirtTemplate,
+                PantsTemplate = character.Pants.PantsTemplate,
+            }
             
             self:InitAnimEffect(player)
             humanoid.Died:Connect(function()
@@ -163,6 +168,7 @@ function PlayerService:KnitStart()
         self.FallData[player.UserId] = nil
         self.WaterData[player.UserId] = nil
         self.AttributeData[player.UserId] = nil
+        self.ModelCache[player.UserId] = nil
         
         -- 停止水中检测循环并清理数据
         self:StopWaterDamageLoop(player)
@@ -338,13 +344,20 @@ end
 function PlayerService:SetJobModel(player, jobId)
     if not player or not jobId then return end
 	if not player.Character then return end
+	local character = player.Character
+	for _, child in ipairs(character:GetChildren()) do
+		if child:IsA("Accessory") and child.Name:find("JobAccessory") then
+			child:Destroy()
+		end
+	end
+    character.Pants.PantsTemplate = self.ModelCache[player.UserId].PantsTemplate or ""
+    character.Shirt.ShirtTemplate = self.ModelCache[player.UserId].ShirtTemplate or ""
     local config = HeroConfig:GetById(tonumber(jobId))
     if not config then return end
     local model = config.Model
     if not model then return end
     local jobModel = ReplicatedStorage:FindFirstChild("JobModel"):FindFirstChild(model)
     if not jobModel then return end
-	local character = player.Character
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then return end
 	if jobModel:FindFirstChild("Shirt") and character:FindFirstChild("Shirt") then
@@ -352,11 +365,6 @@ function PlayerService:SetJobModel(player, jobId)
 	end
 	if jobModel:FindFirstChild("Pants") and character:FindFirstChild("Pants") then
 		character.Pants.PantsTemplate = jobModel.Pants.PantsTemplate
-	end
-	for _, child in ipairs(character:GetChildren()) do
-		if child:IsA("Accessory") and child.Name:find("JobAccessory") then
-			child:Destroy()
-		end
 	end
 	for _, child in ipairs(jobModel:GetChildren()) do
 		if child:IsA("Accessory") then

@@ -43,6 +43,13 @@ GameConfig.ItemQualityType = {
     Rainbow = 7,    -- 彩虹
 }
 
+-- 物品持类型
+GameConfig.HoldType = {
+    None = 0,
+    Single = 1,    -- 单持类
+    Double = 2,    -- 双持类
+}
+
 GameConfig.WeaponType = {
     Swing = 1,      -- 挥砍类
     dig = 1,        -- 挥砍类

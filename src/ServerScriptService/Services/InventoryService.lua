@@ -606,7 +606,16 @@ function InventoryService:EquipToolByKey(player, slot)
                 end
                 GameConfig.UpdateItemAttribute(currentTool, "IsEquipped", 0)
                 Debris:AddItem(currentTool, 0.05)
-                Knit.GetService("PlayerService"):UpdateHoldItemState(player, false)
+                local itemInfo = ItemConfig:GetByItemId(currentItemId)
+                if not itemInfo then
+                    warn("EquipToolByKey: 无法获取物品信息，ItemId: " .. currentItemId)
+                    return 0
+                end
+                if itemInfo.Hold == GameConfig.HoldType.None then
+                elseif itemInfo.Hold == GameConfig.HoldType.Single then
+                elseif itemInfo.Hold == GameConfig.HoldType.Double then
+                    Knit.GetService("PlayerService"):UpdateHoldItemState(player, false)
+                end
             end
             return 1, toolData
         end
@@ -627,7 +636,16 @@ function InventoryService:EquipToolByKey(player, slot)
     local newTool = self:CreateToolFromItemId(itemData, slotNumber)
     if newTool then
         newTool.Parent = character
-        Knit.GetService("PlayerService"):UpdateHoldItemState(player, true)
+        local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
+        if not itemInfo then
+            warn("EquipToolByKey: 无法获取物品信息，ItemId: " .. itemData.ItemId)
+            return 0
+        end
+        if itemInfo.Hold == GameConfig.HoldType.None then
+        elseif itemInfo.Hold == GameConfig.HoldType.Single then
+        elseif itemInfo.Hold == GameConfig.HoldType.Double then
+            Knit.GetService("PlayerService"):UpdateHoldItemState(player, true)
+        end
         
         -- 确保工具被正确装备
         if character:FindFirstChild("Humanoid") then
@@ -710,7 +728,11 @@ function InventoryService:DiscardTool(player, slot)
         -- 如果当前装备的工具就是要丢弃的工具，则销毁它
         if equippedItemId == itemId then
             equippedTool:Destroy()
-            Knit.GetService("PlayerService"):UpdateHoldItemState(player, false)
+            if itemInfo.Hold == GameConfig.HoldType.None then
+            elseif itemInfo.Hold == GameConfig.HoldType.Single then
+            elseif itemInfo.Hold == GameConfig.HoldType.Double then
+                Knit.GetService("PlayerService"):UpdateHoldItemState(player, false)
+            end
         end
     end
     
