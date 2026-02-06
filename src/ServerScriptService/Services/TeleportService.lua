@@ -81,7 +81,7 @@ function TeleportServiceModule:teleportToReserveServer(player, showUI)
     end
     -- 记录玩家正在传送中
     self.TeleportingPlayer[player.UserId] = true
-        
+
 	local teleportOptions = Instance.new("TeleportOptions")
 	teleportOptions:SetTeleportData(teleportData)
     -- 执行传送到预留服务器

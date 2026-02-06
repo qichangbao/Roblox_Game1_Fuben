@@ -49,11 +49,11 @@ local function succ(player)
         local itemsWithPrice = {}
         for _, itemData in ipairs(escapeItems) do
             local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
-            if itemInfo and itemInfo.SellPrice then
+            if itemInfo then
                 table.insert(itemsWithPrice, {
                     ItemId = itemData.ItemId,
                     Attribute = itemData.Attribute,
-                    SellPrice = itemInfo.SellPrice,
+                    SellPrice = itemData.Attribute.Gold,
                 })
             end
         end
@@ -77,10 +77,7 @@ local function succ(player)
     end
 
     for _, itemData in ipairs(escapeItems) do
-        local itemInfo = ItemConfig:GetByItemId(itemData.ItemId)
-        if itemInfo then
-            totalValue += itemInfo.SellPrice
-        end
+        totalValue += itemData.Attribute.Gold
     end
 
     -- 获取玩家当前位置

@@ -34,11 +34,11 @@ end
 --[[
 	广播玩家上交物品的提示
 	@param player Player 上交玩家
-	@param itemIds table<number> 上交物品ID列表
+	@param itemAttributes table<ItemAttribute> 上交物品属性列表
 ]]
-function ClientUIService:SubmitItems(player, itemIds)
-    for _, v in ipairs(itemIds) do
-        self.Client.ShowTip:FireAll({Type = 2, Name = player.Name, ItemId = v})
+function ClientUIService:SubmitItems(player, itemAttributes)
+    for _, v in ipairs(itemAttributes) do
+        self.Client.ShowTip:FireAll({Type = 2, Name = player.Name, ItemAttribute = v})
     end
 end
 

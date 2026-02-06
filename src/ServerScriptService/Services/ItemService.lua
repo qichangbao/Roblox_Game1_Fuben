@@ -74,42 +74,36 @@ function ItemService:CreateItemNoProximityPrompt(itemId, position, dropGroup, or
             item:PivotTo(CFrame.new(targetPos) * CFrame.Angles(math.rad(orientation.X), math.rad(orientation.Y), math.rad(orientation.Z)))
         end
     end
-    item:SetAttribute("ItemId", itemId)
-    if dropGroup and dropGroup > 0 then
-        item:SetAttribute("DropGroup", dropGroup)
+    attribute.ItemId = itemId
+    attribute.IsEquipped = 0
+    if attribute.Volume == 0 then
+        if itemInfo.VolumeBase and itemInfo.VolumeRandomMin and itemInfo.VolumeRandomMax then
+            attribute.Volume = itemInfo.VolumeBase * math.random(itemInfo.VolumeRandomMin * 100, itemInfo.VolumeRandomMax * 100) / 100
+        else
+            attribute.Volume = 1
+        end
     end
     if goldNum and goldNum > 0 then
-        item:SetAttribute("Gold", goldNum)
+        attribute.Gold = goldNum
+    elseif attribute.Gold == 0 then
+        if itemInfo.QualityCoeff and itemInfo.QualityRandomMin and itemInfo.QualityRandomMax then
+            attribute.Gold = math.floor(itemInfo.SellPrice * itemInfo.QualityCoeff * attribute.Volume * math.random(itemInfo.QualityRandomMin * 100, itemInfo.QualityRandomMax * 100) / 100)
+        else
+            attribute.Gold = math.floor(itemInfo.SellPrice)
+        end
     end
-    if attribute then
-        attribute.IsEquipped = 0
+    if attribute.DropGroup == 0 then
+        if dropGroup and dropGroup > 0 then
+            attribute.DropGroup = dropGroup
+        end
     end
     GameConfig.SetItemAttribute(item, attribute)
 
-    local scaleFactor = 1
-    if itemInfo.Quality == GameConfig.ItemQualityType.White then
-        scaleFactor = 1
-    elseif itemInfo.Quality == GameConfig.ItemQualityType.Green then
-        scaleFactor = 1.2
-    elseif itemInfo.Quality == GameConfig.ItemQualityType.Blue then
-        scaleFactor = 1.4
-    elseif itemInfo.Quality == GameConfig.ItemQualityType.Purple then
-        scaleFactor = 1.6
-    elseif itemInfo.Quality == GameConfig.ItemQualityType.Orange then
-        scaleFactor = 1.8
-    elseif itemInfo.Quality == GameConfig.ItemQualityType.Red then
-        scaleFactor = 2
-    elseif itemInfo.Quality == GameConfig.ItemQualityType.Rainbow then
-        scaleFactor = 2.2
-    end
-
-    if scaleFactor ~= 1 then
-        if item:IsA("Model") then
-            local baseScale = item:GetScale()
-            item:ScaleTo(baseScale * scaleFactor)
-        elseif item:IsA("BasePart") then
-            item.Size = item.Size * scaleFactor
-        end
+    if item:IsA("Model") then
+        local baseScale = item:GetScale()
+        item:ScaleTo(baseScale * attribute.Volume)
+    elseif item:IsA("BasePart") then
+        item.Size = item.Size * attribute.Volume
     end
 
     for _, descendant in pairs(item:GetDescendants()) do
@@ -182,7 +176,7 @@ function ItemService:CreateItem(itemId, position, dropGroup, orientation, attrib
     if goldNum and goldNum > 0 then
         proximityPrompt.ObjectText = string.format("%d %s", goldNum or 0, itemInfo.DisplayName)
     else
-        proximityPrompt.ObjectText = itemInfo.DisplayName
+        proximityPrompt.ObjectText = string.format("%s %d", itemInfo.DisplayName, attribute.Gold)
     end
     proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E -- 键盘按键
     proximityPrompt.GamepadKeyCode = Enum.KeyCode.ButtonX -- 手柄按键
@@ -442,7 +436,7 @@ function ItemService:InitItems()
     end
 
     --self:CreateItem(0, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 10)
-    self:CreateItem(10041, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
+    self:CreateItem(10011, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
 end
 
 function ItemService:KnitInit()

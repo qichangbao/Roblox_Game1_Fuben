@@ -734,7 +734,7 @@ function PlayerService:UpdateOverwhelmed(player)
         local itemId = toolData.ItemId
         local itemInfo = ItemConfig:GetByItemId(itemId)
         if itemInfo then
-            overwhelmed += itemInfo.Weight
+            overwhelmed += Interface.formatValue(toolData.Attribute.Volume * itemInfo.Weight)
         end
     end
     local bag = Knit.GetService("InventoryService"):GetBagData(player)
@@ -742,7 +742,7 @@ function PlayerService:UpdateOverwhelmed(player)
         local itemId = bagData.ItemId
         local itemInfo = ItemConfig:GetByItemId(itemId)
         if itemInfo then
-            overwhelmed += itemInfo.Weight
+            overwhelmed += Interface.formatValue(bagData.Attribute.Volume * itemInfo.Weight)
         end
     end
 

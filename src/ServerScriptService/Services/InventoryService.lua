@@ -40,9 +40,12 @@ function InventoryService:PlayerAdded(player)
 	self.Inventory[player.UserId] = {}
 	for _, v in pairs(inventory) do
         local attribute = GameConfig.GetItemAttribute()
+		attribute.ItemId = v.ItemId
         attribute.UsedTime = v.UsedTime
         attribute.UsedNum = v.UsedNum
 		attribute.IsLocked = v.IsLocked or 0
+        attribute.Volume = v.Volume or 1
+        attribute.Gold = v.Gold or 0
 		table.insert(self.Inventory[player.UserId], {
             ItemId = v.ItemId,
             Attribute = attribute,
@@ -54,8 +57,12 @@ function InventoryService:PlayerAdded(player)
         local data = tool[i]
         local attribute = GameConfig.GetItemAttribute()
         if data then
+		    attribute.ItemId = data.ItemId
             attribute.UsedTime = data.UsedTime
             attribute.UsedNum = data.UsedNum
+            attribute.IsLocked = data.IsLocked or 0
+            attribute.Volume = data.Volume or 1
+            attribute.Gold = data.Gold or 0
             table.insert(self.ToolData[player.UserId], {
                 ItemId = data.ItemId,
                 Attribute = attribute
@@ -99,6 +106,9 @@ function InventoryService:InventoryToDB(player)
             ItemId = v.ItemId,
             UsedTime = v.Attribute.UsedTime or 0,
             UsedNum = v.Attribute.UsedNum or 0,
+            IsLocked = v.Attribute.IsLocked or 0,
+            Volume = v.Attribute.Volume or 1,
+            Gold = v.Attribute.Gold or 0,
         })
     end
 	DBService:Set(player.UserId, "PlayerInventory", data)
@@ -117,6 +127,9 @@ function InventoryService:ToolDataToDB(player)
                 ItemId = toolData.ItemId,
                 UsedTime = toolData.Attribute.UsedTime or 0,
                 UsedNum = toolData.Attribute.UsedNum or 0,
+                IsLocked = toolData.Attribute.IsLocked or 0,
+                Volume = toolData.Attribute.Volume or 1,
+                Gold = toolData.Attribute.Gold or 0,
             })
         end
     end
@@ -865,8 +878,8 @@ function InventoryService:TurnInCollect(player)
                     break
                 end
                 self.TurnInNum[userId] += 1
-                gold += itemInfo.SellPrice
-                table.insert(turnItems, toolData.ItemId)
+                gold += toolData.Attribute.Gold
+                table.insert(turnItems, toolData.Attribute)
                 table.insert(self.EscapeItems[userId], {
                     ItemId = toolData.ItemId,
                     Attribute = Interface.clone(toolData.Attribute)
@@ -891,8 +904,8 @@ function InventoryService:TurnInCollect(player)
                     break
                 end
                 self.TurnInNum[userId] += 1
-                gold += itemInfo.SellPrice
-                table.insert(turnItems, bagData.ItemId)
+                gold += bagData.Attribute.Gold
+                table.insert(turnItems, bagData.Attribute)
                 table.insert(self.EscapeItems[userId], {
                     ItemId = bagData.ItemId,
                     Attribute = Interface.clone(bagData.Attribute)

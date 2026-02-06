@@ -124,7 +124,7 @@ local function updateTool(isSendMessage)
 			GameConfig.SetItemAttribute(slot, itemData.Attribute)
 			if itemInfo.Type == GameConfig.ItemType.Collect then
 				priceLabel.Visible = true
-				priceLabel.Text = itemInfo.SellPrice
+				priceLabel.Text = itemData.Attribute.Gold
 			else
 				priceLabel.Visible = false
 			end
@@ -197,7 +197,7 @@ local function updateBag(isSendMessage)
 			GameConfig.SetItemAttribute(slot, itemData.Attribute)
 			if itemInfo.Type == GameConfig.ItemType.Collect then
 				priceLabel.Visible = true
-				priceLabel.Text = itemInfo.SellPrice
+				priceLabel.Text = itemData.Attribute.Gold
 			else
 				priceLabel.Visible = false
 			end

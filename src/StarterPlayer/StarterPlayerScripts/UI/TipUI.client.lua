@@ -135,7 +135,7 @@ local function showTip2(message)
 	local textLabel = tip:FindFirstChild("TextLabel")
 	textLabel.TextTransparency = 0
 	textLabel.Text = message.Name
-	local itemInfo = ItemConfig:GetByItemId(message.ItemId)
+	local itemInfo = ItemConfig:GetByItemId(message.ItemAttribute.ItemId)
 	if itemInfo and itemInfo.Icon then
 		-- 为 ImageLabel 预加载图片，减少首次显示的网络延迟（函数级注释）
 		-- 在设置可见之前进行预加载，提升即时显示效果
@@ -143,9 +143,9 @@ local function showTip2(message)
 		imageLabel.Image = itemInfo.Icon
 		imageLabel.Visible = true
 		local label = imageLabel:FindFirstChild("TextLabel")
-		if itemInfo.SellPrice > 0 then
+		if message.ItemAttribute.Gold > 0 then
 			label.Visible = true
-			label.Text = itemInfo.SellPrice
+			label.Text = message.ItemAttribute.Gold
 		else
 			label.Visible = false
 		end
