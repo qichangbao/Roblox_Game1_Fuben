@@ -339,7 +339,7 @@ function ItemService:DestroyAllItems()
     self.Items = {}
 end
 
-local _testTotalValueInfo = {Count = 0, Value = 0}
+local _testTotalValueInfo = {Count = 0, Gold = 0}
 function ItemService:InitItems()
     if #self.Items > 0 then
         return
@@ -382,14 +382,22 @@ function ItemService:InitItems()
         end
         self:CreateItem(modelId, config.Position, config.DropGroup, config.Orientation, GameConfig.GetItemAttribute(), gold)
         if GameConfig.TestDesignTotalValue then
-            _testTotalValueInfo.Value += gold or 0
+            _testTotalValueInfo.Gold += gold or 0
             if config.DropGroup then
                 local itemArray = Interface.GetDropItems(config.DropGroup)
                 if itemArray then
                     for _, itemId in ipairs(itemArray) do
                         local itemInfo = ItemConfig:GetByItemId(itemId)
                         if itemInfo then
-                            _testTotalValueInfo.Value += itemInfo.SellPrice
+                            if itemInfo.QualityCoeff and itemInfo.QualityRandomMin and itemInfo.QualityRandomMax then
+                                local volume = 1
+                                if itemInfo.VolumeBase and itemInfo.VolumeRandomMin and itemInfo.VolumeRandomMax then
+                                    volume = itemInfo.VolumeBase * math.random(itemInfo.VolumeRandomMin * 100, itemInfo.VolumeRandomMax * 100) / 100
+                                end
+                                _testTotalValueInfo.Gold += math.floor(itemInfo.SellPrice * itemInfo.QualityCoeff * volume * math.random(itemInfo.QualityRandomMin * 100, itemInfo.QualityRandomMax * 100) / 100)
+                            else
+                                _testTotalValueInfo.Gold += math.floor(itemInfo.SellPrice)
+                            end
                         end
                     end
                 end
@@ -432,7 +440,7 @@ function ItemService:InitItems()
         for _ = 1, 999 do
             createDesign()
         end
-        print(string.format("✅ 运行关卡%d次, 平均物品总价值%.2f", _testTotalValueInfo.Count, _testTotalValueInfo.Value / _testTotalValueInfo.Count))
+        print(string.format("✅ 运行关卡%d次, 平均物品总价值%.2f", _testTotalValueInfo.Count, _testTotalValueInfo.Gold / _testTotalValueInfo.Count))
     end
 
     --self:CreateItem(0, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 10)
