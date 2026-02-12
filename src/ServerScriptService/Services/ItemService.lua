@@ -175,8 +175,10 @@ function ItemService:CreateItem(itemId, position, dropGroup, orientation, attrib
     end
     if goldNum and goldNum > 0 then
         proximityPrompt.ObjectText = string.format("%d %s", goldNum or 0, itemInfo.DisplayName)
-    else
+    elseif attribute.Gold > 0 then
         proximityPrompt.ObjectText = string.format("%s %d", itemInfo.DisplayName, attribute.Gold)
+    else
+        proximityPrompt.ObjectText = itemInfo.DisplayName
     end
     proximityPrompt.KeyboardKeyCode = Enum.KeyCode.E -- 键盘按键
     proximityPrompt.GamepadKeyCode = Enum.KeyCode.ButtonX -- 手柄按键
@@ -339,7 +341,7 @@ function ItemService:DestroyAllItems()
     self.Items = {}
 end
 
-local _testTotalValueInfo = {Count = 0, Gold = 0}
+local _testTotalValueInfo = {Count = 0, Info = {}, MinGold = 0, MaxGold = 0}
 function ItemService:InitItems()
     if #self.Items > 0 then
         return
@@ -373,7 +375,7 @@ function ItemService:InitItems()
         end
     end
 
-    local function create(config)
+    local function create(config, resType)
         local modelId = config.CanisterId
         local gold
         if config.Resource == 1 then
@@ -382,9 +384,10 @@ function ItemService:InitItems()
         end
         self:CreateItem(modelId, config.Position, config.DropGroup, config.Orientation, GameConfig.GetItemAttribute(), gold)
         if GameConfig.TestDesignTotalValue then
-            _testTotalValueInfo.Gold += gold or 0
+            local totalGold = 0
+            totalGold += gold or 0
             if config.DropGroup then
-                local itemArray = Interface.GetDropItems(config.DropGroup)
+                local itemArray = Interface.GetDropItems(config.DropGroup, resType)
                 if itemArray then
                     for _, itemId in ipairs(itemArray) do
                         local itemInfo = ItemConfig:GetByItemId(itemId)
@@ -394,29 +397,36 @@ function ItemService:InitItems()
                                 if itemInfo.VolumeBase and itemInfo.VolumeRandomMin and itemInfo.VolumeRandomMax then
                                     volume = itemInfo.VolumeBase * math.random(itemInfo.VolumeRandomMin * 100, itemInfo.VolumeRandomMax * 100) / 100
                                 end
-                                _testTotalValueInfo.Gold += math.floor(itemInfo.SellPrice * itemInfo.QualityCoeff * volume * math.random(itemInfo.QualityRandomMin * 100, itemInfo.QualityRandomMax * 100) / 100)
+                                totalGold += math.floor(itemInfo.SellPrice * itemInfo.QualityCoeff * volume * math.random(itemInfo.QualityRandomMin * 100, itemInfo.QualityRandomMax * 100) / 100)
                             else
-                                _testTotalValueInfo.Gold += math.floor(itemInfo.SellPrice)
+                                totalGold += math.floor(itemInfo.SellPrice)
                             end
                         end
                     end
                 end
             end
+            return totalGold
         end
     end
 
     local function createDesign()
         if GameConfig.TestDesignTotalValue then
             _testTotalValueInfo.Count += 1
+            table.insert(_testTotalValueInfo.Info, {Gold = 0})
         end
         local resourceNum = designConfig.ResourceNum
+        local logs = {}
         for _, data in pairs(resourceNum) do
             local resType = data[1]
             local num = data[2]
             if not resArray[resType] then continue end
             if resArray[resType][1] then
                 for _, config in ipairs(resArray[resType][1]) do
-                    create(config)
+                    local gold = create(config, resType)
+                    table.insert(logs, {ResType = resType, Num = num, Gold = gold})
+                    if GameConfig.TestDesignTotalValue then
+                        _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold += gold
+                    end
                     num -= 1
                     if num <= 0 then
                         break
@@ -426,7 +436,11 @@ function ItemService:InitItems()
             if resArray[resType][2] then
                 Interface.randomTable(resArray[resType][2])
                 for _, config in ipairs(resArray[resType][2]) do
-                    create(config)
+                    local gold = create(config, resType)
+                    table.insert(logs, {ResType = resType, Num = num, Gold = gold})
+                    if GameConfig.TestDesignTotalValue then
+                        _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold += gold
+                    end
                     num -= 1
                     if num <= 0 then
                         break
@@ -434,17 +448,37 @@ function ItemService:InitItems()
                 end
             end
         end
+        if GameConfig.TestDesignTotalValue and _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold < 25 then
+            print(logs)
+        end
     end
     createDesign()
     if GameConfig.TestDesignTotalValue then
+        if _testTotalValueInfo.MinGold == 0 or _testTotalValueInfo.MinGold > _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
+            _testTotalValueInfo.MinGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
+        end
+        if _testTotalValueInfo.MaxGold < _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
+            _testTotalValueInfo.MaxGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
+        end
         for _ = 1, 999 do
             createDesign()
+            if _testTotalValueInfo.MinGold > _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
+                _testTotalValueInfo.MinGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
+            end
+            if _testTotalValueInfo.MaxGold < _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
+                _testTotalValueInfo.MaxGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
+            end
         end
-        print(string.format("✅ 运行关卡%d次, 平均物品总价值%.2f", _testTotalValueInfo.Count, _testTotalValueInfo.Gold / _testTotalValueInfo.Count))
+        local totalGold = 0
+        for _, info in ipairs(_testTotalValueInfo.Info) do
+            totalGold += info.Gold
+        end
+        totalGold = totalGold / _testTotalValueInfo.Count
+        print(string.format("✅ 运行关卡%d次, 平均物品总价值%.2f, 最大物品总价值%d, 最小物品总价值%d", _testTotalValueInfo.Count, totalGold, _testTotalValueInfo.MaxGold, _testTotalValueInfo.MinGold))
     end
 
     --self:CreateItem(0, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 10)
-    self:CreateItem(10011, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
+    --self:CreateItem(10011, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
 end
 
 function ItemService:KnitInit()

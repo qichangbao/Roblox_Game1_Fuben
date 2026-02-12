@@ -11,6 +11,7 @@ local PlayerAttribute = require(ReplicatedStorage:WaitForChild("ToolFolder"):Wai
 local _frame = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("MainUI"):WaitForChild("bottom"):WaitForChild("EnduranceFrame")
 _frame.Visible = false
 local _maskFrame = _frame:WaitForChild("Frame")
+local _oriSizeX = _maskFrame.Size.Width.Scale
 
 -- 耐力配置
 local _maxEndurance = GameConfig.PlayerInitAttribute.Endurance        -- 满耐力
@@ -59,7 +60,7 @@ end
 ]]
 local function SetStaminaValue(value)
 	_staminaValue = math.clamp(value, _minEnderance, _maxEndurance)
-	_maskFrame.Size = UDim2.new(_staminaValue / _maxEndurance, 0, _enduranceSizeY.Scale, _enduranceSizeY.Offset)
+	_maskFrame.Size = UDim2.new(_staminaValue / _maxEndurance * _oriSizeX, 0, _enduranceSizeY.Scale, _enduranceSizeY.Offset)
 end
 
 --[[

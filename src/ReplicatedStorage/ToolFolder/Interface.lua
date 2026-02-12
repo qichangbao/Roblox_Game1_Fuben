@@ -476,7 +476,7 @@ function Interface.decHp(character, damage, isCrit)
 end
 
 -- 获取掉落物品
-function Interface.GetDropItems(dropId)
+function Interface.GetDropItems(dropId, resType)
     local dropConfig = DropPoolConfig:GetById(dropId)
     if not dropConfig then return end
 

@@ -99,7 +99,7 @@ function BoatService:SetBoatPos(isLandId, player)
         local playerHumanoidRootPart = playerCharacter:FindFirstChild("HumanoidRootPart")
         if not playerHumanoidRootPart then continue end
 		local offset = originalBoatFrame:ToObjectSpace(playerHumanoidRootPart.CFrame)
-        hrpOffsetCF[player.Character] = offset
+        hrpOffsetCF[playerCharacter] = offset
     end
 
     boat:PivotTo(boatAttribute)
