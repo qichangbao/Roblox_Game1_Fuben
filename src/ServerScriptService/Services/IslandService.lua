@@ -15,7 +15,10 @@ local Map = game:GetService("ServerStorage"):WaitForChild("Map")
 function IslandService:SetIslandId(islandId)
     if self.IslandId == islandId then return end
     if self.IslandId ~= 0 then
-        workspace:FindFirstChild(self.IslandId):Destroy()
+        local landTemp = workspace:FindFirstChild(self.IslandId)
+        if landTemp then
+            landTemp:Destroy()
+        end
     end
     local island = workspace:FindFirstChild(islandId)
     if not island then

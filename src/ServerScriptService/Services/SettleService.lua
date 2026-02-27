@@ -29,7 +29,7 @@ function SettleService:PlayerRemoved(player)
     self.SettleData[player.UserId] = nil
     -- 如果玩家不是正常退出，则判定为撤离失败，掉落身上所有物品
     if not Knit.GetService("TeleportService"):isPlayerTeleport(player) and not game:GetService("RunService"):IsStudio() then
-        self:Settle(player, false, true)
+        self:Settle(player, true)
     end
 end
 
@@ -88,39 +88,42 @@ local function succ(player)
     -- 工具栏4-6格和背包的探索，辅助，进攻类物品可以带回出生岛
     for i = 1, #toolData do
         local data = toolData[i]
-        if data.ItemId ~= 0 then
-            local itemInfo = ItemConfig:GetByItemId(data.ItemId)
-            if not itemInfo then
-                continue
-            end
-
-            if i < 4 then
-                -- 工具栏1-3格只能带回除收集类物品以外的物品
-                if itemInfo.Type == GameConfig.ItemType.Collect then
-                    task.spawn(function()
-                        Knit.GetService("ItemService"):CreateItem(data.ItemId, groundPosition, 0, Vector3.new(0, 0, 0), data.Attribute, 0)
-                        task.wait(0.3)
-                    end)
-                    toolData[i] = {ItemId = 0, Attribute = GameConfig.GetItemAttribute()}
-                end
-            else
-                if itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
-                    table.insert(escapeItems, {
-                        ItemId = data.ItemId,
-                        Attribute = Interface.clone(data.Attribute),
-                    })
-                end
-                toolData[i] = {ItemId = 0, Attribute = GameConfig.GetItemAttribute()}
+        if data.ItemId == 0 then continue end
+        local itemInfo = ItemConfig:GetByItemId(data.ItemId)
+        if not itemInfo then continue end
+        if itemInfo.Type == GameConfig.ItemType.Collect then
+            task.spawn(function()
+                Knit.GetService("ItemService"):CreateItem(data.ItemId, groundPosition, 0, Vector3.new(0, 0, 0), data.Attribute, 0)
+                task.wait(0.3)
+            end)
+        else if itemInfo.Type == GameConfig.ItemType.Explore
+            or itemInfo.Type == GameConfig.ItemType.Weapon
+            or itemInfo.Type == GameConfig.ItemType.Assistance
+            or itemInfo.Type == GameConfig.ItemType.Treatment then
+                table.insert(escapeItems, {
+                    ItemId = data.ItemId,
+                    Attribute = Interface.clone(data.Attribute),
+                })
             end
         end
+        toolData[i] = {ItemId = 0, Attribute = GameConfig.GetItemAttribute()}
     end
 
     InventoryService:UpdateToolData(player, toolData)
     for i = 1, #bagData do
         local data = bagData[i]
-        if data.ItemId ~= 0 then
-            local itemInfo = ItemConfig:GetByItemId(data.ItemId)
-            if itemInfo and itemInfo.Type >= GameConfig.ItemType.Explore and itemInfo.Type <= GameConfig.ItemType.Assistance then
+        if data.ItemId == 0 then continue end
+        local itemInfo = ItemConfig:GetByItemId(data.ItemId)
+        if not itemInfo then continue end
+        if itemInfo.Type == GameConfig.ItemType.Collect then
+            task.spawn(function()
+                Knit.GetService("ItemService"):CreateItem(data.ItemId, groundPosition, 0, Vector3.new(0, 0, 0), data.Attribute, 0)
+                task.wait(0.3)
+            end)
+        else if itemInfo.Type == GameConfig.ItemType.Explore
+            or itemInfo.Type == GameConfig.ItemType.Weapon
+            or itemInfo.Type == GameConfig.ItemType.Assistance
+            or itemInfo.Type == GameConfig.ItemType.Treatment then
                 table.insert(escapeItems, {
                     ItemId = data.ItemId,
                     Attribute = Interface.clone(data.Attribute),
@@ -149,10 +152,14 @@ local function faild(player)
     -- 撤离失败，清空工具栏和背包
     local allItems = {}
     for _, itemData in ipairs(toolData) do
-        table.insert(allItems, itemData)
+        if itemData.ItemId ~= 0 then
+            table.insert(allItems, itemData)
+        end
     end
     for _, itemData in ipairs(bagData) do
-        table.insert(allItems, itemData)
+        if itemData.ItemId ~= 0 then
+            table.insert(allItems, itemData)
+        end
     end
 
     -- 清空工具栏和背包数据
@@ -183,30 +190,23 @@ end
 
 -- 结算玩家
 -- @param player Player 玩家对象
--- @param needCheckPos boolean 是否需要检查玩家位置
 -- @param isForceLose boolean 是否强制失败
-function SettleService:Settle(player, needCheckPos, isForceLose)
+function SettleService:Settle(player, isForceLose)
     local InventoryService = Knit.GetService("InventoryService")
-    local isSuccess = Knit.GetService("TaskService"):IsSuccess()
+    local isSuccess = false
     local escapeItems = {}
     local totalValue = 0
     local totalTime = 0
     local killMonsters = Knit.GetService("MonsterService"):GetKillMonsters(player)
-    if not isForceLose and isSuccess then
-        -- 检查每个触发Model
-		local islandId = Knit.GetService("IslandService"):GetIslandId()
-		if not islandId then return false end
-		local mapConfig = DesignConfig:GetByMapId(islandId)
-		if not mapConfig then return false end
+    if not isForceLose then
 		local isOnBoat = Interface.isPlayerOnBoat(player)
         if isOnBoat then
             escapeItems, totalValue, totalTime = succ(player)
+            isSuccess = true
         else
-            isSuccess = false
             faild(player)
         end
     else
-        isSuccess = false
         faild(player)
     end
 
@@ -228,7 +228,6 @@ function SettleService:Settle(player, needCheckPos, isForceLose)
         TotalValue = totalValue,
         TotalTime = totalTime,
         IsSuccess = isSuccess,
-        needCheckPos = needCheckPos,
     }
 
     self.Client.SendShowUI:Fire(player, self.SettleData[player.UserId])
@@ -238,16 +237,16 @@ function SettleService:Settle(player, needCheckPos, isForceLose)
     return true
 end
 
-function SettleService.Client:Settle(player, needCheckPos)
-    return self.Server:Settle(player, needCheckPos)
+function SettleService.Client:Settle(player, isForceLose)
+    return self.Server:Settle(player, isForceLose)
 end
 
-function SettleService:Escape(player, needCheckPos)
-    return Knit.GetService("TeleportService"):Escape(player, needCheckPos)
+function SettleService:Escape(player)
+    return Knit.GetService("TeleportService"):Escape(player)
 end
 
-function SettleService.Client:Escape(player, needCheckPos)
-    return self.Server:Escape(player, needCheckPos)
+function SettleService.Client:Escape(player)
+    return self.Server:Escape(player)
 end
 
 return SettleService

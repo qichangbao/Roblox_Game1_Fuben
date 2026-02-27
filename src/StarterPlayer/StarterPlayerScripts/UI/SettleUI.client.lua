@@ -30,10 +30,8 @@ _winEscapeButton:WaitForChild("TextLabel").Text = "Back to Spawn"
 local _loseEscapeButton = _loseFrame:WaitForChild("EscapeButton")
 _loseEscapeButton:WaitForChild("TextLabel").Text = "Back to Spawn"
 
-local _needCheckPos = false
-
 local function escape()
-	Knit.GetService("SettleService"):Escape(_needCheckPos):andThen(function(succ)
+	Knit.GetService("SettleService"):Escape():andThen(function(succ)
 		if not succ then
 			Knit.GetController("UIController").ShowTip:Fire({Type = 1, Text = "Proceed to the Extraction Point!"})
 		end
@@ -156,7 +154,6 @@ Knit.OnStart():andThen(function()
 		end
 		_winFrame.Visible = data.IsSuccess
 		_loseFrame.Visible = not data.IsSuccess
-		_needCheckPos = data.needCheckPos
 
 		local ui = game:GetService("SoundService"):WaitForChild("UI")
 		local sound = ui:WaitForChild("Escape")

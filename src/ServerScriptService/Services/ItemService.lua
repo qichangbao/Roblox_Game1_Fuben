@@ -376,11 +376,10 @@ function ItemService:InitItems()
     end
 
     local function create(config, resType)
-        local modelId = config.CanisterId
+        local modelId = config.CanisterId or 0
         local gold
         if config.Resource == 1 then
             gold = math.random(config.GoldRange[1], config.GoldRange[2])
-            modelId = Interface.GetGoldModelId(gold)
         end
         self:CreateItem(modelId, config.Position, config.DropGroup, config.Orientation, GameConfig.GetItemAttribute(), gold)
         if GameConfig.TestDesignTotalValue then
@@ -434,7 +433,7 @@ function ItemService:InitItems()
                 end
             end
             if resArray[resType][2] then
-                Interface.randomTable(resArray[resType][2])
+                resArray[resType][2] = Interface.randomTable(resArray[resType][2])
                 for _, config in ipairs(resArray[resType][2]) do
                     local gold = create(config, resType)
                     table.insert(logs, {ResType = resType, Num = num, Gold = gold})
@@ -448,11 +447,9 @@ function ItemService:InitItems()
                 end
             end
         end
-        if GameConfig.TestDesignTotalValue and _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold < 25 then
-            print(logs)
-        end
     end
     createDesign()
+
     if GameConfig.TestDesignTotalValue then
         if _testTotalValueInfo.MinGold == 0 or _testTotalValueInfo.MinGold > _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
             _testTotalValueInfo.MinGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
@@ -460,25 +457,35 @@ function ItemService:InitItems()
         if _testTotalValueInfo.MaxGold < _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
             _testTotalValueInfo.MaxGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
         end
-        for _ = 1, 999 do
-            createDesign()
-            if _testTotalValueInfo.MinGold > _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
-                _testTotalValueInfo.MinGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
+        task.spawn(function()
+            local totalRuns = 999
+            local batchSize = 25
+            local remaining = totalRuns
+            while remaining > 0 do
+                local step = math.min(batchSize, remaining)
+                for _ = 1, step do
+                    createDesign()
+                    if _testTotalValueInfo.MinGold > _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
+                        _testTotalValueInfo.MinGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
+                    end
+                    if _testTotalValueInfo.MaxGold < _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
+                        _testTotalValueInfo.MaxGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
+                    end
+                end
+                remaining -= step
+                task.wait()
             end
-            if _testTotalValueInfo.MaxGold < _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold then
-                _testTotalValueInfo.MaxGold = _testTotalValueInfo.Info[_testTotalValueInfo.Count].Gold
+            local totalGold = 0
+            for _, info in ipairs(_testTotalValueInfo.Info) do
+                totalGold += info.Gold
             end
-        end
-        local totalGold = 0
-        for _, info in ipairs(_testTotalValueInfo.Info) do
-            totalGold += info.Gold
-        end
-        totalGold = totalGold / _testTotalValueInfo.Count
-        print(string.format("✅ 运行关卡%d次, 平均物品总价值%.2f, 最大物品总价值%d, 最小物品总价值%d", _testTotalValueInfo.Count, totalGold, _testTotalValueInfo.MaxGold, _testTotalValueInfo.MinGold))
+            totalGold = totalGold / _testTotalValueInfo.Count
+            print(string.format("✅ 运行关卡%d次, 平均物品总价值%.2f, 最大物品总价值%d, 最小物品总价值%d", _testTotalValueInfo.Count, totalGold, _testTotalValueInfo.MaxGold, _testTotalValueInfo.MinGold))
+        end)
     end
 
-    --self:CreateItem(0, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 10)
-    --self:CreateItem(10011, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
+    --self:CreateItem(506, Vector3.new(185, 11.6, -7.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
+    --self:CreateItem(507, Vector3.new(185, 11.6, -17.8), 1, Vector3.new(0, 0, 0), GameConfig.GetItemAttribute(), 0)
 end
 
 function ItemService:KnitInit()

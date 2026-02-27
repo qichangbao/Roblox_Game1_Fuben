@@ -3,41 +3,14 @@ local DesignConfig = {}
 
 DesignConfig.Data = {
     [1] = {
-        DesignId = 1,
-        DesignName = "新手海湾",
-        MapId = 100,
-        DisplayName = nil,
-        MusicId = 100,
-        WeatherId = 0,
-        DesignTarget = 40,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                3
-            },
-            {
-                2,
-                3
-            },
-            {
-                3,
-                3
-            },
-            {
-                4,
-                3
-            }
-        },
-    },
-    [2] = {
         DesignId = 2,
+        Id = 1,
         DesignName = "珊瑚浅滩",
         MapId = 101,
         DisplayName = nil,
         MusicId = 101,
         WeatherId = 0,
-        DesignTarget = 60,
+        DesignTarget = 35,
         EvacuateTime = 300,
         ResourceNum = {
             {
@@ -46,115 +19,115 @@ DesignConfig.Data = {
             },
             {
                 2,
+                1
+            },
+            {
+                5,
                 3
-            },
-            {
-                3,
-                1
-            },
-            {
-                4,
-                1
             }
         },
     },
-    [3] = {
+    [2] = {
         DesignId = 3,
+        Id = 2,
         DesignName = "迷雾海峡",
         MapId = 102,
         DisplayName = nil,
         MusicId = 102,
         WeatherId = 0,
-        DesignTarget = 80,
-        EvacuateTime = 300,
+        DesignTarget = 135,
+        EvacuateTime = 330,
         ResourceNum = {
             {
-                1,
-                5
-            },
-            {
                 2,
-                5
+                2
             },
             {
                 3,
-                5
+                1
             },
             {
-                4,
-                5
+                5,
+                7
             }
         },
     },
-    [4] = {
+    [3] = {
         DesignId = 4,
+        Id = 3,
         DesignName = "暴风海域",
         MapId = 103,
         DisplayName = nil,
         MusicId = 103,
         WeatherId = 0,
-        DesignTarget = 100,
-        EvacuateTime = 300,
+        DesignTarget = 380,
+        EvacuateTime = 360,
         ResourceNum = {
             {
                 1,
-                5
+                3
             },
             {
                 2,
-                5
+                3
             },
             {
                 3,
-                5
+                1
             },
             {
                 4,
-                5
+                1
+            },
+            {
+                5,
+                10
             }
         },
     },
-    [5] = {
+    [4] = {
         DesignId = 5,
+        Id = 4,
         DesignName = "幽灵深渊",
         MapId = 104,
         DisplayName = nil,
         MusicId = 104,
         WeatherId = 0,
-        DesignTarget = 130,
-        EvacuateTime = 300,
+        DesignTarget = 750,
+        EvacuateTime = 390,
         ResourceNum = {
             {
-                1,
-                5
-            },
-            {
                 2,
-                5
+                4
             },
             {
                 3,
-                5
+                2
             },
             {
                 4,
-                5
+                1
+            },
+            {
+                5,
+                13
             }
         },
     },
-    [6] = {
+    [5] = {
         DesignId = 6,
+        Id = 5,
         DesignName = "赤焰裂谷",
         MapId = 105,
         DisplayName = nil,
         MusicId = 105,
         WeatherId = 0,
-        DesignTarget = 160,
-        EvacuateTime = 300,
+        DesignTarget = 950,
+        EvacuateTime = 420,
         ResourceNum = {
             {
                 1,
-                5
+                4
             },
             {
                 2,
@@ -162,23 +135,28 @@ DesignConfig.Data = {
             },
             {
                 3,
-                5
+                2
             },
             {
                 4,
-                5
+                1
+            },
+            {
+                5,
+                16
             }
         },
     },
-    [7] = {
+    [6] = {
         DesignId = 7,
+        Id = 6,
         DesignName = "废弃工厂",
         MapId = 106,
         DisplayName = nil,
         MusicId = 106,
         WeatherId = 0,
-        DesignTarget = 190,
-        EvacuateTime = 300,
+        DesignTarget = 1500,
+        EvacuateTime = 450,
         ResourceNum = {
             {
                 1,
@@ -186,27 +164,32 @@ DesignConfig.Data = {
             },
             {
                 2,
-                5
+                6
             },
             {
                 3,
-                5
+                3
             },
             {
                 4,
-                5
+                1
+            },
+            {
+                5,
+                14
             }
         },
     },
-    [8] = {
+    [7] = {
         DesignId = 8,
+        Id = 7,
         DesignName = "极光冰窟",
         MapId = 107,
         DisplayName = nil,
         MusicId = 107,
         WeatherId = 0,
-        DesignTarget = 220,
-        EvacuateTime = 300,
+        DesignTarget = 1800,
+        EvacuateTime = 480,
         ResourceNum = {
             {
                 1,
@@ -214,27 +197,32 @@ DesignConfig.Data = {
             },
             {
                 2,
-                5
+                4
             },
             {
                 3,
-                5
+                6
             },
             {
                 4,
-                5
+                1
+            },
+            {
+                5,
+                12
             }
         },
     },
-    [9] = {
+    [8] = {
         DesignId = 9,
+        Id = 8,
         DesignName = "铭文圣屿",
         MapId = 108,
         DisplayName = nil,
         MusicId = 108,
         WeatherId = 0,
-        DesignTarget = 260,
-        EvacuateTime = 300,
+        DesignTarget = 2000,
+        EvacuateTime = 510,
         ResourceNum = {
             {
                 1,
@@ -242,34 +230,36 @@ DesignConfig.Data = {
             },
             {
                 2,
-                5
+                6
             },
             {
                 3,
-                5
+                4
             },
             {
                 4,
-                5
+                1
+            },
+            {
+                5,
+                14
             }
         },
     },
-    [10] = {
+    [9] = {
         DesignId = 10,
+        Id = 9,
         DesignName = "城堡要塞",
         MapId = 109,
         DisplayName = nil,
         MusicId = 109,
-        WeatherId = {
-            1,
-            100
-        },
-        DesignTarget = 300,
-        EvacuateTime = 300,
+        WeatherId = 0,
+        DesignTarget = 2000,
+        EvacuateTime = 540,
         ResourceNum = {
             {
                 1,
-                5
+                10
             },
             {
                 2,
@@ -277,34 +267,32 @@ DesignConfig.Data = {
             },
             {
                 3,
-                5
+                6
             },
             {
                 4,
-                5
+                1
             }
         },
     },
-    [11] = {
+    [10] = {
         DesignId = 11,
+        Id = 10,
         DesignName = "新手海湾",
         MapId = 110,
         DisplayName = nil,
         MusicId = 110,
-        WeatherId = {
-            1,
-            100
-        },
-        DesignTarget = 340,
-        EvacuateTime = 300,
+        WeatherId = 0,
+        DesignTarget = 4500,
+        EvacuateTime = 570,
         ResourceNum = {
             {
                 1,
-                5
+                14
             },
             {
                 2,
-                5
+                6
             },
             {
                 3,
@@ -312,549 +300,23 @@ DesignConfig.Data = {
             },
             {
                 4,
-                5
+                2
+            },
+            {
+                5,
+                16
             }
         },
     },
-    [12] = {
+    [11] = {
         DesignId = 12,
+        Id = 11,
         DesignName = "珊瑚浅滩",
         MapId = 111,
         DisplayName = nil,
         MusicId = 111,
-        WeatherId = {
-            {
-                2,
-                90
-            },
-            {
-                3,
-                10
-            }
-        },
+        WeatherId = 0,
         DesignTarget = 380,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [13] = {
-        DesignId = 13,
-        DesignName = "迷雾海峡",
-        MapId = 112,
-        DisplayName = nil,
-        MusicId = 112,
-        WeatherId = {
-            {
-                2,
-                90
-            },
-            {
-                3,
-                10
-            }
-        },
-        DesignTarget = 430,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [14] = {
-        DesignId = 14,
-        DesignName = "暴风海域",
-        MapId = 113,
-        DisplayName = nil,
-        MusicId = 113,
-        WeatherId = {
-            {
-                1,
-                90
-            },
-            {
-                8,
-                10
-            }
-        },
-        DesignTarget = 480,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [15] = {
-        DesignId = 15,
-        DesignName = "幽灵深渊",
-        MapId = 114,
-        DisplayName = nil,
-        MusicId = 114,
-        WeatherId = 0,
-        DesignTarget = 540,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [16] = {
-        DesignId = 16,
-        DesignName = "赤焰裂谷",
-        MapId = 115,
-        DisplayName = nil,
-        MusicId = 115,
-        WeatherId = 0,
-        DesignTarget = 600,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [17] = {
-        DesignId = 17,
-        DesignName = "废弃工厂",
-        MapId = 116,
-        DisplayName = nil,
-        MusicId = 116,
-        WeatherId = 0,
-        DesignTarget = 700,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [18] = {
-        DesignId = 18,
-        DesignName = "极光冰窟",
-        MapId = 117,
-        DisplayName = nil,
-        MusicId = 117,
-        WeatherId = 0,
-        DesignTarget = 800,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [19] = {
-        DesignId = 19,
-        DesignName = "铭文圣屿",
-        MapId = 118,
-        DisplayName = nil,
-        MusicId = 118,
-        WeatherId = 0,
-        DesignTarget = 950,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [20] = {
-        DesignId = 20,
-        DesignName = "城堡要塞",
-        MapId = 119,
-        DisplayName = nil,
-        MusicId = 119,
-        WeatherId = 0,
-        DesignTarget = 110,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [21] = {
-        DesignId = 21,
-        DesignName = "新手海湾",
-        MapId = 120,
-        DisplayName = nil,
-        MusicId = 120,
-        WeatherId = 0,
-        DesignTarget = 1300,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [22] = {
-        DesignId = 22,
-        DesignName = "珊瑚浅滩",
-        MapId = 121,
-        DisplayName = nil,
-        MusicId = 121,
-        WeatherId = 0,
-        DesignTarget = 1500,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [23] = {
-        DesignId = 23,
-        DesignName = "迷雾海峡",
-        MapId = 122,
-        DisplayName = nil,
-        MusicId = 122,
-        WeatherId = 0,
-        DesignTarget = 1800,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [24] = {
-        DesignId = 24,
-        DesignName = "暴风海域",
-        MapId = 123,
-        DisplayName = nil,
-        MusicId = 123,
-        WeatherId = 0,
-        DesignTarget = 2100,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [25] = {
-        DesignId = 25,
-        DesignName = "幽灵深渊",
-        MapId = 124,
-        DisplayName = nil,
-        MusicId = 124,
-        WeatherId = 0,
-        DesignTarget = 2500,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [26] = {
-        DesignId = 26,
-        DesignName = "赤焰裂谷",
-        MapId = 125,
-        DisplayName = nil,
-        MusicId = 125,
-        WeatherId = 0,
-        DesignTarget = 3000,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [27] = {
-        DesignId = 27,
-        DesignName = "废弃工厂",
-        MapId = 126,
-        DisplayName = nil,
-        MusicId = 126,
-        WeatherId = 0,
-        DesignTarget = 3500,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [28] = {
-        DesignId = 28,
-        DesignName = "极光冰窟",
-        MapId = 127,
-        DisplayName = nil,
-        MusicId = 127,
-        WeatherId = 0,
-        DesignTarget = 4000,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [29] = {
-        DesignId = 29,
-        DesignName = "铭文圣屿",
-        MapId = 128,
-        DisplayName = nil,
-        MusicId = 128,
-        WeatherId = 0,
-        DesignTarget = 4500,
-        EvacuateTime = 300,
-        ResourceNum = {
-            {
-                1,
-                5
-            },
-            {
-                2,
-                5
-            },
-            {
-                3,
-                5
-            },
-            {
-                4,
-                5
-            }
-        },
-    },
-    [30] = {
-        DesignId = 30,
-        DesignName = "城堡要塞",
-        MapId = 129,
-        DisplayName = nil,
-        MusicId = 129,
-        WeatherId = 0,
-        DesignTarget = 5200,
         EvacuateTime = 300,
         ResourceNum = {
             {
@@ -885,6 +347,15 @@ end
 function DesignConfig:GetByDesignId(value)
     for i, item in pairs(self.Data) do
         if item.DesignId == value then
+            return item
+        end
+    end
+    return nil
+end
+
+function DesignConfig:GetById(value)
+    for i, item in pairs(self.Data) do
+        if item.Id == value then
             return item
         end
     end

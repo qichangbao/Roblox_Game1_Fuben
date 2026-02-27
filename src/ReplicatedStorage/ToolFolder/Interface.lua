@@ -490,14 +490,14 @@ function Interface.GetDropItems(dropId, resType)
         local currentProbability = 0
         for _, weight in ipairs(dropConfig.Weight) do
             currentProbability = currentProbability + weight[2]
-            if randomNum <= currentProbability then
+            if randomNum <= currentProbability and weight[1] > 0 then
                 table.insert(dropTables, weight[1])
                 break
             end
         end
     elseif dropConfig.DropType == 2 then    -- 2为独立掉落（每一个为独立概率掉落互不影响）
         for _, weight in ipairs(dropConfig.Weight) do
-            if math.random(10000) <= weight[2] then
+            if math.random(10000) <= weight[2] and weight[1] > 0 then
                 table.insert(dropTables, weight[1])
             end
         end

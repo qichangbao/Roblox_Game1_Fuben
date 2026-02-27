@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
-local HeroConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("HeroConfig"))
 local Interface = require(ReplicatedStorage:WaitForChild("ToolFolder"):WaitForChild("Interface"))
 
 local ReviveData = {
@@ -57,7 +56,7 @@ function ReviveService:PlayerAdded(player)
             local reviveCount = self.PlayerReviveCount[player.UserId]
             local reviveData = ReviveData[reviveCount + 1]
             if not reviveData then
-                Knit.GetService("SettleService"):Settle(player, false, true)
+                Knit.GetService("SettleService"):Settle(player, true)
                 return
             end
 

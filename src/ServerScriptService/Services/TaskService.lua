@@ -107,24 +107,20 @@ function TaskService:UpdateEscapeTime(curEscapeTime)
         local nextIslandId = self:GetNextIslandId()
         local gotoNextIslandPlayers = Knit.GetService("BoatService"):GetNextIslandPlayers()
         for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-            if not Interface.isPlayerOnBoat(player) then
-                SettleService:Settle(player, false, true)
+            local isEscape = Knit.GetService("BoatService"):GetPlayerChoose(player) == 1
+            if isEscape then
+                SettleService:Settle(player, false)
             else
-                local isEscape = Knit.GetService("BoatService"):GetPlayerChoose(player) == 1
-                if isEscape then
-                    SettleService:Settle(player, true, false)
-                else
-                    if nextIslandId then
-                        self.Client.GotoNextIsland:Fire(player, gotoNextIslandPlayers)
-                        isGotoNextIsland = true
-                        if self.CurIslandLevel > Knit.GetService("DBService"):Get(player.UserId, "MaxIslandLevel") then
-                            Knit.GetService("DBService"):Set(player.UserId, "MaxIslandLevel", self.CurIslandLevel)
-                            Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.IslandLevel, self.CurIslandLevel)
-                        end
-                        self.CurIslandLevel += 1
-                    else
-                        SettleService:Settle(player, false, true)
+                if nextIslandId then
+                    self.Client.GotoNextIsland:Fire(player, gotoNextIslandPlayers)
+                    isGotoNextIsland = true
+                    if self.CurIslandLevel > Knit.GetService("DBService"):Get(player.UserId, "MaxIslandLevel") then
+                        Knit.GetService("DBService"):Set(player.UserId, "MaxIslandLevel", self.CurIslandLevel)
+                        Knit.GetService("JobService"):TriggerJob(player, GameConfig.JobUnlockCondition.IslandLevel, self.CurIslandLevel)
                     end
+                    self.CurIslandLevel += 1
+                else
+                    SettleService:Settle(player, true)
                 end
             end
         end
@@ -139,6 +135,8 @@ function TaskService:UpdateEscapeTime(curEscapeTime)
                 Knit.GetService("MonsterService"):InitMonsters()
 
                 local mapConfig = DesignConfig:GetByMapId(nextIslandId)
+                self:SetEscapeTask(self.EscapeTask + mapConfig.DesignTarget)
+                self:UpdateEscapeTask(0)
                 self:SetEscapeTime(mapConfig.EvacuateTime)
                 self.IsOver = false
             end)

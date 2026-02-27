@@ -104,24 +104,8 @@ end
 -- 传送
 -- @param player Player 要检查的玩家
 -- @return void
-function TeleportServiceModule:Escape(player, needCheckPos)
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-        return
-    end
-    
-    if needCheckPos then
-        -- 检查玩家是否在触发区域内
-		local islandId = Knit.GetService("IslandService"):GetIslandId()
-		if not islandId then return false end
-		local mapConfig = DesignConfig:GetByMapId(islandId)
-		if not mapConfig then return false end
-        local isInTrigger = Interface.isPlayerOnBoat(player)
-        if isInTrigger then
-            return self:teleportToReserveServer(player, true)
-        end
-    else
-        return self:teleportToReserveServer(player, true)
-    end
+function TeleportServiceModule:Escape(player)
+    return self:teleportToReserveServer(player, true)
 end
 
 return TeleportServiceModule

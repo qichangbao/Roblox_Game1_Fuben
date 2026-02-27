@@ -178,7 +178,6 @@ GameConfig.PlayerInitAttribute = {
     EnduranceRecovery = ConstantConfig:GetByConstant("InitialEnduranceRecovery").Effect1,
 }
 
-GameConfig.IsLandId = 101
 GameConfig.TeleportPartNames = "Boat"-- 触发传送的model名称
 GameConfig.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json")
 GameConfig.MAIN_SLOT_NUM = 3        -- 主工具栏插槽数量
@@ -322,6 +321,7 @@ GameConfig.DuanWeiType = {
     },
 }
 
+GameConfig.IsLandId = 104
 GameConfig.TestItemPos = false   -- 测试物品位置方向
 GameConfig.TestDesignTotalValue = false -- 测试关卡总价值
 

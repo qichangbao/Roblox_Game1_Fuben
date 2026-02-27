@@ -49,6 +49,8 @@ end
 ]]
 local function InitLocalEnduranceListener()
 	local function onCharacter(character)
+		_whiteFrame.Size = UDim2.new(_oriSizeX, 0, _whiteFrame.Size.Y.Scale, _whiteFrame.Size.Y.Offset)
+		_maskFrame.Size = UDim2.new(_oriSizeX, 0, _maskFrame.Size.Y.Scale, _maskFrame.Size.Y.Offset)
 		local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 10)
 		if humanoid then
 			-- 初始化一次

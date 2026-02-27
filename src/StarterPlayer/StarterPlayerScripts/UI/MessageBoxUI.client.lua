@@ -46,7 +46,7 @@ local function Button1()
 			end
 		end)
 	elseif _type == 2 then
-		Knit.GetService("SettleService"):Settle(false):andThen(function(succ)
+		Knit.GetService("SettleService"):Settle(true):andThen(function(succ)
 			if succ then
 				close()
 			end
@@ -65,7 +65,7 @@ end)
 
 local function Button2()
 	if _type == 1 or _type == 2 then
-		Knit.GetService("SettleService"):Settle(false):andThen(function(succ)
+		Knit.GetService("SettleService"):Settle(true):andThen(function(succ)
 			if succ then
 				close()
 			end

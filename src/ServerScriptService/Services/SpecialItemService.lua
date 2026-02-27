@@ -1,5 +1,4 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local Knit = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Knit"))
 local GameConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("GameConfig"))
 local ItemConfig = require(ReplicatedStorage:WaitForChild("ConfigFolder"):WaitForChild("ItemConfig"))
@@ -37,6 +36,60 @@ function SpecialItemService:CreateDropItems(item, position)
             playAction(itemTemp)
         end
     end
+end
+
+-- 播放木桶被推倒动画（函数级注释）：
+-- @param player Player 推倒木桶的玩家
+-- @param barrelItem Instance 木桶对应的物品实例（Model 或 BasePart）
+-- 行为：根据玩家相对木桶的左右位置决定倾倒方向，将木桶从直立姿势缓慢旋转到一侧倒地。
+function SpecialItemService:PlayBarrelKnockOverAnimation(player, barrelItem, callFunc)
+	if not player or not barrelItem or not barrelItem.Parent then
+		return
+	end
+
+	local character = player.Character
+	if not character then
+		return
+	end
+
+	local root = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
+	if not root then
+		return
+	end
+
+	local targetNode = nil
+	if barrelItem:IsA("Model") then
+		targetNode = barrelItem.PrimaryPart
+	else
+		targetNode = barrelItem
+	end
+
+	if not targetNode then
+		return
+	end
+
+	local originalCFrame = targetNode.CFrame
+	local pivotPos = originalCFrame.Position
+	local toPlayer = root.Position - pivotPos
+	toPlayer = Vector3.new(toPlayer.X, 0, toPlayer.Z)
+	if toPlayer.Magnitude == 0 then
+		return
+	end
+	toPlayer = toPlayer.Unit
+
+	local awayDir = -toPlayer
+	local up = Vector3.new(0, 1, 0)
+	local axis = up:Cross(awayDir)
+	if axis.Magnitude == 0 then
+		return
+	end
+	axis = axis.Unit
+
+	local tiltAngle = math.rad(90)
+	local rotateCf = CFrame.fromAxisAngle(axis, tiltAngle)
+	local targetCFrame = CFrame.new(pivotPos) * rotateCf * CFrame.new(-pivotPos) * originalCFrame
+
+	TweenInterface.TweenNodeMoveFrame(targetNode, targetCFrame, 0.4, callFunc)
 end
 
 -- 打开土堆
@@ -150,35 +203,44 @@ function SpecialItemService:OpenChest(player, item)
     if not player or not player.Parent then
         return false
     end
+    local itemId = item:GetAttribute("ItemId")
+    local itemInfo = ItemConfig:GetByItemId(itemId)
+    if not itemInfo then
+        return false
+    end
 
     local XuanCaiChestEffect = item:FindFirstChild("XuanCaiChestEffect")
     if XuanCaiChestEffect then
         XuanCaiChestEffect:Destroy()
     end
 
-    local position = item:GetPivot().Position
-    -- 播放开箱子动画
-    self:PlayChestOpenAnimation(item, function()
-        self:CreateDropItems(item, position)
-    end)
-    self:PlaySound(player, "OpenChest")
-
-    self.Client.OpenChest:FireAll(item)
-    self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
-    
-    return true
-end
-
-function SpecialItemService:PlayChestOpenAnimation(chestItem, finishedCallback)
-    local proximityPrompt = chestItem:FindFirstChild("ProximityPrompt")
+    local proximityPrompt = item:FindFirstChild("ProximityPrompt")
     if proximityPrompt then
         proximityPrompt.Enabled = false
     end
-    task.delay(1.33, function()
-        if finishedCallback then
-            finishedCallback()
-        end
-    end)
+    local position = item:GetPivot().Position
+
+    -- Icon在箱子类型里代表的是动画ID，如果有就播动画，如果没有就执行自己代码写的推翻的动画
+    if not itemInfo.Icon then
+		self:PlayBarrelKnockOverAnimation(player, item, function()
+            local dropPointPart = item:FindFirstChild("DropPointPart")
+            if dropPointPart then
+                self:CreateDropItems(item, dropPointPart.Position)
+            else
+                self:CreateDropItems(item, position)
+            end
+        end)
+    else
+        -- 等待客户端播完箱子动画
+        task.delay(1.33, function()
+            self:CreateDropItems(item, position)
+        end)
+        self:PlaySound(player, "OpenChest")
+        self.Client.OpenChest:FireAll(item)
+        self.Client.ShakeCarame:Fire(player, {ShakeIntensity = 0.3, ShakeSpeed = 20, ShakeDuration = 0.6})
+    end
+
+    return true
 end
 
 -- 播放音效

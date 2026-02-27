@@ -83,13 +83,20 @@ local function StartStaminaLoop()
 		end
 		local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
 		if not humanoid then return end
-		-- 检查角色是否真正在移动（速度大于阈值）
 		local moveDirection = humanoid.MoveDirection
-		local isActuallyMoving = moveDirection.Magnitude > 0.1
+		local rootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+		local velocityMag = rootPart and rootPart.AssemblyLinearVelocity.Magnitude or 0
+		local state = humanoid:GetState()
+		local isSwimming = state == Enum.HumanoidStateType.Swimming
+		local isActuallyMoving
+		if isSwimming then
+			isActuallyMoving = velocityMag > 0.5
+		else
+			isActuallyMoving = moveDirection.Magnitude > 0.1
+		end
 		if _isRun then
 			fadeIn()
-			-- 只有在真正移动且状态为Running时才消耗耐力
-			if isActuallyMoving and humanoid:GetState() == Enum.HumanoidStateType.Running then
+			if isActuallyMoving and (state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Swimming) then
 				if _staminaValue > _minEnderance then
 					local delta = dt * _enduranceConsume
 					SetStaminaValue(_staminaValue - delta)
@@ -161,6 +168,7 @@ local function InitLocalEnduranceListener()
 		_staminaValue = _maxEndurance
 		_enduranceConsume = PlayerAttribute:GetEnduranceConsume(localPlayer)
 		_enduranceRecovery = PlayerAttribute.GetEnduranceRecovery(localPlayer)
+		_maskFrame.Size = UDim2.new(_oriSizeX, 0, _maskFrame.Size.Y.Scale, _maskFrame.Size.Y.Offset)
 	end
 
 	if localPlayer.Character then

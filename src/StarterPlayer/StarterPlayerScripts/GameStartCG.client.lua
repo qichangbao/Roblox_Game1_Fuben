@@ -114,7 +114,7 @@ local function ShowGameStartCG(playerUserIds)
         Knit.GetController("UIController").ShowBlackUI:Fire(
         {
             Show = true,
-            Text = string.format("Approaching %s", mapConfig.DesignName),
+            Text = string.format("Reach the %dst island", mapConfig.Id),
             CallfuncMiddle = function()
                 _G.CGPlaying = false
                 _boat:Destroy()
